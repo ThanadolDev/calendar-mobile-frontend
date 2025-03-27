@@ -26,14 +26,14 @@ import {
   FilterAlt as FilterIcon
 } from '@mui/icons-material'
 
-import type { IRequest } from './types'
+import type { IDiecut } from '../../types/types'
 
 interface RequestTableProps {
-  data: IRequest[]
+  data: IDiecut[]
   loading: boolean
   isManager: boolean
-  handleItemSelect: (item: IRequest) => void
-  handleEditClick: (item: IRequest) => void
+  handleItemSelect: (item: IDiecut) => void
+  handleEditClick: (item: IDiecut) => void
   searchQuery: string
   setSearchQuery: (query: string) => void
 }
@@ -56,15 +56,14 @@ const RequestTable = ({
 
     // Apply search query filter
     if (searchQuery) {
-      const lowerCaseQuery = searchQuery.toLowerCase()
-
-      filtered = filtered.filter(
-        item =>
-          item.title.toLowerCase().includes(lowerCaseQuery) ||
-          item.id.toLowerCase().includes(lowerCaseQuery) ||
-          item.department?.toLowerCase().includes(lowerCaseQuery) ||
-          item.worktype?.toLowerCase().includes(lowerCaseQuery)
-      )
+      // const lowerCaseQuery = searchQuery.toLowerCase()
+      // filtered = filtered.filter(
+      //   item =>
+      //     item.title.toLowerCase().includes(lowerCaseQuery) ||
+      //     item.id.toLowerCase().includes(lowerCaseQuery) ||
+      //     item.department?.toLowerCase().includes(lowerCaseQuery) ||
+      //     item.worktype?.toLowerCase().includes(lowerCaseQuery)
+      // )
     }
 
     // Apply status filter
@@ -81,102 +80,61 @@ const RequestTable = ({
   }, [data, searchQuery, selectedStatus, selectedType])
 
   // Define table columns
-  const columns = useMemo<MRT_ColumnDef<IRequest>[]>(
+  const columns = useMemo<MRT_ColumnDef<IDiecut>[]>(
     () => [
       {
-        accessorKey: 'id',
+        accessorKey: 'DIECUT_ID',
         header: 'ID',
         size: 100
       },
       {
-        accessorKey: 'title',
-        header: 'Title',
+        accessorKey: 'DIECUT_SN',
+        header: 'DIECUT_SN',
         size: 200
       },
       {
-        accessorKey: 'status',
-        header: 'Status',
-        Cell: ({ cell }) => (
-          <Chip
-            label={cell.getValue<string>()}
-            color={
-              cell.getValue<string>() === 'Pass'
-                ? 'success'
-                : cell.getValue<string>() === 'Pending'
-                  ? 'warning'
-                  : cell.getValue<string>() === 'Rejected'
-                    ? 'error'
-                    : 'default'
-            }
-            size='small'
-          />
-        )
+        accessorKey: 'AGES',
+        header: 'AGES'
       },
       {
-        accessorKey: 'requestDate',
-        header: 'Request Date',
-        Cell: ({ cell }) => (cell.getValue<string>() ? new Date(cell.getValue<string>()).toLocaleDateString() : 'N/A')
+        accessorKey: 'USED',
+        header: 'USED'
       },
       {
-        accessorKey: 'worktype',
-        header: 'ประเภทงาน'
+        accessorKey: 'REMAIN',
+        header: 'REMAIN'
       },
       {
-        accessorKey: 'priority',
-        header: 'Priority',
-        Cell: ({ cell }) => (
-          <Chip
-            label={cell.getValue<string>()}
-            color={
-              cell.getValue<string>() === 'High'
-                ? 'error'
-                : cell.getValue<string>() === 'Medium'
-                  ? 'primary'
-                  : 'default'
-            }
-            size='small'
-          />
-        )
+        accessorKey: 'DIECUT_NEAR_EXP',
+        header: 'DIECUT_NEAR_EXP'
       },
       {
-        accessorKey: 'actions',
-        header: 'Actions',
-        enableSorting: false,
-        Cell: ({ row }) => (
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button
-              variant='outlined'
-              size='small'
-              startIcon={<VisibilityIcon />}
-              onClick={e => {
-                e.stopPropagation()
-                handleItemSelect(row.original)
-              }}
-            >
-              View
-            </Button>
-            {isManager && (
-              <Button
-                variant='contained'
-                size='small'
-                startIcon={<EditIcon />}
-                disabled={!isManager}
-                onClick={e => {
-                  e.stopPropagation()
-                  handleEditClick(row.original)
-                }}
-                sx={{
-                  backgroundColor: '#98867B',
-                  '&:hover': {
-                    backgroundColor: '#5A4D40'
-                  }
-                }}
-              >
-                Edit
-              </Button>
-            )}
-          </Box>
-        )
+        accessorKey: 'PRIORITY',
+        header: 'PRIORITY'
+      },
+      {
+        accessorKey: 'STATUS',
+        header: 'STATUS'
+      },
+      {
+        accessorKey: 'DIECUT_TYPE',
+        header: 'DIECUT_TYPE'
+      },
+      {
+        accessorKey: 'TL_STATUS',
+        header: 'TL_STATUS'
+      },
+      {
+        accessorKey: 'LAST_MODIFY',
+        header: 'LAST_MODIFY'
+      },
+      {
+        accessorKey: 'DUE_DATE',
+        header: 'DUE_DATE'
+      },
+      {
+        accessorKey: 'MODIFY_TYPE',
+        header: 'MODIFY_TYPE'
       }
     ],
     [isManager, handleItemSelect, handleEditClick]

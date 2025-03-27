@@ -20,16 +20,16 @@ const NavbarContent = () => {
   const userInfo = getUserInfo()
   const [hydrated, setHydrated] = useState(false)
 
-  // useEffect(() => {
-  //   setHydrated(true)
+  useEffect(() => {
+    setHydrated(true)
 
-  //   if (userInfo) {
-  //     console.log('have userInfo===', userInfo)
-  //   } else {
-  //     console.log('not have userInfo===', userInfo)
-  //   }
-  //   // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, [])
+    if (userInfo) {
+      console.log('have userInfo===', userInfo)
+    } else {
+      console.log('not have userInfo===', userInfo)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Wait for hydration to finish before rendering
   if (!hydrated) return null

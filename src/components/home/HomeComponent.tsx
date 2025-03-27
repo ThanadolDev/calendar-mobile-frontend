@@ -5,7 +5,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { Box, useTheme, useMediaQuery, Alert, Snackbar, CircularProgress, Typography } from '@mui/material'
 
 import { getUserInfo } from '@/utils/userInfo'
-import type { IRequest, IUserInfo } from './types'
+import type { IRequest, IUserInfo, IDiecut } from '../../types/types'
 import { mockRequests } from './mockData'
 import RequestTable from './RequestTable'
 import DetailPanel from './DetailPanel'
@@ -16,8 +16,8 @@ const HomeComponent = () => {
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [data, setData] = useState<IRequest[]>([])
-  const [selectedItem, setSelectedItem] = useState<IRequest | null>(null)
+  const [data, setData] = useState<IDiecut[]>([])
+  const [selectedItem, setSelectedItem] = useState<IDiecut | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as const })
   const [searchQuery, setSearchQuery] = useState('')
@@ -54,12 +54,12 @@ const HomeComponent = () => {
     }
   }, [userInfo])
 
-  const handleItemSelect = (item: IRequest) => {
+  const handleItemSelect = (item: IDiecut) => {
     setSelectedItem(item)
     setIsEditing(false)
   }
 
-  const handleEditClick = (item: IRequest) => {
+  const handleEditClick = (item: IDiecut) => {
     setSelectedItem(item)
     setIsEditing(true)
   }

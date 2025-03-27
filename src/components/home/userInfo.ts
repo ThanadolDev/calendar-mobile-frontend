@@ -1,4 +1,4 @@
-import type { IUserInfo } from './types'
+import type { IUserInfo } from '../../types/types'
 
 // In a real app, this would likely come from a context provider
 // or fetch from an authentication service

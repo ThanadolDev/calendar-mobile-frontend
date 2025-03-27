@@ -2,10 +2,10 @@
 
 import { Box, Typography, Chip, Paper, Button, CircularProgress } from '@mui/material'
 
-import type { IRequest } from './types'
+import type { IDiecut } from '../../types/types'
 
 interface DetailPanelProps {
-  selectedItem: IRequest | null
+  selectedItem: IDiecut | null
   isEditing: boolean
   isManager: boolean
   loading: boolean
@@ -47,42 +47,42 @@ const DetailPanel = ({
             <Box sx={{ mb: 3 }}>
               <Typography variant='subtitle2'>ID</Typography>
               <Typography variant='body2' gutterBottom>
-                {selectedItem.id}
+                {/* {selectedItem.id} */}
               </Typography>
 
               <Typography variant='subtitle2'>Title</Typography>
               <Typography variant='body2' gutterBottom>
-                {selectedItem.title}
+                {/* {selectedItem.title} */}
               </Typography>
 
               <Typography variant='subtitle2'>Status</Typography>
               <Chip
-                label={selectedItem.status}
-                color={
-                  selectedItem.status === 'Pass'
-                    ? 'success'
-                    : selectedItem.status === 'Pending'
-                      ? 'warning'
-                      : selectedItem.status === 'Rejected'
-                        ? 'error'
-                        : 'default'
-                }
+                // label={selectedItem.status}
+                // color={
+                //   selectedItem.status === 'Pass'
+                //     ? 'success'
+                //     : selectedItem.status === 'Pending'
+                //       ? 'warning'
+                //       : selectedItem.status === 'Rejected'
+                //         ? 'error'
+                //         : 'default'
+                // }
                 size='small'
                 sx={{ mb: 1 }}
               />
 
               <Typography variant='subtitle2'>Department</Typography>
               <Typography variant='body2' gutterBottom>
-                {selectedItem.department}
+                {/* {selectedItem.department} */}
               </Typography>
 
               <Typography variant='subtitle2'>Request Date</Typography>
               <Typography variant='body2' gutterBottom>
-                {selectedItem.requestDate ? new Date(selectedItem.requestDate).toLocaleDateString() : 'N/A'}
+                {/* {selectedItem.requestDate ? new Date(selectedItem.requestDate).toLocaleDateString() : 'N/A'} */}
               </Typography>
 
               <Typography variant='subtitle2'>Priority</Typography>
-              <Chip
+              {/* <Chip
                 label={selectedItem.priority || 'Not Set'}
                 color={
                   selectedItem.priority === 'High'
@@ -93,25 +93,25 @@ const DetailPanel = ({
                 }
                 size='small'
                 sx={{ mb: 1 }}
-              />
+              /> */}
 
-              {selectedItem.description && (
+              {/* {selectedItem.description && (
                 <>
                   <Typography variant='subtitle2'>Description</Typography>
                   <Typography variant='body2' gutterBottom>
                     {selectedItem.description}
                   </Typography>
                 </>
-              )}
+              )} */}
 
-              {selectedItem.requestBy && (
+              {/* {selectedItem.requestBy && (
                 <>
                   <Typography variant='subtitle2'>Requested By</Typography>
                   <Typography variant='body2' gutterBottom>
                     {selectedItem.requestBy}
                   </Typography>
                 </>
-              )}
+              )} */}
             </Box>
           )}
 
@@ -119,7 +119,7 @@ const DetailPanel = ({
             <>
               <Typography variant='subtitle2'>Request ID: {selectedItem.id}</Typography>
               <Typography variant='subtitle1' sx={{ mt: 1, mb: 1 }}>
-                {selectedItem.title}
+                {/* {selectedItem.title} */}
               </Typography>
 
               <Typography variant='subtitle2'>Status</Typography>
@@ -138,12 +138,12 @@ const DetailPanel = ({
                             : 'default'
                     }
                     onClick={() => {
-                      if (isManager) {
-                        handleStatusChange(status)
-                      }
+                      // if (isManager) {
+                      //   handleStatusChange(status)
+                      // }
                     }}
                     disabled={!isManager}
-                    variant={selectedItem.status === status ? 'filled' : 'outlined'}
+                    // variant={selectedItem.status === status ? 'filled' : 'outlined'}
                     sx={{ mr: 1, mb: 1, opacity: isManager ? 1 : 0.7 }}
                   />
                 ))}
