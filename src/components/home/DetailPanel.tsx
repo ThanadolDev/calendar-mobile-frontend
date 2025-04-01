@@ -204,7 +204,17 @@ const DetailPanel = ({
               </Box>
 
               {/* Bottom 10% - Edit Button */}
-              <Box sx={{ pt: 1, borderTop: '1px solid #E0E0E0' }}>
+              <Box
+                sx={{
+                  pt: 2,
+                  mt: 'auto',
+                  borderTop: '1px solid #E0E0E0',
+                  position: 'sticky',
+                  bottom: 0,
+                  backgroundColor: 'background.paper',
+                  width: '100%'
+                }}
+              >
                 <Button
                   variant='contained'
                   color='primary'

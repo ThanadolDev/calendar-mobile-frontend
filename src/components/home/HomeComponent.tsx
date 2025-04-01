@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 
-import { Box, useTheme, useMediaQuery, Alert, Snackbar, CircularProgress, Typography } from '@mui/material'
+import { Box, useTheme, useMediaQuery, Alert, Snackbar, CircularProgress, Typography, Paper } from '@mui/material'
 
 import { getUserInfo } from '@/utils/userInfo'
 import type { IUserInfo, IDiecut } from '../../types/types'
@@ -159,7 +159,7 @@ const HomeComponent = () => {
           gap: 2,
           gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)',
           gridTemplateRows: isMobile ? 'auto auto auto' : '1fr',
-          height: 'calc(100vh - 110px)' // Adjust based on navbar height
+          height: 'calc(100vh - 120px)' // Adjust based on navbar height
         }}
       >
         {error && (
@@ -178,13 +178,15 @@ const HomeComponent = () => {
         )}
 
         {/* Main content area */}
-        <Box
+
+        <Paper
           sx={{
             p: 2,
             gridColumn: isMobile ? 'span 4' : 'span 3',
             overflow: 'hidden',
             backgroundColor: 'background.paper'
           }}
+          className='shadow'
         >
           <RequestTable
             data={data}
@@ -195,7 +197,7 @@ const HomeComponent = () => {
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
           />
-        </Box>
+        </Paper>
 
         {/* Right sidebar panel */}
         <Box
