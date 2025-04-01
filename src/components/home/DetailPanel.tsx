@@ -37,7 +37,7 @@ const DetailPanel = ({
       }}
       className='shadow'
     >
-      <Typography variant='h6' gutterBottom>
+      <Typography sx={{ mb: 3 }} variant='h6' gutterBottom>
         {isEditing ? 'Edit Request' : selectedItem ? 'Request Details' : 'Details'}
       </Typography>
 
@@ -47,89 +47,106 @@ const DetailPanel = ({
             <Box sx={{ mb: 3 }}>
               <Typography variant='subtitle2'>ID</Typography>
               <Typography variant='body2' gutterBottom>
-                {/* {selectedItem.id} */}
+                {selectedItem.DIECUT_ID}
               </Typography>
 
-              <Typography variant='subtitle2'>Title</Typography>
+              <Typography variant='subtitle2'>DIECUT_SN</Typography>
               <Typography variant='body2' gutterBottom>
-                {/* {selectedItem.title} */}
+                {selectedItem.DIECUT_SN}
               </Typography>
 
               <Typography variant='subtitle2'>Status</Typography>
               <Chip
-                // label={selectedItem.status}
-                // color={
-                //   selectedItem.status === 'Pass'
-                //     ? 'success'
-                //     : selectedItem.status === 'Pending'
-                //       ? 'warning'
-                //       : selectedItem.status === 'Rejected'
-                //         ? 'error'
-                //         : 'default'
-                // }
+                label={selectedItem.STATUS}
+                color={
+                  selectedItem.STATUS === 'Pass'
+                    ? 'success'
+                    : selectedItem.STATUS === 'Pending'
+                      ? 'warning'
+                      : selectedItem.STATUS === 'Rejected'
+                        ? 'error'
+                        : 'default'
+                }
                 size='small'
                 sx={{ mb: 1 }}
               />
 
-              <Typography variant='subtitle2'>Department</Typography>
+              <Typography variant='subtitle2'>Type</Typography>
               <Typography variant='body2' gutterBottom>
-                {/* {selectedItem.department} */}
+                {selectedItem.DIECUT_TYPE}
               </Typography>
 
-              <Typography variant='subtitle2'>Request Date</Typography>
+              <Typography variant='subtitle2'>TL Status</Typography>
               <Typography variant='body2' gutterBottom>
-                {/* {selectedItem.requestDate ? new Date(selectedItem.requestDate).toLocaleDateString() : 'N/A'} */}
+                {selectedItem.TL_STATUS}
+              </Typography>
+
+              <Typography variant='subtitle2'>Last Modified</Typography>
+              <Typography variant='body2' gutterBottom>
+                {selectedItem.LAST_MODIFY ? new Date(selectedItem.LAST_MODIFY).toLocaleDateString() : 'N/A'}
+              </Typography>
+
+              <Typography variant='subtitle2'>Due Date</Typography>
+              <Typography variant='body2' gutterBottom>
+                {selectedItem.DUE_DATE ? new Date(selectedItem.DUE_DATE).toLocaleDateString() : 'N/A'}
               </Typography>
 
               <Typography variant='subtitle2'>Priority</Typography>
-              {/* <Chip
-                label={selectedItem.priority || 'Not Set'}
+              <Chip
+                label={selectedItem.PRIORITY || 'Not Set'}
                 color={
-                  selectedItem.priority === 'High'
+                  selectedItem.PRIORITY === 'High'
                     ? 'error'
-                    : selectedItem.priority === 'Medium'
+                    : selectedItem.PRIORITY === 'Medium'
                       ? 'primary'
                       : 'default'
                 }
                 size='small'
                 sx={{ mb: 1 }}
-              /> */}
+              />
 
-              {/* {selectedItem.description && (
-                <>
-                  <Typography variant='subtitle2'>Description</Typography>
-                  <Typography variant='body2' gutterBottom>
-                    {selectedItem.description}
-                  </Typography>
-                </>
-              )} */}
+              <Typography variant='subtitle2'>Ages</Typography>
+              <Typography variant='body2' gutterBottom>
+                {selectedItem.AGES}
+              </Typography>
 
-              {/* {selectedItem.requestBy && (
-                <>
-                  <Typography variant='subtitle2'>Requested By</Typography>
-                  <Typography variant='body2' gutterBottom>
-                    {selectedItem.requestBy}
-                  </Typography>
-                </>
-              )} */}
+              <Typography variant='subtitle2'>Used</Typography>
+              <Typography variant='body2' gutterBottom>
+                {selectedItem.USED}
+              </Typography>
+
+              <Typography variant='subtitle2'>Remain</Typography>
+              <Typography variant='body2' gutterBottom>
+                {selectedItem.REMAIN}
+              </Typography>
+
+              <Typography variant='subtitle2'>Near Expiration</Typography>
+              <Typography variant='body2' gutterBottom>
+                {selectedItem.DIECUT_NEAR_EXP ? 'Yes' : 'No'}
+              </Typography>
+
+              <Typography variant='subtitle2'>Modify Type</Typography>
+              <Typography variant='body2' gutterBottom>
+                {selectedItem.MODIFY_TYPE}
+              </Typography>
             </Box>
           )}
 
           {isEditing ? (
             <>
-              <Typography variant='subtitle2'>Request ID: {selectedItem.id}</Typography>
+              <Typography variant='subtitle2'>Request ID: {selectedItem.DIECUT_ID}</Typography>
               <Typography variant='subtitle1' sx={{ mt: 1, mb: 1 }}>
-                {/* {selectedItem.title} */}
+                {selectedItem.DIECUT_SN}
               </Typography>
 
               <Typography variant='subtitle2'>Status</Typography>
               <Box sx={{ mb: 2 }}>
-                {(['Pending', 'Approved', 'Rejected'] as const).map(status => (
+                {(['Pending', 'Pass', 'Rejected'] as const).map(status => (
                   <Chip
                     key={status}
                     label={status}
                     color={
-                      status === 'Approved'
+                      status === 'Pass'
                         ? 'success'
                         : status === 'Pending'
                           ? 'warning'
@@ -138,12 +155,12 @@ const DetailPanel = ({
                             : 'default'
                     }
                     onClick={() => {
-                      // if (isManager) {
-                      //   handleStatusChange(status)
-                      // }
+                      if (isManager) {
+                        handleStatusChange(status)
+                      }
                     }}
                     disabled={!isManager}
-                    // variant={selectedItem.status === status ? 'filled' : 'outlined'}
+                    variant={selectedItem.STATUS === status ? 'filled' : 'outlined'}
                     sx={{ mr: 1, mb: 1, opacity: isManager ? 1 : 0.7 }}
                   />
                 ))}

@@ -28,14 +28,14 @@ import useRedirect from '@/utils/useRedirect'
 import { getRefreshToken, getTokenBySessionIdAndUserId, getVerifyToken } from '@/services/apiService'
 
 // Styled component for badge content
-const BadgeContentSpan = styled('span')({
-  width: 8,
-  height: 8,
-  borderRadius: '50%',
-  cursor: 'pointer',
-  backgroundColor: 'var(--mui-palette-success-main)',
-  boxShadow: '0 0 0 2px var(--mui-palette-background-paper)'
-})
+// const BadgeContentSpan = styled('span')({
+//   width: 8,
+//   height: 8,
+//   borderRadius: '50%',
+//   cursor: 'pointer',
+//   backgroundColor: 'var(--mui-palette-success-main)',
+//   boxShadow: '0 0 0 2px var(--mui-palette-background-paper)'
+// })
 
 const UserDropdown = () => {
   // Hydration state
@@ -77,7 +77,7 @@ const UserDropdown = () => {
   }
 
   // Check for user redirection
-  // useRedirect(userInfo)
+  useRedirect(userInfo)
 
   const checkVerifyToken = async (accessToken: string) => {
     if (!userInfo?.sessionId || !userInfo?.id) {
@@ -145,19 +145,19 @@ const UserDropdown = () => {
     }
   }
 
-  // useEffect(() => {
-  //   setHydrated(true)
+  useEffect(() => {
+    setHydrated(true)
 
-  //   if (userInfo) {
-  //     // console.log('have userInfo===', userInfo)
+    if (userInfo) {
+      // console.log('have userInfo===', userInfo)
 
-  //     // ส่งไปเช็ค verify
-  //     checkVerifyToken(userInfo.accessToken)
-  //   } else {
-  //     // console.log('not have userInfo===', userInfo)
-  //   }
-  //   // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, [])
+      // ส่งไปเช็ค verify
+      checkVerifyToken(userInfo.accessToken)
+    } else {
+      // console.log('not have userInfo===', userInfo)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     if (userInfo?.id) {

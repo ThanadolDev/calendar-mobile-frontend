@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 
 import type { MRT_ColumnDef } from 'material-react-table'
 import { MaterialReactTable } from 'material-react-table'
@@ -23,7 +23,8 @@ import {
   Edit as EditIcon,
   Visibility as VisibilityIcon,
   Search as SearchIcon,
-  FilterAlt as FilterIcon
+  FilterAlt as FilterIcon,
+  Clear as ClearIcon
 } from '@mui/icons-material'
 
 import type { IDiecut } from '../../types/types'
@@ -50,34 +51,56 @@ const RequestTable = ({
   const [selectedStatus, setSelectedStatus] = useState<string>('')
   const [selectedType, setSelectedType] = useState<string>('')
 
+  // Extract unique values for dropdowns
+  const uniqueDiecutTypes = useMemo(() => {
+    const types = new Set(data.map(item => item.DIECUT_TYPE).filter(Boolean))
+
+    return Array.from(types).sort()
+  }, [data])
+
+  const uniqueStatuses = useMemo(() => {
+    const statuses = new Set(data.map(item => item.STATUS).filter(Boolean))
+
+    return Array.from(statuses).sort()
+  }, [data])
+
   // Filter data based on search query and filters
   const filteredData = useMemo(() => {
     let filtered = [...data]
 
-    // Apply search query filter
+    // Apply search query filter (search in multiple fields)
     if (searchQuery) {
-      // const lowerCaseQuery = searchQuery.toLowerCase()
-      // filtered = filtered.filter(
-      //   item =>
-      //     item.title.toLowerCase().includes(lowerCaseQuery) ||
-      //     item.id.toLowerCase().includes(lowerCaseQuery) ||
-      //     item.department?.toLowerCase().includes(lowerCaseQuery) ||
-      //     item.worktype?.toLowerCase().includes(lowerCaseQuery)
-      // )
+      const lowerCaseQuery = searchQuery.toLowerCase().trim()
+
+      filtered = filtered.filter(
+        item =>
+          (item.DIECUT_ID && item.DIECUT_ID.toString().toLowerCase().includes(lowerCaseQuery)) ||
+          (item.DIECUT_SN && item.DIECUT_SN.toLowerCase().includes(lowerCaseQuery)) ||
+          (item.DIECUT_TYPE && item.DIECUT_TYPE.toLowerCase().includes(lowerCaseQuery)) ||
+          (item.STATUS && item.STATUS.toLowerCase().includes(lowerCaseQuery)) ||
+          (item.MODIFY_TYPE && item.MODIFY_TYPE.toLowerCase().includes(lowerCaseQuery))
+      )
     }
 
     // Apply status filter
     if (selectedStatus) {
-      filtered = filtered.filter(item => item.status === selectedStatus)
+      filtered = filtered.filter(item => item.STATUS === selectedStatus)
     }
 
-    // Apply department/type filter
+    // Apply diecut type filter
     if (selectedType) {
-      filtered = filtered.filter(item => item.worktype === selectedType)
+      filtered = filtered.filter(item => item.DIECUT_TYPE === selectedType)
     }
 
     return filtered
   }, [data, searchQuery, selectedStatus, selectedType])
+
+  // Clear all filters
+  const handleClearFilters = () => {
+    setSearchQuery('')
+    setSelectedStatus('')
+    setSelectedType('')
+  }
 
   // Define table columns
   const columns = useMemo<MRT_ColumnDef<IDiecut>[]>(
@@ -110,11 +133,41 @@ const RequestTable = ({
       },
       {
         accessorKey: 'PRIORITY',
-        header: 'PRIORITY'
+        header: 'PRIORITY',
+        Cell: ({ cell }) => {
+          const priority = cell.getValue<string>()
+
+          return priority ? (
+            <Chip
+              label={priority}
+              size='small'
+              color={priority === 'High' ? 'error' : priority === 'Medium' ? 'warning' : 'default'}
+            />
+          ) : null
+        }
       },
       {
         accessorKey: 'STATUS',
-        header: 'STATUS'
+        header: 'STATUS',
+        Cell: ({ cell }) => {
+          const status = cell.getValue<string>()
+
+          return status ? (
+            <Chip
+              label={status}
+              size='small'
+              color={
+                status === 'Pass'
+                  ? 'success'
+                  : status === 'Pending'
+                    ? 'warning'
+                    : status === 'Rejected'
+                      ? 'error'
+                      : 'default'
+              }
+            />
+          ) : null
+        }
       },
       {
         accessorKey: 'DIECUT_TYPE',
@@ -126,18 +179,40 @@ const RequestTable = ({
       },
       {
         accessorKey: 'LAST_MODIFY',
-        header: 'LAST_MODIFY'
+        header: 'LAST_MODIFY',
+        Cell: ({ cell }) => {
+          const date = cell.getValue<string>()
+
+          if (!date) return null
+
+          try {
+            return new Date(date).toLocaleDateString()
+          } catch (e) {
+            return date
+          }
+        }
       },
       {
         accessorKey: 'DUE_DATE',
-        header: 'DUE_DATE'
+        header: 'DUE_DATE',
+        Cell: ({ cell }) => {
+          const date = cell.getValue<string>()
+
+          if (!date) return null
+
+          try {
+            return new Date(date).toLocaleDateString()
+          } catch (e) {
+            return date
+          }
+        }
       },
       {
         accessorKey: 'MODIFY_TYPE',
         header: 'MODIFY_TYPE'
       }
     ],
-    [isManager, handleItemSelect, handleEditClick]
+    []
   )
 
   // Define custom top toolbar with search and filters
@@ -156,7 +231,7 @@ const RequestTable = ({
         }}
       >
         <TextField
-          placeholder='Search...'
+          placeholder='Search (ID, SN, Type, Status...)'
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
           size='small'
@@ -165,10 +240,15 @@ const RequestTable = ({
               <InputAdornment position='start'>
                 <SearchIcon fontSize='small' />
               </InputAdornment>
-            )
+            ),
+            endAdornment: searchQuery ? (
+              <InputAdornment position='end'>
+                <ClearIcon fontSize='small' sx={{ cursor: 'pointer' }} onClick={() => setSearchQuery('')} />
+              </InputAdornment>
+            ) : null
           }}
           sx={{
-            width: '200px',
+            width: '300px',
             '& .MuiOutlinedInput-root': {
               backgroundColor: '#f5f5f5'
             }
@@ -176,17 +256,20 @@ const RequestTable = ({
         />
 
         <FormControl size='small' sx={{ minWidth: 150 }}>
-          <InputLabel id='worktype-filter-label'>ประเภทงาน</InputLabel>
+          <InputLabel id='diecut-type-filter-label'>Diecut Type</InputLabel>
           <Select
-            labelId='worktype-filter-label'
-            id='worktype-filter'
+            labelId='diecut-type-filter-label'
+            id='diecut-type-filter'
             value={selectedType}
-            label='ประเภทงาน'
+            label='Diecut Type'
             onChange={(e: SelectChangeEvent) => setSelectedType(e.target.value)}
           >
-            <MenuItem value=''>All</MenuItem>
-            <MenuItem value='เปลี่ยนใบมีด'>เปลี่ยนใบมีด</MenuItem>
-            <MenuItem value='ซ่อมบำรุง'>ซ่อมบำรุง</MenuItem>
+            <MenuItem value=''>All Types</MenuItem>
+            {uniqueDiecutTypes.map(type => (
+              <MenuItem key={type} value={type}>
+                {type}
+              </MenuItem>
+            ))}
           </Select>
         </FormControl>
 
@@ -199,31 +282,34 @@ const RequestTable = ({
             label='Status'
             onChange={(e: SelectChangeEvent) => setSelectedStatus(e.target.value)}
           >
-            <MenuItem value=''>All</MenuItem>
-            <MenuItem value='Pass'>Pass</MenuItem>
-            <MenuItem value='Pending'>Pending</MenuItem>
-            <MenuItem value='Rejected'>Rejected</MenuItem>
+            <MenuItem value=''>All Statuses</MenuItem>
+            {uniqueStatuses.map(status => (
+              <MenuItem key={status} value={status}>
+                {status}
+              </MenuItem>
+            ))}
           </Select>
         </FormControl>
 
         <Button
-          variant='contained'
-          startIcon={<FilterIcon />}
+          variant='outlined'
+          startIcon={<ClearIcon />}
           size='small'
+          onClick={handleClearFilters}
           sx={{
-            backgroundColor: '#98867B',
+            borderColor: '#98867B',
+            color: '#5A4D40',
             '&:hover': {
-              backgroundColor: '#5A4D40'
+              borderColor: '#5A4D40',
+              backgroundColor: alpha('#D0C6BD', 0.1)
             }
           }}
-          onClick={() => {
-            // Apply filters if needed (currently reactive)
-          }}
         >
-          Apply Filters
+          Clear Filters
         </Button>
 
         <Box sx={{ marginLeft: 'auto' }}>
+          <Chip label={`${filteredData.length} of ${data.length} items`} size='small' sx={{ mr: 1 }} />
           <Chip
             label={isManager ? 'Manager View' : 'User View'}
             color={isManager ? 'primary' : 'default'}
@@ -250,18 +336,18 @@ const RequestTable = ({
         enableColumnFilters={false}
         enableGlobalFilter={false}
         enableColumnResizing={true}
-        enablePinning={true}
         enableColumnPinning={true}
         enableColumnActions={true}
         enableTopToolbar={true}
+        positionToolbarAlertBanner='bottom'
         state={{
           isLoading: loading
         }}
         renderTopToolbar={renderTopToolbar}
+        paginationDisplayMode='pages'
         muiTableContainerProps={{
           sx: {
             maxHeight: '65vh',
-            fontFamily: "'Noto Serif Thai', serif",
             '& .MuiTableRow-root:nth-of-type(odd)': {
               backgroundColor: alpha('#EFEDEA', 0.7)
             },
@@ -280,8 +366,7 @@ const RequestTable = ({
           sx: {
             backgroundColor: '#E6E1DC',
             borderTop: '1px solid',
-            borderColor: alpha('#D0C6BD', 0.6),
-            fontFamily: "'Noto Serif Thai', serif"
+            borderColor: alpha('#D0C6BD', 0.6)
           }
         }}
         muiTableHeadProps={{
@@ -289,8 +374,7 @@ const RequestTable = ({
             '& .MuiTableCell-head': {
               backgroundColor: '#E6E1DC',
               color: '#000000',
-              fontWeight: 'bold',
-              fontFamily: "'Noto Serif Thai', serif"
+              fontWeight: 'bold'
             }
           }
         }}
@@ -298,14 +382,12 @@ const RequestTable = ({
           sx: {
             border: '1px solid',
             borderColor: alpha('#D0C6BD', 0.5),
-            boxShadow: '0px 2px 4px rgba(208, 198, 189, 0.2)',
-            fontFamily: "'Noto Serif Thai', serif"
+            boxShadow: '0px 2px 4px rgba(208, 198, 189, 0.2)'
           }
         }}
         muiTableBodyCellProps={{
           sx: {
-            color: '#000000',
-            fontFamily: "'Noto Serif Thai', serif"
+            color: '#000000'
           }
         }}
         muiSelectCheckboxProps={{
@@ -320,7 +402,6 @@ const RequestTable = ({
           onClick: () => handleItemSelect(row.original),
           sx: {
             cursor: 'pointer',
-            fontFamily: "'Noto Serif Thai', serif",
             '&:hover': {
               backgroundColor: alpha('#D5AA9F', 0.2)
             },
@@ -331,10 +412,86 @@ const RequestTable = ({
           }
         })}
         initialState={{
-          pagination: { pageSize: 10, pageIndex: 0 },
+          pagination: { pageSize: 100, pageIndex: 0 },
           density: 'compact',
           columnPinning: {
-            left: ['mrt-row-select', 'id', 'title']
+            left: ['DIECUT_ID', 'DIECUT_SN']
+          }
+        }}
+        muiPaginationProps={{
+          SelectProps: {
+            sx: {
+              backgroundColor: '#f5f5f5',
+              border: '1px solid #D0C6BD',
+              borderRadius: '4px',
+              padding: '2px 8px',
+              '&:focus': {
+                backgroundColor: '#f5f5f5'
+              },
+              '& .MuiSelect-select.MuiInputBase-input.MuiInput-input': {
+                paddingRight: '34px !important'
+              },
+              '& .tabler-chevron-down': {}
+            }
+          },
+          color: 'primary',
+          shape: 'rounded',
+          showFirstButton: true,
+          showLastButton: true,
+          size: 'medium',
+          sx: {
+            '.MuiPagination-ul': {
+              gap: '4px'
+            },
+
+            '.MuiPaginationItem-root': {
+              backgroundColor: '#f5f5f5',
+              border: '1px solid #D0C6BD',
+              color: '#5A4D40',
+              fontWeight: 600,
+              '&.Mui-selected': {
+                backgroundColor: '#98867B',
+                color: 'white'
+              },
+              '&:hover': {
+                backgroundColor: alpha('#D5AA9F', 0.2)
+              }
+            }
+          }
+        }}
+        rowsPerPageOptions={[10, 50, 100, 500, 1000]}
+        pageSizeOptions={[10, 50, 100, 500, 1000]}
+        muiTablePaginationProps={{
+          SelectProps: {
+            sx: {
+              backgroundColor: '#f5f5f5',
+              border: '1px solid #D0C6BD',
+              borderRadius: '4px',
+              padding: '2px 8px',
+              '&:focus': {
+                backgroundColor: '#f5f5f5'
+              }
+            }
+          },
+          labelRowsPerPage: 'Rows:',
+          sx: {
+            '.MuiTablePagination-displayedRows': {
+              fontWeight: 'bold',
+              color: '#5A4D40',
+              marginRight: '8px'
+            },
+            '.MuiTablePagination-actions': {
+              marginLeft: '8px',
+              '& .MuiIconButton-root': {
+                color: '#5A4D40',
+                '&:hover': {
+                  backgroundColor: alpha('#D5AA9F', 0.2)
+                },
+                '&.Mui-disabled': {
+                  color: alpha('#5A4D40', 0.3)
+                }
+              }
+            }
           }
         }}
       />

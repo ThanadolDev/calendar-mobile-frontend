@@ -5,10 +5,10 @@ import { useEffect, useState, useCallback } from 'react'
 import { Box, useTheme, useMediaQuery, Alert, Snackbar, CircularProgress, Typography } from '@mui/material'
 
 import { getUserInfo } from '@/utils/userInfo'
-import type { IRequest, IUserInfo, IDiecut } from '../../types/types'
-import { mockRequests } from './mockData'
+import type { IUserInfo, IDiecut } from '../../types/types'
 import RequestTable from './RequestTable'
 import DetailPanel from './DetailPanel'
+import { api } from '../../services/api'
 
 const HomeComponent = () => {
   const theme = useTheme()
@@ -23,7 +23,7 @@ const HomeComponent = () => {
   const [searchQuery, setSearchQuery] = useState('')
 
   const userInfo = getUserInfo() as IUserInfo | null
-  const isManager = userInfo?.role === 'manager'
+  const isManager = true
 
   const fetchData = useCallback(async () => {
     // if (!userInfo?.id && !userInfo?.ORG_ID) {
@@ -36,23 +36,23 @@ const HomeComponent = () => {
     setError(null)
 
     try {
-      // In a real app, you would fetch from API
-      // const response = await fetch(`/api/requests?userId=${userInfo.id}&orgId=${userInfo.ORG_ID}`)
-      // if (!response.ok) throw new Error(`Server responded with status: ${response.status}`)
-      // const result = await response.json()
-      // setData(result.data || [])
+      const response = await fetch(`http://localhost:2525/api/diecuts/status`)
 
-      // Using mock data
-      setTimeout(() => {
-        setData(mockRequests)
-        setLoading(false)
-      }, 800) // Simulate network delay
+      // setData(result.data || [])
+      // const response = await api.get(`http://localhost:2525/api/diecuts/status`)
+
+      const result = await response.json()
+
+      if (!response.ok) throw new Error(`Server responded with status: ${response.status}`)
+      console.log(result.data.diecuts)
+      setData(result.data.diecuts)
+      setLoading(false)
     } catch (error) {
       console.error('Error fetching data:', error)
       setError(error instanceof Error ? error.message : 'Failed to fetch data. Please try again later.')
       setLoading(false)
     }
-  }, [userInfo])
+  }, [])
 
   const handleItemSelect = (item: IDiecut) => {
     setSelectedItem(item)
@@ -68,11 +68,10 @@ const HomeComponent = () => {
     setIsEditing(true)
   }
 
-  const handleStatusChange = (status: 'Pending' | 'Approved' | 'Rejected') => {
+  const handleStatusChange = () => {
     if (selectedItem) {
       setSelectedItem({
-        ...selectedItem,
-        status
+        ...selectedItem
       })
     }
   }
@@ -97,7 +96,7 @@ const HomeComponent = () => {
       await new Promise(resolve => setTimeout(resolve, 1000))
 
       // Update local data
-      setData(prev => prev.map(item => (item.id === selectedItem.id ? selectedItem : item)))
+      setData(prev => prev.map(item => (item.DIECUT_ID === selectedItem.DIECUT_ID ? selectedItem : item)))
 
       setIsEditing(false)
       setSnackbar({
@@ -107,11 +106,12 @@ const HomeComponent = () => {
       })
     } catch (error) {
       console.error('Error saving changes:', error)
-      setSnackbar({
-        open: true,
-        message: `Failed to save changes: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        severity: 'error'
-      })
+
+      // setSnackbar({
+      //   open: true,
+      //   message: `Failed to save changes: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      //   severity: 'error'
+      // })
     } finally {
       setLoading(false)
     }
@@ -121,7 +121,7 @@ const HomeComponent = () => {
     setIsEditing(false)
 
     // Reset to original data
-    setSelectedItem(data.find(item => item.id === selectedItem?.id) || null)
+    setSelectedItem(data.find(item => item.DIECUT_ID === selectedItem?.DIECUT_ID) || null)
   }
 
   const handleSnackbarClose = () => {
