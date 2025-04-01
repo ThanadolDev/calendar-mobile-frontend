@@ -419,6 +419,10 @@ const RequestTable = ({
           }
         }}
         muiPaginationProps={{
+          rowsPerPageOptions: [
+            10, 50, 100, 500
+            // { value: -1, label: 'All' }
+          ],
           SelectProps: {
             sx: {
               backgroundColor: '#f5f5f5',

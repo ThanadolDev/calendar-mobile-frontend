@@ -22,8 +22,9 @@ const DetailPanel = ({
   loading,
   handleEdit,
   handleSave,
-  handleCancel,
-  handleStatusChange
+  handleCancel
+
+  // handleStatusChange
 }: DetailPanelProps) => {
   return (
     <Paper
@@ -33,7 +34,10 @@ const DetailPanel = ({
         gridRow: 'span 4',
         overflow: 'auto',
         backgroundColor: 'background.paper',
-        transition: 'all 0.3s ease'
+        transition: 'all 0.3s ease',
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%'
       }}
       className='shadow'
     >
@@ -139,34 +143,23 @@ const DetailPanel = ({
                 {selectedItem.DIECUT_SN}
               </Typography>
 
-              <Typography variant='subtitle2'>Status</Typography>
-              <Box sx={{ mb: 2 }}>
-                {(['Pending', 'Pass', 'Rejected'] as const).map(status => (
-                  <Chip
-                    key={status}
-                    label={status}
-                    color={
-                      status === 'Pass'
-                        ? 'success'
-                        : status === 'Pending'
-                          ? 'warning'
-                          : status === 'Rejected'
-                            ? 'error'
-                            : 'default'
-                    }
-                    onClick={() => {
-                      if (isManager) {
-                        handleStatusChange(status)
-                      }
-                    }}
-                    disabled={!isManager}
-                    variant={selectedItem.STATUS === status ? 'filled' : 'outlined'}
-                    sx={{ mr: 1, mb: 1, opacity: isManager ? 1 : 0.7 }}
-                  />
-                ))}
-              </Box>
-
-              <Box sx={{ mt: 2, display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+              <Typography variant='subtitle2'>เริ่มงานวันที่</Typography>
+              <Box sx={{ mb: 2 }}></Box>
+              <Typography variant='subtitle2'>สิ้นสุดวันที่</Typography>
+              <Box sx={{ mb: 2 }}></Box>
+              <Typography variant='subtitle2'>อายุ tooling</Typography>
+              <Box sx={{ mb: 2 }}></Box>
+              <Typography variant='subtitle2'>ปัญหาจาก production</Typography>
+              <Box sx={{ mb: 2 }}></Box>
+              <Typography variant='subtitle2'>รายละเอียดในการแก้ไข</Typography>
+              <Box sx={{ mb: 2 }}></Box>
+              <Typography variant='subtitle2'>ระยะมีด</Typography>
+              <Box sx={{ mb: 2 }}></Box>
+              <Typography variant='subtitle2'>สาเหตุที่ใช้มีดคู่</Typography>
+              <Box sx={{ mb: 2 }}></Box>
+              <Typography variant='subtitle2'>รายละเอียดในการใช้มีดคู่</Typography>
+              <Box sx={{ mb: 2 }}></Box>
+              <Box sx={{ mt: 'auto', display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
                 <Button variant='outlined' color='secondary' onClick={handleCancel} disabled={loading}>
                   Cancel
                 </Button>
@@ -199,6 +192,8 @@ const DetailPanel = ({
                 disabled={!isManager}
                 fullWidth
                 sx={{
+                  mt: 'auto',
+                  pt: 2,
                   backgroundColor: '#98867B',
                   '&:hover': {
                     backgroundColor: '#5A4D40'
