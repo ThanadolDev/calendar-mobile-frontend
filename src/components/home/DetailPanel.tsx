@@ -1,6 +1,8 @@
 'use client'
 
-import { Box, Typography, Chip, Paper, Button, CircularProgress } from '@mui/material'
+import { useState } from 'react'
+
+import { Box, Typography, Chip, Paper, Button, CircularProgress, TextField, Grid } from '@mui/material'
 
 import type { IDiecut } from '../../types/types'
 
@@ -22,10 +24,18 @@ const DetailPanel = ({
   loading,
   handleEdit,
   handleSave,
-  handleCancel
-
-  // handleStatusChange
+  handleCancel,
+  handleStatusChange
 }: DetailPanelProps) => {
+  const [startDate, setStartDate] = useState<Date | null>(null)
+  const [endDate, setEndDate] = useState<Date | null>(null)
+  const [toolingAge, setToolingAge] = useState('')
+  const [productionIssue, setProductionIssue] = useState('')
+  const [fixDetails, setFixDetails] = useState('')
+  const [bladeSize, setBladeSize] = useState('')
+  const [dualBladeReason, setDualBladeReason] = useState('')
+  const [dualBladeDetails, setDualBladeDetails] = useState('')
+
   return (
     <Paper
       elevation={3}
@@ -34,134 +44,317 @@ const DetailPanel = ({
         gridRow: 'span 4',
         overflow: 'auto',
         backgroundColor: 'background.paper',
-        transition: 'all 0.3s ease',
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%'
+        transition: 'all 0.3s ease'
       }}
       className='shadow'
     >
-      <Typography sx={{ mb: 3 }} variant='h6' gutterBottom>
-        {isEditing ? 'Edit Request' : selectedItem ? 'Request Details' : 'Details'}
+      <Typography variant='h6' gutterBottom>
+        {isEditing ? 'แก้ไขคำขอเปลี่ยนใบมีด' : selectedItem ? 'รายละเอียดคำขอ' : 'รายละเอียด'}
       </Typography>
 
       {selectedItem ? (
         <>
           {!isEditing && (
-            <Box sx={{ mb: 3 }}>
-              <Typography variant='subtitle2'>ID</Typography>
-              <Typography variant='body2' gutterBottom>
-                {selectedItem.DIECUT_ID}
-              </Typography>
+            <>
+              {/* Top 30% - Request Details */}
+              <Box
+                sx={{
+                  mb: 2,
+                  pb: 2,
+                  height: '30%',
+                  borderBottom: '1px solid #E0E0E0',
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: 1
+                }}
+              >
+                <Grid container spacing={1}>
+                  <Grid item xs={6}>
+                    <Typography variant='subtitle2'>รหัสคำขอ</Typography>
+                    <Typography variant='body2' gutterBottom>
+                      {selectedItem.DIECUT_ID}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant='subtitle2'>หมายเลขใบมีด</Typography>
+                    <Typography variant='body2' gutterBottom>
+                      {selectedItem.DIECUT_SN}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant='subtitle2'>สถานะ</Typography>
+                    <Chip
+                      label={selectedItem.STATUS || 'รอดำเนินการ'}
+                      color={
+                        selectedItem.STATUS === 'Pass'
+                          ? 'success'
+                          : selectedItem.STATUS === 'Pending'
+                            ? 'warning'
+                            : selectedItem.STATUS === 'Rejected'
+                              ? 'error'
+                              : 'default'
+                      }
+                      size='small'
+                      sx={{ mb: 1 }}
+                    />
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant='subtitle2'>ประเภท</Typography>
+                    <Typography variant='body2' gutterBottom>
+                      {selectedItem.DIECUT_TYPE || 'ไม่ระบุ'}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant='subtitle2'>อายุการใช้งาน</Typography>
+                    <Typography variant='body2' gutterBottom>
+                      {selectedItem.AGES || 'ไม่ระบุ'}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant='subtitle2'>ความเร่งด่วน</Typography>
+                    <Chip
+                      label={selectedItem.PRIORITY || 'ไม่ระบุ'}
+                      color={
+                        selectedItem.PRIORITY === 'High'
+                          ? 'error'
+                          : selectedItem.PRIORITY === 'Medium'
+                            ? 'primary'
+                            : 'default'
+                      }
+                      size='small'
+                      sx={{ mb: 1 }}
+                    />
+                  </Grid>
+                </Grid>
+              </Box>
 
-              <Typography variant='subtitle2'>DIECUT_SN</Typography>
-              <Typography variant='body2' gutterBottom>
-                {selectedItem.DIECUT_SN}
-              </Typography>
+              {/* Middle 60% - Blade Card List */}
+              <Box sx={{ height: '55%', overflow: 'auto', mb: 2 }}>
+                <Typography variant='subtitle1' gutterBottom sx={{ fontWeight: 'bold', mb: 2 }}>
+                  รายการใบมีด
+                </Typography>
 
-              <Typography variant='subtitle2'>Status</Typography>
-              <Chip
-                label={selectedItem.STATUS}
-                color={
-                  selectedItem.STATUS === 'Pass'
-                    ? 'success'
-                    : selectedItem.STATUS === 'Pending'
-                      ? 'warning'
-                      : selectedItem.STATUS === 'Rejected'
-                        ? 'error'
-                        : 'default'
-                }
-                size='small'
-                sx={{ mb: 1 }}
-              />
+                {/* Mock blade list - replace with actual data */}
+                {[1, 2, 3].map(num => (
+                  <Paper
+                    key={num}
+                    variant='outlined'
+                    sx={{
+                      p: 2,
+                      mb: 2,
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                      }
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                      <Typography variant='subtitle2' sx={{ fontWeight: 'bold' }}>
+                        ใบมีด #{num}
+                      </Typography>
+                      <Button
+                        size='small'
+                        variant='outlined'
+                        sx={{
+                          borderColor: '#98867B',
+                          color: '#98867B',
+                          '&:hover': {
+                            borderColor: '#5A4D40',
+                            backgroundColor: 'rgba(152, 134, 123, 0.04)'
+                          }
+                        }}
+                        onClick={handleEdit} // You'd want to pass the specific blade ID here
+                      >
+                        แก้ไข
+                      </Button>
+                    </Box>
 
-              <Typography variant='subtitle2'>Type</Typography>
-              <Typography variant='body2' gutterBottom>
-                {selectedItem.DIECUT_TYPE}
-              </Typography>
+                    <Grid container spacing={1}>
+                      <Grid item xs={6}>
+                        <Typography variant='caption' color='text.secondary'>
+                          ประเภทใบมีด
+                        </Typography>
+                        {/* <Typography variant='body2'>
+                          {num === 1 ? 'ใบมีดเดี่ยว' : num === 2 ? 'ใบมีดคู่' : 'ใบมีดพิเศษ'}
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Typography variant='caption' color='text.secondary'>
+                          ขนาดใบมีด
+                        </Typography>
+                        <Typography variant='body2'>
+                          {num === 1 ? '100x200 mm' : num === 2 ? '150x300 mm' : '200x400 mm'}
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={12}>
+                        <Typography variant='caption' color='text.secondary'>
+                          รายละเอียด
+                        </Typography>
+                        <Typography variant='body2'>
+                          {num === 1
+                            ? 'ใบมีดสำหรับตัดกระดาษแข็ง ต้องการเปลี่ยนเนื่องจากคมตัดทื่อ'
+                            : num === 2
+                              ? 'ใบมีดคู่สำหรับงานพิเศษ ต้องการทำความสะอาดและลับคมใหม่'
+                              : 'ใบมีดพิเศษสำหรับงานลายฉลุ ต้องการซ่อมแซมส่วนที่แตกหัก'}
+                        </Typography> */}
+                      </Grid>
+                    </Grid>
+                  </Paper>
+                ))}
+              </Box>
 
-              <Typography variant='subtitle2'>TL Status</Typography>
-              <Typography variant='body2' gutterBottom>
-                {selectedItem.TL_STATUS}
-              </Typography>
+              {/* Bottom 10% - Edit Button */}
+              <Box sx={{ pt: 1, borderTop: '1px solid #E0E0E0' }}>
+                <Button
+                  variant='contained'
+                  color='primary'
+                  onClick={handleEdit}
+                  disabled={!isManager}
+                  fullWidth
+                  sx={{
+                    backgroundColor: '#98867B',
+                    '&:hover': {
+                      backgroundColor: '#5A4D40'
+                    },
+                    '&.Mui-disabled': {
+                      backgroundColor: 'action.disabledBackground',
+                      opacity: 0.7
+                    }
+                  }}
+                >
+                  {isManager ? 'แก้ไขคำขอ' : 'แก้ไข (เฉพาะผู้จัดการ)'}
+                </Button>
 
-              <Typography variant='subtitle2'>Last Modified</Typography>
-              <Typography variant='body2' gutterBottom>
-                {selectedItem.LAST_MODIFY ? new Date(selectedItem.LAST_MODIFY).toLocaleDateString() : 'N/A'}
-              </Typography>
-
-              <Typography variant='subtitle2'>Due Date</Typography>
-              <Typography variant='body2' gutterBottom>
-                {selectedItem.DUE_DATE ? new Date(selectedItem.DUE_DATE).toLocaleDateString() : 'N/A'}
-              </Typography>
-
-              <Typography variant='subtitle2'>Priority</Typography>
-              <Chip
-                label={selectedItem.PRIORITY || 'Not Set'}
-                color={
-                  selectedItem.PRIORITY === 'High'
-                    ? 'error'
-                    : selectedItem.PRIORITY === 'Medium'
-                      ? 'primary'
-                      : 'default'
-                }
-                size='small'
-                sx={{ mb: 1 }}
-              />
-
-              <Typography variant='subtitle2'>Ages</Typography>
-              <Typography variant='body2' gutterBottom>
-                {selectedItem.AGES}
-              </Typography>
-
-              <Typography variant='subtitle2'>Used</Typography>
-              <Typography variant='body2' gutterBottom>
-                {selectedItem.USED}
-              </Typography>
-
-              <Typography variant='subtitle2'>Remain</Typography>
-              <Typography variant='body2' gutterBottom>
-                {selectedItem.REMAIN}
-              </Typography>
-
-              <Typography variant='subtitle2'>Near Expiration</Typography>
-              <Typography variant='body2' gutterBottom>
-                {selectedItem.DIECUT_NEAR_EXP ? 'Yes' : 'No'}
-              </Typography>
-
-              <Typography variant='subtitle2'>Modify Type</Typography>
-              <Typography variant='body2' gutterBottom>
-                {selectedItem.MODIFY_TYPE}
-              </Typography>
-            </Box>
+                {!isManager && (
+                  <Typography
+                    variant='caption'
+                    color='text.secondary'
+                    sx={{ display: 'block', mt: 1, textAlign: 'center' }}
+                  >
+                    คุณต้องมีสิทธิ์ผู้จัดการเพื่อแก้ไขคำขอ
+                  </Typography>
+                )}
+              </Box>
+            </>
           )}
 
           {isEditing ? (
             <>
-              <Typography variant='subtitle2'>Request ID: {selectedItem.DIECUT_ID}</Typography>
+              <Typography variant='subtitle2'>รหัสคำขอ: {selectedItem.DIECUT_ID}</Typography>
               <Typography variant='subtitle1' sx={{ mt: 1, mb: 1 }}>
                 {selectedItem.DIECUT_SN}
               </Typography>
 
               <Typography variant='subtitle2'>เริ่มงานวันที่</Typography>
-              <Box sx={{ mb: 2 }}></Box>
+              <Box sx={{ mb: 2 }}>
+                <TextField
+                  fullWidth
+                  size='small'
+                  type='date'
+                  value={startDate ? startDate.toISOString().split('T')[0] : ''}
+                  onChange={e => setStartDate(e.target.value ? new Date(e.target.value) : null)}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Box>
+
               <Typography variant='subtitle2'>สิ้นสุดวันที่</Typography>
-              <Box sx={{ mb: 2 }}></Box>
+              <Box sx={{ mb: 2 }}>
+                <TextField
+                  fullWidth
+                  size='small'
+                  type='date'
+                  value={endDate ? endDate.toISOString().split('T')[0] : ''}
+                  onChange={e => setEndDate(e.target.value ? new Date(e.target.value) : null)}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Box>
+
               <Typography variant='subtitle2'>อายุ tooling</Typography>
-              <Box sx={{ mb: 2 }}></Box>
+              <Box sx={{ mb: 2 }}>
+                <TextField fullWidth size='small' value={toolingAge} onChange={e => setToolingAge(e.target.value)} />
+              </Box>
+
               <Typography variant='subtitle2'>ปัญหาจาก production</Typography>
-              <Box sx={{ mb: 2 }}></Box>
+              <Box sx={{ mb: 2 }}>
+                <TextField
+                  fullWidth
+                  size='small'
+                  multiline
+                  rows={2}
+                  value={productionIssue}
+                  onChange={e => setProductionIssue(e.target.value)}
+                />
+              </Box>
+
               <Typography variant='subtitle2'>รายละเอียดในการแก้ไข</Typography>
-              <Box sx={{ mb: 2 }}></Box>
+              <Box sx={{ mb: 2 }}>
+                <TextField
+                  fullWidth
+                  size='small'
+                  multiline
+                  rows={2}
+                  value={fixDetails}
+                  onChange={e => setFixDetails(e.target.value)}
+                />
+              </Box>
+
               <Typography variant='subtitle2'>ระยะมีด</Typography>
-              <Box sx={{ mb: 2 }}></Box>
+              <Box sx={{ mb: 2 }}>
+                <TextField fullWidth size='small' value={bladeSize} onChange={e => setBladeSize(e.target.value)} />
+              </Box>
+
               <Typography variant='subtitle2'>สาเหตุที่ใช้มีดคู่</Typography>
-              <Box sx={{ mb: 2 }}></Box>
+              <Box sx={{ mb: 2 }}>
+                <TextField
+                  fullWidth
+                  size='small'
+                  value={dualBladeReason}
+                  onChange={e => setDualBladeReason(e.target.value)}
+                />
+              </Box>
+
               <Typography variant='subtitle2'>รายละเอียดในการใช้มีดคู่</Typography>
-              <Box sx={{ mb: 2 }}></Box>
-              <Box sx={{ mt: 'auto', display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+              <Box sx={{ mb: 2 }}>
+                <TextField
+                  fullWidth
+                  size='small'
+                  multiline
+                  rows={2}
+                  value={dualBladeDetails}
+                  onChange={e => setDualBladeDetails(e.target.value)}
+                />
+              </Box>
+
+              {/* <Typography variant='subtitle2'>สถานะ</Typography>
+              <Box sx={{ mb: 2 }}>
+                {(['Pending', 'Pass', 'Rejected'] as const).map(status => (
+                  <Chip
+                    key={status}
+                    label={status === 'Pending' ? 'รอดำเนินการ' : status === 'Pass' ? 'อนุมัติ' : 'ปฏิเสธ'}
+                    color={
+                      status === 'Pass'
+                        ? 'success'
+                        : status === 'Pending'
+                          ? 'warning'
+                          : status === 'Rejected'
+                            ? 'error'
+                            : 'default'
+                    }
+                    onClick={() => {
+                      if (isManager) {
+                        handleStatusChange(status)
+                      }
+                    }}
+                    disabled={!isManager}
+                    variant={selectedItem.STATUS === status ? 'filled' : 'outlined'}
+                    sx={{ mr: 1, mb: 1, opacity: isManager ? 1 : 0.7 }}
+                  />
+                ))}
+              </Box> */}
+
+              <Box sx={{ mt: 2, display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
                 <Button variant='outlined' color='secondary' onClick={handleCancel} disabled={loading}>
-                  Cancel
+                  ยกเลิก
                 </Button>
                 <Button
                   variant='contained'
@@ -179,21 +372,19 @@ const DetailPanel = ({
                     }
                   }}
                 >
-                  {loading ? 'Saving...' : 'Save'}
+                  {loading ? 'กำลังบันทึก...' : 'บันทึก'}
                 </Button>
               </Box>
             </>
           ) : (
             <>
-              <Button
+              {/* <Button
                 variant='contained'
                 color='primary'
                 onClick={handleEdit}
                 disabled={!isManager}
                 fullWidth
                 sx={{
-                  mt: 'auto',
-                  pt: 2,
                   backgroundColor: '#98867B',
                   '&:hover': {
                     backgroundColor: '#5A4D40'
@@ -204,7 +395,7 @@ const DetailPanel = ({
                   }
                 }}
               >
-                {isManager ? 'Edit Request' : 'Edit (Manager Only)'}
+                {isManager ? 'แก้ไขคำขอ' : 'แก้ไข (เฉพาะผู้จัดการ)'}
               </Button>
 
               {!isManager && (
@@ -213,15 +404,15 @@ const DetailPanel = ({
                   color='text.secondary'
                   sx={{ display: 'block', mt: 1, textAlign: 'center' }}
                 >
-                  You need manager permissions to edit requests
+                  คุณต้องมีสิทธิ์ผู้จัดการเพื่อแก้ไขคำขอ
                 </Typography>
-              )}
+              )} */}
             </>
           )}
         </>
       ) : (
         <Typography variant='body2' color='text.secondary'>
-          Select a request to view details
+          เลือกคำขอเพื่อดูรายละเอียด
         </Typography>
       )}
     </Paper>

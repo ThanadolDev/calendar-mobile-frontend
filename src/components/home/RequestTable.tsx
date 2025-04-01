@@ -309,7 +309,11 @@ const RequestTable = ({
         </Button>
 
         <Box sx={{ marginLeft: 'auto' }}>
-          <Chip label={`${filteredData.length} of ${data.length} items`} size='small' sx={{ mr: 1 }} />
+          <Chip
+            label={`รวม ${filteredData.length} รายการ จากทั้งหมด ${data.length} รายการ`}
+            size='small'
+            sx={{ mr: 1 }}
+          />
           <Chip
             label={isManager ? 'Manager View' : 'User View'}
             color={isManager ? 'primary' : 'default'}
@@ -421,6 +425,7 @@ const RequestTable = ({
         muiPaginationProps={{
           rowsPerPageOptions: [
             10, 50, 100, 500
+
             // { value: -1, label: 'All' }
           ],
           SelectProps: {
