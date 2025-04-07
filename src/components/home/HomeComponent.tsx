@@ -21,6 +21,7 @@ const HomeComponent = () => {
   const [isEditing, setIsEditing] = useState(false)
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as const })
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedType, setSelectedType] = useState<string>('')
 
   const userInfo = getUserInfo() as IUserInfo | null
   const isManager = true
@@ -130,7 +131,7 @@ const HomeComponent = () => {
 
   useEffect(() => {
     fetchData()
-  }, [fetchData])
+  }, [fetchData, selectedType])
 
   if (loading && !data.length) {
     return (
@@ -196,6 +197,8 @@ const HomeComponent = () => {
             handleEditClick={handleEditClick}
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
+            setSelectedType={setSelectedType}
+            selectedType={selectedType}
           />
         </Paper>
 

@@ -1,10 +1,28 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
-import { Box, Typography, Chip, Paper, Button, CircularProgress, TextField, Grid } from '@mui/material'
+import AddIcon from '@mui/icons-material/Add'
+import DeleteIcon from '@mui/icons-material/Delete'
+import EditIcon from '@mui/icons-material/Edit'
+
+import { Box, Typography, Chip, Paper, Button, CircularProgress, TextField, Grid, IconButton } from '@mui/material'
 
 import type { IDiecut } from '../../types/types'
+
+// Define interface for blade item
+interface BladeItem {
+  DIECUT_ID: any
+  DIECUT_SN: string
+  DIECUT_TYPE: any
+  DIECUT_AGE: number
+  STATUS: string
+  bladeType: string
+  bladeSize: string
+  details: string
+  TL_STATUS: string
+  PROB_DESC: string
+}
 
 interface DetailPanelProps {
   selectedItem: IDiecut | null
@@ -35,6 +53,198 @@ const DetailPanel = ({
   const [bladeSize, setBladeSize] = useState('')
   const [dualBladeReason, setDualBladeReason] = useState('')
   const [dualBladeDetails, setDualBladeDetails] = useState('')
+
+  const [formData, setFormData] = useState({
+    startDate: selectedItem?.START_DATE ? new Date(selectedItem.START_DATE) : null,
+    endDate: selectedItem?.END_DATE ? new Date(selectedItem.END_DATE) : null,
+    toolingAge: selectedItem?.TOOLING_AGE || '',
+    productionIssue: selectedItem?.PRODUCTION_ISSUE || '',
+    fixDetails: selectedItem?.FIX_DETAILS || '',
+    bladeSize: selectedItem?.BLADE_SIZE || '',
+    dualBladeReason: selectedItem?.DUAL_BLADE_REASON || '',
+    dualBladeDetails: selectedItem?.DUAL_BLADE_DETAILS || ''
+  })
+
+  // State for blade list management
+  const [dieCutSNList, setDieCutSNList] = useState<BladeItem[]>([])
+
+  const handleChange = field => event => {
+    const value = event.target.value
+
+    setFormData(prev => ({
+      ...prev,
+      [field]: field.includes('Date') && value ? new Date(value) : value
+    }))
+  }
+
+  async function getDetailData(diecutId: any) {
+    try {
+      const response = await fetch(`http://localhost:2525/api/diecuts/getdiecutsn`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          diecutId: selectedItem.DIECUT_ID
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (data.success) {
+        return data.data.diecutList
+      } else {
+        console.error('Failed to fetch diecut SN data:', data.message)
+
+        return []
+      }
+    } catch (error) {
+      console.error('Error fetching diecut SN data:', error)
+
+      return []
+    }
+  }
+
+  // The useEffect hook to load data when a die cut is selected
+  useEffect(() => {
+    if (selectedItem) {
+      console.log('Selected item:', selectedItem)
+
+      // Fetch diecut SN data from API
+      const loadDiecutData = async () => {
+        const diecutId = selectedItem.DIECUT_ID
+        const snData = await getDetailData(diecutId)
+
+        if (snData && snData.length > 0) {
+          setDieCutSNList(snData)
+        } else {
+          // Initialize with empty data if no data is returned
+          setDieCutSNList([])
+        }
+      }
+
+      loadDiecutData()
+    }
+  }, [selectedItem])
+
+  const handleSaveList = async () => {
+    if (!isManager || !selectedItem) return
+
+    try {
+      const requestData = {
+        diecutId: selectedItem.DIECUT_ID,
+        SNList: dieCutSNList.map(blade => ({
+          DIECUT_SN: blade.DIECUT_SN,
+          DIECUT_TYPE: blade.DIECUT_TYPE
+        }))
+      }
+
+      const response = await fetch(`http://localhost:2525/api/diecuts/savesn`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestData)
+      })
+
+      if (!response.ok) {
+        throw new Error(`Server responded with status: ${response.status}`)
+      }
+
+      const result = await response.json()
+
+      console.log('Save result:', result)
+
+      // Optionally refresh the data after saving
+      if (selectedItem) {
+        const updatedData = await getDetailData(selectedItem.DIECUT_ID)
+
+        if (updatedData && updatedData.length > 0) {
+          setDieCutSNList(updatedData)
+        }
+      }
+    } catch (error) {
+      console.error('Error saving blade list:', error)
+    }
+  }
+
+  // Directly add a new blank blade item without modal
+  const handleAddBlade = () => {
+    if (!selectedItem) return
+
+    // Get the highest sequence number from existing blades
+    const existingSequences = dieCutSNList
+      .map(blade => {
+        const parts = (blade.DIECUT_SN || '').split('-')
+
+        return parts.length > 0 ? parseInt(parts[parts.length - 1]) : 0
+      })
+      .filter(seq => !isNaN(seq))
+
+    // Get next sequence number
+    const nextSequence = existingSequences.length > 0 ? Math.max(...existingSequences) + 1 : 1
+
+    // Create new blade ID in format: DIECUT_ID-sequence
+    const baseDiecutId = selectedItem.DIECUT_ID || ''
+    const newDiecutSN = `${baseDiecutId}-${nextSequence}`
+
+    setDieCutSNList([
+      ...dieCutSNList,
+      {
+        DIECUT_ID: baseDiecutId,
+        DIECUT_SN: newDiecutSN,
+        DIECUT_TYPE: '',
+        DIECUT_AGE: 0,
+        STATUS: 'W',
+        bladeType: '',
+        bladeSize: '',
+        details: '',
+        TL_STATUS: 'GOOD',
+        PROB_DESC: ''
+      }
+    ])
+  }
+
+  // Delete a blade from the list
+  const handleDeleteBlade = diecutSN => {
+    setDieCutSNList(dieCutSNList.filter(blade => blade.DIECUT_SN !== diecutSN))
+  }
+
+  const handleDetailEditSave = async () => {
+    if (!isManager) return
+
+    try {
+      // Format dates for API submission
+      const payload = {
+        diecutId: selectedItem.DIECUT_ID,
+        startDate: formData.startDate ? formData.startDate.toISOString().split('T')[0] : null,
+        endDate: formData.endDate ? formData.endDate.toISOString().split('T')[0] : null,
+        toolingAge: formData.toolingAge,
+        productionIssue: formData.productionIssue,
+        fixDetails: formData.fixDetails,
+        bladeSize: formData.bladeSize,
+        dualBladeReason: formData.dualBladeReason,
+        dualBladeDetails: formData.dualBladeDetails
+      }
+
+      console.log(payload)
+
+      // Call your API here
+      // const response = await apiService.updateDiecutDetails(payload);
+
+      // Optionally: refresh data or notify success
+    } catch (error) {
+      console.error('Failed to save diecut details:', error)
+
+      // Optionally: show error notification
+    } finally {
+      handleCancel()
+    }
+  }
 
   return (
     <Paper
@@ -129,78 +339,108 @@ const DetailPanel = ({
               </Box>
 
               {/* Middle 60% - Blade Card List */}
-              <Box sx={{ height: '55%', overflow: 'auto', mb: 2 }}>
-                <Typography variant='subtitle1' gutterBottom sx={{ fontWeight: 'bold', mb: 2 }}>
-                  รายการใบมีด
-                </Typography>
+              <Box sx={{ height: '50vh', overflow: 'auto', mb: 2 }}>
+                <div className='flex w-full'>
+                  <Typography variant='subtitle1' gutterBottom sx={{ fontWeight: 'bold', mb: 2 }}>
+                    รายการใบมีด
+                  </Typography>
+                  <div className='ml-auto mr-4'>
+                    <IconButton onClick={handleAddBlade} color='primary' size='small'>
+                      <AddIcon className='cursor-pointer' />
+                      <Typography>เพิ่ม</Typography>
+                    </IconButton>
+                  </div>
+                </div>
 
-                {/* Mock blade list - replace with actual data */}
-                {[1, 2, 3].map(num => (
-                  <Paper
-                    key={num}
-                    variant='outlined'
-                    sx={{
-                      p: 2,
-                      mb: 2,
-                      transition: 'all 0.3s ease',
-                      '&:hover': {
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                      }
-                    }}
-                  >
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                      <Typography variant='subtitle2' sx={{ fontWeight: 'bold' }}>
-                        ใบมีด #{num}
-                      </Typography>
-                      <Button
-                        size='small'
-                        variant='outlined'
-                        sx={{
-                          borderColor: '#98867B',
-                          color: '#98867B',
-                          '&:hover': {
-                            borderColor: '#5A4D40',
-                            backgroundColor: 'rgba(152, 134, 123, 0.04)'
-                          }
-                        }}
-                        onClick={handleEdit} // You'd want to pass the specific blade ID here
-                      >
-                        แก้ไข
-                      </Button>
-                    </Box>
+                {/* Update the JSX rendering for the blade cards to match the API data structure */}
+                {dieCutSNList.length === 0 ? (
+                  <Typography variant='body2' color='text.secondary' sx={{ textAlign: 'center', py: 3 }}>
+                    ไม่พบรายการใบมีด กดปุ่ม + เพื่อเพิ่มรายการ
+                  </Typography>
+                ) : (
+                  dieCutSNList.map(blade => (
+                    <Paper
+                      key={blade.DIECUT_SN}
+                      variant='outlined'
+                      sx={{
+                        p: 2,
+                        mb: 2,
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                        }
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                        <Typography variant='subtitle2' sx={{ fontWeight: 'bold' }}>
+                          {blade.DIECUT_SN || 'ใบมีดใหม่'}
+                        </Typography>
+                        <Box>
+                          <IconButton
+                            size='small'
+                            color='error'
+                            onClick={() => handleDeleteBlade(blade.DIECUT_SN)}
+                            sx={{ mr: 1 }}
+                          >
+                            <DeleteIcon fontSize='small' />
+                            <Typography>ลบ</Typography>
+                          </IconButton>
+                          <Button
+                            size='small'
+                            variant='outlined'
+                            sx={{
+                              borderColor: '#98867B',
+                              color: '#98867B',
+                              '&:hover': {
+                                borderColor: '#5A4D40',
+                                backgroundColor: 'rgba(152, 134, 123, 0.04)'
+                              }
+                            }}
+                            onClick={handleEdit} // This will navigate to the edit page
+                          >
+                            <EditIcon />
+                            <Typography>แก้ไข</Typography>
+                          </Button>
+                        </Box>
+                      </Box>
 
-                    <Grid container spacing={1}>
-                      <Grid item xs={6}>
-                        <Typography variant='caption' color='text.secondary'>
-                          ประเภทใบมีด
-                        </Typography>
-                        {/* <Typography variant='body2'>
-                          {num === 1 ? 'ใบมีดเดี่ยว' : num === 2 ? 'ใบมีดคู่' : 'ใบมีดพิเศษ'}
-                        </Typography>
+                      <Grid container spacing={1}>
+                        <Grid item xs={6}>
+                          <Typography variant='caption' color='text.secondary'>
+                            ประเภทใบมีด
+                          </Typography>
+                          <Typography variant='body2'>{blade.DIECUT_TYPE || 'ไม่ระบุ'}</Typography>
+                        </Grid>
+                        <Grid item xs={6}>
+                          <Typography variant='caption' color='text.secondary'>
+                            อายุใบมีด
+                          </Typography>
+                          <Typography variant='body2'>{blade.DIECUT_AGE || 'ไม่ระบุ'}</Typography>
+                        </Grid>
+                        <Grid item xs={6}>
+                          <Typography variant='caption' color='text.secondary'>
+                            สถานะ
+                          </Typography>
+                          <Typography variant='body2'>{blade.STATUS || 'ไม่ระบุ'}</Typography>
+                        </Grid>
+                        <Grid item xs={6}>
+                          <Typography variant='caption' color='text.secondary'>
+                            สถานะ TL
+                          </Typography>
+                          <Typography variant='body2'>{blade.TL_STATUS || 'ไม่ระบุ'}</Typography>
+                        </Grid>
+                        {blade.PROB_DESC && (
+                          <Grid item xs={12}>
+                            <Typography variant='caption' color='text.secondary'>
+                              รายละเอียดปัญหา
+                            </Typography>
+                            <Typography variant='body2'>{blade.PROB_DESC}</Typography>
+                          </Grid>
+                        )}
                       </Grid>
-                      <Grid item xs={6}>
-                        <Typography variant='caption' color='text.secondary'>
-                          ขนาดใบมีด
-                        </Typography>
-                        <Typography variant='body2'>
-                          {num === 1 ? '100x200 mm' : num === 2 ? '150x300 mm' : '200x400 mm'}
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={12}>
-                        <Typography variant='caption' color='text.secondary'>
-                          รายละเอียด
-                        </Typography>
-                        <Typography variant='body2'>
-                          {num === 1
-                            ? 'ใบมีดสำหรับตัดกระดาษแข็ง ต้องการเปลี่ยนเนื่องจากคมตัดทื่อ'
-                            : num === 2
-                              ? 'ใบมีดคู่สำหรับงานพิเศษ ต้องการทำความสะอาดและลับคมใหม่'
-                              : 'ใบมีดพิเศษสำหรับงานลายฉลุ ต้องการซ่อมแซมส่วนที่แตกหัก'}
-                        </Typography> */}
-                      </Grid>
-                    </Grid>
-                  </Paper>
-                ))}
+                    </Paper>
+                  ))
+                )}
               </Box>
 
               {/* Bottom 10% - Edit Button */}
@@ -218,7 +458,7 @@ const DetailPanel = ({
                 <Button
                   variant='contained'
                   color='primary'
-                  onClick={handleEdit}
+                  onClick={handleSaveList}
                   disabled={!isManager}
                   fullWidth
                   sx={{
@@ -232,7 +472,7 @@ const DetailPanel = ({
                     }
                   }}
                 >
-                  {isManager ? 'แก้ไขคำขอ' : 'แก้ไข (เฉพาะผู้จัดการ)'}
+                  {isManager ? 'บันทึก' : 'บันทึก (เฉพาะผู้จัดการ)'}
                 </Button>
 
                 {!isManager && (
@@ -261,8 +501,8 @@ const DetailPanel = ({
                   fullWidth
                   size='small'
                   type='date'
-                  value={startDate ? startDate.toISOString().split('T')[0] : ''}
-                  onChange={e => setStartDate(e.target.value ? new Date(e.target.value) : null)}
+                  value={formData.startDate ? formData.startDate.toISOString().split('T')[0] : ''}
+                  onChange={handleChange('startDate')}
                   InputLabelProps={{ shrink: true }}
                 />
               </Box>
@@ -273,15 +513,15 @@ const DetailPanel = ({
                   fullWidth
                   size='small'
                   type='date'
-                  value={endDate ? endDate.toISOString().split('T')[0] : ''}
-                  onChange={e => setEndDate(e.target.value ? new Date(e.target.value) : null)}
+                  value={formData.endDate ? formData.endDate.toISOString().split('T')[0] : ''}
+                  onChange={handleChange('endDate')}
                   InputLabelProps={{ shrink: true }}
                 />
               </Box>
 
               <Typography variant='subtitle2'>อายุ tooling</Typography>
               <Box sx={{ mb: 2 }}>
-                <TextField fullWidth size='small' value={toolingAge} onChange={e => setToolingAge(e.target.value)} />
+                <TextField fullWidth size='small' value={formData.toolingAge} onChange={handleChange('toolingAge')} />
               </Box>
 
               <Typography variant='subtitle2'>ปัญหาจาก production</Typography>
@@ -291,8 +531,8 @@ const DetailPanel = ({
                   size='small'
                   multiline
                   rows={2}
-                  value={productionIssue}
-                  onChange={e => setProductionIssue(e.target.value)}
+                  value={formData.productionIssue}
+                  onChange={handleChange('productionIssue')}
                 />
               </Box>
 
@@ -303,14 +543,14 @@ const DetailPanel = ({
                   size='small'
                   multiline
                   rows={2}
-                  value={fixDetails}
-                  onChange={e => setFixDetails(e.target.value)}
+                  value={formData.fixDetails}
+                  onChange={handleChange('fixDetails')}
                 />
               </Box>
 
               <Typography variant='subtitle2'>ระยะมีด</Typography>
               <Box sx={{ mb: 2 }}>
-                <TextField fullWidth size='small' value={bladeSize} onChange={e => setBladeSize(e.target.value)} />
+                <TextField fullWidth size='small' value={formData.bladeSize} onChange={handleChange('bladeSize')} />
               </Box>
 
               <Typography variant='subtitle2'>สาเหตุที่ใช้มีดคู่</Typography>
@@ -318,8 +558,8 @@ const DetailPanel = ({
                 <TextField
                   fullWidth
                   size='small'
-                  value={dualBladeReason}
-                  onChange={e => setDualBladeReason(e.target.value)}
+                  value={formData.dualBladeReason}
+                  onChange={handleChange('dualBladeReason')}
                 />
               </Box>
 
@@ -330,37 +570,10 @@ const DetailPanel = ({
                   size='small'
                   multiline
                   rows={2}
-                  value={dualBladeDetails}
-                  onChange={e => setDualBladeDetails(e.target.value)}
+                  value={formData.dualBladeDetails}
+                  onChange={handleChange('dualBladeDetails')}
                 />
               </Box>
-
-              {/* <Typography variant='subtitle2'>สถานะ</Typography>
-              <Box sx={{ mb: 2 }}>
-                {(['Pending', 'Pass', 'Rejected'] as const).map(status => (
-                  <Chip
-                    key={status}
-                    label={status === 'Pending' ? 'รอดำเนินการ' : status === 'Pass' ? 'อนุมัติ' : 'ปฏิเสธ'}
-                    color={
-                      status === 'Pass'
-                        ? 'success'
-                        : status === 'Pending'
-                          ? 'warning'
-                          : status === 'Rejected'
-                            ? 'error'
-                            : 'default'
-                    }
-                    onClick={() => {
-                      if (isManager) {
-                        handleStatusChange(status)
-                      }
-                    }}
-                    disabled={!isManager}
-                    variant={selectedItem.STATUS === status ? 'filled' : 'outlined'}
-                    sx={{ mr: 1, mb: 1, opacity: isManager ? 1 : 0.7 }}
-                  />
-                ))}
-              </Box> */}
 
               <Box sx={{ mt: 2, display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
                 <Button variant='outlined' color='secondary' onClick={handleCancel} disabled={loading}>
@@ -369,7 +582,7 @@ const DetailPanel = ({
                 <Button
                   variant='contained'
                   color='primary'
-                  onClick={handleSave}
+                  onClick={handleDetailEditSave}
                   disabled={loading || !isManager}
                   startIcon={loading && <CircularProgress size={20} color='inherit' />}
                   sx={{
@@ -386,39 +599,7 @@ const DetailPanel = ({
                 </Button>
               </Box>
             </>
-          ) : (
-            <>
-              {/* <Button
-                variant='contained'
-                color='primary'
-                onClick={handleEdit}
-                disabled={!isManager}
-                fullWidth
-                sx={{
-                  backgroundColor: '#98867B',
-                  '&:hover': {
-                    backgroundColor: '#5A4D40'
-                  },
-                  '&.Mui-disabled': {
-                    backgroundColor: 'action.disabledBackground',
-                    opacity: 0.7
-                  }
-                }}
-              >
-                {isManager ? 'แก้ไขคำขอ' : 'แก้ไข (เฉพาะผู้จัดการ)'}
-              </Button>
-
-              {!isManager && (
-                <Typography
-                  variant='caption'
-                  color='text.secondary'
-                  sx={{ display: 'block', mt: 1, textAlign: 'center' }}
-                >
-                  คุณต้องมีสิทธิ์ผู้จัดการเพื่อแก้ไขคำขอ
-                </Typography>
-              )} */}
-            </>
-          )}
+          ) : null}
         </>
       ) : (
         <Typography variant='body2' color='text.secondary'>

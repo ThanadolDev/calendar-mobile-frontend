@@ -46,10 +46,13 @@ const RequestTable = ({
   handleItemSelect,
   handleEditClick,
   searchQuery,
-  setSearchQuery
+  setSearchQuery,
+  setSelectedType,
+  selectedType
 }: RequestTableProps) => {
   const [selectedStatus, setSelectedStatus] = useState<string>('')
-  const [selectedType, setSelectedType] = useState<string>('')
+
+  // const [selectedType, setSelectedType] = useState<string>('')
 
   // Extract unique values for dropdowns
   const uniqueDiecutTypes = useMemo(() => {
@@ -88,18 +91,19 @@ const RequestTable = ({
     }
 
     // Apply diecut type filter
-    if (selectedType) {
-      filtered = filtered.filter(item => item.DIECUT_TYPE === selectedType)
-    }
+    // if (selectedType) {
+    //   filtered = filtered.filter(item => item.DIECUT_TYPE === selectedType)
+    // }
 
     return filtered
-  }, [data, searchQuery, selectedStatus, selectedType])
+  }, [data, searchQuery, selectedStatus])
 
   // Clear all filters
   const handleClearFilters = () => {
     setSearchQuery('')
     setSelectedStatus('')
-    setSelectedType('')
+
+    // setSelectedType('')
   }
 
   // Define table columns
@@ -255,24 +259,6 @@ const RequestTable = ({
           }}
         />
 
-        <FormControl size='small' sx={{ minWidth: 150 }}>
-          <InputLabel id='diecut-type-filter-label'>Diecut Type</InputLabel>
-          <Select
-            labelId='diecut-type-filter-label'
-            id='diecut-type-filter'
-            value={selectedType}
-            label='Diecut Type'
-            onChange={(e: SelectChangeEvent) => setSelectedType(e.target.value)}
-          >
-            <MenuItem value=''>All Types</MenuItem>
-            {uniqueDiecutTypes.map(type => (
-              <MenuItem key={type} value={type}>
-                {type}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
         <FormControl size='small' sx={{ minWidth: 120 }}>
           <InputLabel id='status-filter-label'>Status</InputLabel>
           <Select
@@ -326,12 +312,26 @@ const RequestTable = ({
 
   return (
     <>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant='h6' gutterBottom>
-          {isManager ? 'Manage Requests' : 'View Requests'}
-        </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+        <Typography variant='h6'>{isManager ? 'Manage Requests' : 'View Requests'}</Typography>
       </Box>
-
+      <FormControl size='small' sx={{ minWidth: 150, mb: 2 }}>
+        <InputLabel id='diecut-type-filter-label'>Diecut Type</InputLabel>
+        <Select
+          labelId='diecut-type-filter-label'
+          id='diecut-type-filter'
+          value={selectedType}
+          label='Diecut Type'
+          onChange={(e: SelectChangeEvent) => setSelectedType(e.target.value)}
+        >
+          <MenuItem value=''>All Types</MenuItem>
+          {uniqueDiecutTypes.map(type => (
+            <MenuItem key={type} value={type}>
+              {type}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
       <MaterialReactTable
         columns={columns}
         data={filteredData}
