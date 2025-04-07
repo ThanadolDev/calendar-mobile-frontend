@@ -45,15 +45,12 @@ const DetailPanel = ({
   handleCancel,
   handleStatusChange
 }: DetailPanelProps) => {
-  const [startDate, setStartDate] = useState<Date | null>(null)
-  const [endDate, setEndDate] = useState<Date | null>(null)
-  const [toolingAge, setToolingAge] = useState('')
-  const [productionIssue, setProductionIssue] = useState('')
-  const [fixDetails, setFixDetails] = useState('')
-  const [bladeSize, setBladeSize] = useState('')
-  const [dualBladeReason, setDualBladeReason] = useState('')
-  const [dualBladeDetails, setDualBladeDetails] = useState('')
+  // State for editing a specific blade
+  const [editingBladeSN, setEditingBladeSN] = useState<string | null>(null)
 
+  const [dieCutSNList, setDieCutSNList] = useState<BladeItem[]>([])
+
+  // Initialize form data for the detail editing
   const [formData, setFormData] = useState({
     startDate: selectedItem?.START_DATE ? new Date(selectedItem.START_DATE) : null,
     endDate: selectedItem?.END_DATE ? new Date(selectedItem.END_DATE) : null,
@@ -65,8 +62,8 @@ const DetailPanel = ({
     dualBladeDetails: selectedItem?.DUAL_BLADE_DETAILS || ''
   })
 
-  // State for blade list management
-  const [dieCutSNList, setDieCutSNList] = useState<BladeItem[]>([])
+  // State for editing a specific blade's data
+  const [bladeFormData, setBladeFormData] = useState<BladeItem | null>(null)
 
   const handleChange = field => event => {
     const value = event.target.value
@@ -74,6 +71,18 @@ const DetailPanel = ({
     setFormData(prev => ({
       ...prev,
       [field]: field.includes('Date') && value ? new Date(value) : value
+    }))
+  }
+
+  // Handle blade field changes
+  const handleBladeChange = field => event => {
+    const value = event.target.value
+
+    if (!bladeFormData) return
+
+    setBladeFormData(prev => ({
+      ...prev!,
+      [field]: value
     }))
   }
 
@@ -111,8 +120,24 @@ const DetailPanel = ({
 
   // The useEffect hook to load data when a die cut is selected
   useEffect(() => {
+    // Clear editing state when selected item changes
+    setEditingBladeSN(null)
+    setBladeFormData(null)
+
     if (selectedItem) {
       console.log('Selected item:', selectedItem)
+
+      // Reset form data when selected item changes
+      setFormData({
+        startDate: selectedItem?.START_DATE ? new Date(selectedItem.START_DATE) : null,
+        endDate: selectedItem?.END_DATE ? new Date(selectedItem.END_DATE) : null,
+        toolingAge: selectedItem?.TOOLING_AGE || '',
+        productionIssue: selectedItem?.PRODUCTION_ISSUE || '',
+        fixDetails: selectedItem?.FIX_DETAILS || '',
+        bladeSize: selectedItem?.BLADE_SIZE || '',
+        dualBladeReason: selectedItem?.DUAL_BLADE_REASON || '',
+        dualBladeDetails: selectedItem?.DUAL_BLADE_DETAILS || ''
+      })
 
       // Fetch diecut SN data from API
       const loadDiecutData = async () => {
@@ -170,6 +195,29 @@ const DetailPanel = ({
     } catch (error) {
       console.error('Error saving blade list:', error)
     }
+  }
+
+  // Start editing a specific blade
+  const handleEditBlade = (blade: BladeItem) => {
+    setEditingBladeSN(blade.DIECUT_SN)
+    setBladeFormData({ ...blade })
+  }
+
+  // Save changes to a specific blade
+  const handleSaveBlade = () => {
+    if (!bladeFormData) return
+
+    setDieCutSNList(prevList => prevList.map(blade => (blade.DIECUT_SN === editingBladeSN ? bladeFormData : blade)))
+
+    // Clear editing state
+    setEditingBladeSN(null)
+    setBladeFormData(null)
+  }
+
+  // Cancel editing a specific blade
+  const handleCancelBlade = () => {
+    setEditingBladeSN(null)
+    setBladeFormData(null)
   }
 
   // Directly add a new blank blade item without modal
@@ -264,7 +312,7 @@ const DetailPanel = ({
 
       {selectedItem ? (
         <>
-          {!isEditing && (
+          {!isEditing && editingBladeSN === null && (
             <>
               {/* Top 30% - Request Details */}
               <Box
@@ -396,7 +444,7 @@ const DetailPanel = ({
                                 backgroundColor: 'rgba(152, 134, 123, 0.04)'
                               }
                             }}
-                            onClick={handleEdit} // This will navigate to the edit page
+                            onClick={() => handleEditBlade(blade)} // Use the new edit blade function
                           >
                             <EditIcon />
                             <Typography>แก้ไข</Typography>
@@ -413,7 +461,7 @@ const DetailPanel = ({
                         </Grid>
                         <Grid item xs={6}>
                           <Typography variant='caption' color='text.secondary'>
-                            อายุใบมีด
+                            อายุ tooling
                           </Typography>
                           <Typography variant='body2'>{blade.DIECUT_AGE || 'ไม่ระบุ'}</Typography>
                         </Grid>
@@ -488,8 +536,160 @@ const DetailPanel = ({
             </>
           )}
 
-          {isEditing ? (
-            <>
+          {/* Blade Editing Form */}
+          {editingBladeSN !== null && bladeFormData && (
+            <Box sx={{ p: 2 }}>
+              <Typography variant='subtitle1' gutterBottom>
+                แก้ไขใบมีด: {bladeFormData.DIECUT_SN}
+              </Typography>
+              <div className='flex-1 overflow-auto' style={{ height: '72vh' }}>
+                <Grid container spacing={2}>
+                  <Grid item xs={6}>
+                    <Typography variant='subtitle2'>เริ่มงานวันที่</Typography>
+                    <TextField
+                      fullWidth
+                      size='small'
+                      type='date'
+                      value={formData.startDate ? formData.startDate.toISOString().split('T')[0] : ''}
+                      onChange={handleChange('startDate')}
+                      InputLabelProps={{ shrink: true }}
+                      margin='normal'
+                    />
+                  </Grid>
+
+                  <Grid item xs={6}>
+                    <Typography variant='subtitle2'>สิ้นสุดวันที่</Typography>
+                    <TextField
+                      fullWidth
+                      size='small'
+                      type='date'
+                      value={formData.endDate ? formData.endDate.toISOString().split('T')[0] : ''}
+                      onChange={handleChange('endDate')}
+                      InputLabelProps={{ shrink: true }}
+                      margin='normal'
+                      inputProps={{
+                        min: formData.startDate ? formData.startDate.toISOString().split('T')[0] : ''
+                      }}
+                      error={formData.endDate && formData.startDate && formData.endDate < formData.startDate}
+                      helperText={
+                        formData.endDate && formData.startDate && formData.endDate < formData.startDate
+                          ? 'วันที่สิ้นสุดต้องไม่น้อยกว่าวันที่เริ่มต้น'
+                          : ''
+                      }
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Typography variant='subtitle2'>ประเภทใบมีด</Typography>
+                    <TextField
+                      fullWidth
+                      size='small'
+                      value={bladeFormData.DIECUT_TYPE || ''}
+                      onChange={handleBladeChange('DIECUT_TYPE')}
+                      margin='normal'
+                    />
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <Typography variant='subtitle2'>อายุ tooling</Typography>
+                    <TextField
+                      fullWidth
+                      size='small'
+                      type='number'
+                      value={bladeFormData.DIECUT_AGE || ''}
+                      onChange={handleBladeChange('DIECUT_AGE')}
+                      margin='normal'
+                    />
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <Typography variant='subtitle2'>ปัญหาจาก production</Typography>
+                    <TextField
+                      fullWidth
+                      size='small'
+                      multiline
+                      rows={3}
+                      value={bladeFormData.PROB_DESC || ''}
+                      onChange={handleBladeChange('PROB_DESC')}
+                      margin='normal'
+                    />
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <Typography variant='subtitle2'>รายละเอียดในการแก้ไข</Typography>
+                    <TextField
+                      fullWidth
+                      size='small'
+                      multiline
+                      rows={3}
+                      value={bladeFormData.PROB_DESC || ''}
+                      onChange={handleBladeChange('PROB_DESC')}
+                      margin='normal'
+                    />
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <Typography variant='subtitle2'>ระยะมีด</Typography>
+                    <TextField
+                      fullWidth
+                      size='small'
+                      value={bladeFormData.DIECUT_AGE || ''}
+                      onChange={handleBladeChange('DIECUT_AGE')}
+                      margin='normal'
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Typography variant='subtitle2'>สาเหตุที่ใช้มีดคู่</Typography>
+                    <TextField
+                      fullWidth
+                      size='small'
+                      multiline
+                      rows={3}
+                      value={bladeFormData.PROB_DESC || ''}
+                      onChange={handleBladeChange('PROB_DESC')}
+                      margin='normal'
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Typography variant='subtitle2'>รายละเอียดในการใช้มีดคู่</Typography>
+                    <TextField
+                      fullWidth
+                      size='small'
+                      value={bladeFormData.DIECUT_AGE || ''}
+                      onChange={handleBladeChange('DIECUT_AGE')}
+                      margin='normal'
+                    />
+                  </Grid>
+                </Grid>
+              </div>
+              <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+                <Button
+                  variant='outlined'
+                  onClick={handleCancelBlade}
+                  sx={{
+                    borderColor: '#98867B',
+                    color: '#98867B'
+                  }}
+                >
+                  ยกเลิก
+                </Button>
+                <Button
+                  variant='contained'
+                  onClick={handleSaveBlade}
+                  sx={{
+                    backgroundColor: '#98867B',
+                    '&:hover': {
+                      backgroundColor: '#5A4D40'
+                    }
+                  }}
+                >
+                  บันทึก
+                </Button>
+              </Box>
+            </Box>
+          )}
+
+          {isEditing && (
+            <Box sx={{ p: 2 }}>
               <Typography variant='subtitle2'>รหัสคำขอ: {selectedItem.DIECUT_ID}</Typography>
               <Typography variant='subtitle1' sx={{ mt: 1, mb: 1 }}>
                 {selectedItem.DIECUT_SN}
@@ -598,8 +798,8 @@ const DetailPanel = ({
                   {loading ? 'กำลังบันทึก...' : 'บันทึก'}
                 </Button>
               </Box>
-            </>
-          ) : null}
+            </Box>
+          )}
         </>
       ) : (
         <Typography variant='body2' color='text.secondary'>

@@ -56,6 +56,7 @@ const HomeComponent = () => {
   }, [])
 
   const handleItemSelect = (item: IDiecut) => {
+    // Reset editing state when selecting a new item
     setSelectedItem(item)
     setIsEditing(false)
   }
@@ -108,21 +109,26 @@ const HomeComponent = () => {
     } catch (error) {
       console.error('Error saving changes:', error)
 
-      // setSnackbar({
-      //   open: true,
-      //   message: `Failed to save changes: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      //   severity: 'error'
-      // })
+      setSnackbar({
+        open: true,
+        message: `Failed to save changes: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        severity: 'error'
+      })
     } finally {
       setLoading(false)
     }
   }
 
   const handleCancel = () => {
+    // Reset editing state and revert to original data
     setIsEditing(false)
 
-    // Reset to original data
-    setSelectedItem(data.find(item => item.DIECUT_ID === selectedItem?.DIECUT_ID) || null)
+    // Reset to original data from server-side data
+    if (selectedItem) {
+      const originalItem = data.find(item => item.DIECUT_ID === selectedItem.DIECUT_ID)
+
+      setSelectedItem(originalItem || null)
+    }
   }
 
   const handleSnackbarClose = () => {
@@ -132,6 +138,17 @@ const HomeComponent = () => {
   useEffect(() => {
     fetchData()
   }, [fetchData, selectedType])
+
+  // Reset selected item when data changes
+  useEffect(() => {
+    if (selectedItem && data.length > 0) {
+      const updatedItem = data.find(item => item.DIECUT_ID === selectedItem.DIECUT_ID)
+
+      if (updatedItem) {
+        setSelectedItem(updatedItem)
+      }
+    }
+  }, [data])
 
   if (loading && !data.length) {
     return (
@@ -172,9 +189,9 @@ const HomeComponent = () => {
             }}
           >
             {error}
-            {/* <Button variant='text' color='inherit' size='small' onClick={fetchData}>
+            <Button variant='text' color='inherit' size='small' onClick={fetchData}>
               Try Again
-            </Button> */}
+            </Button>
           </Alert>
         )}
 
