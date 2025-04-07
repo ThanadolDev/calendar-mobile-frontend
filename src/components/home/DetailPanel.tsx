@@ -608,8 +608,8 @@ const DetailPanel = ({
                       size='small'
                       multiline
                       rows={3}
-                      value={bladeFormData.PROB_DESC || ''}
-                      onChange={handleBladeChange('PROB_DESC')}
+                      value={bladeFormData.PRODUCTION_ISSUE || ''}
+                      onChange={handleBladeChange('PRODUCTION_ISSUE')}
                       margin='normal'
                     />
                   </Grid>
@@ -621,8 +621,8 @@ const DetailPanel = ({
                       size='small'
                       multiline
                       rows={3}
-                      value={bladeFormData.PROB_DESC || ''}
-                      onChange={handleBladeChange('PROB_DESC')}
+                      value={bladeFormData.FIX_DETAILS || ''}
+                      onChange={handleBladeChange('FIX_DETAILS')}
                       margin='normal'
                     />
                   </Grid>
@@ -633,7 +633,7 @@ const DetailPanel = ({
                       fullWidth
                       size='small'
                       value={bladeFormData.DIECUT_AGE || ''}
-                      onChange={handleBladeChange('DIECUT_AGE')}
+                      onChange={handleBladeChange('BLADE_SIZE')}
                       margin='normal'
                     />
                   </Grid>
@@ -645,7 +645,7 @@ const DetailPanel = ({
                       multiline
                       rows={3}
                       value={bladeFormData.PROB_DESC || ''}
-                      onChange={handleBladeChange('PROB_DESC')}
+                      onChange={handleBladeChange('DUAL_BLADE_REASON')}
                       margin='normal'
                     />
                   </Grid>
@@ -655,7 +655,7 @@ const DetailPanel = ({
                       fullWidth
                       size='small'
                       value={bladeFormData.DIECUT_AGE || ''}
-                      onChange={handleBladeChange('DIECUT_AGE')}
+                      onChange={handleBladeChange('DUAL_BLADE_DETAILS')}
                       margin='normal'
                     />
                   </Grid>
@@ -688,7 +688,7 @@ const DetailPanel = ({
             </Box>
           )}
 
-          {isEditing && (
+          {/* {isEditing && (
             <Box sx={{ p: 2 }}>
               <Typography variant='subtitle2'>รหัสคำขอ: {selectedItem.DIECUT_ID}</Typography>
               <Typography variant='subtitle1' sx={{ mt: 1, mb: 1 }}>
@@ -799,7 +799,7 @@ const DetailPanel = ({
                 </Button>
               </Box>
             </Box>
-          )}
+          )} */}
         </>
       ) : (
         <Typography variant='body2' color='text.secondary'>
