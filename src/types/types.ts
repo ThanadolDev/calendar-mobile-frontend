@@ -1,19 +1,38 @@
 // Types.ts - Add these interfaces to your existing types file
-export interface IDiecut {
-  DIECUT_ID: string
-  DIECUT_SN: string
-  AGES: number
-  USED: number
-  REMAIN: number
-  DIECUT_NEAR_EXP: number
-  PRIORITY: string
-  STATUS: string
-  DIECUT_TYPE: string
-  TL_STATUS: string
-  LAST_MODIFY: string | null
-  DUE_DATE: string
-  MODIFY_TYPE: string
+export interface IUserInfo {
+  id: string
+  name: string
+  email: string
+  role: 'Manager' | 'User' | 'Mod' | 'View'
+  token?: string
 }
+
+export interface IDiecut {
+  DIECUT_ID: number | string
+  DIECUT_SN: string
+  DIECUT_NEAR_EXP?: string
+  DIECUT_TYPE?: string
+  BLADE_TYPE?: string
+  STATUS?: string
+  TL_STATUS?: string
+  PRIORITY?: 'High' | 'Medium' | 'Low'
+  AGES?: number
+  USED?: number
+  REMAIN?: number
+  LAST_MODIFY?: string
+  DUE_DATE?: string
+  MODIFY_TYPE?: string
+  START_TIME?: Date | string
+  END_TIME?: Date | string
+  PRODUCTION_ISSUE?: string
+  TOOLING_AGE?: number
+  FIX_DETAILS?: string
+  BLADE_SIZE?: string
+  MULTI_BLADE_REASON?: string
+  MULTI_BLADE_REMARK?: string
+}
+
+export type UserRole = 'Manager' | 'User' | 'Mod' | 'View'
 
 export interface IDiecutResponseData {
   count: number
@@ -40,10 +59,3 @@ export interface IRequest {
 }
 
 // Add this to your existing IUserInfo interface
-export interface IUserInfo {
-  id: string
-  ORG_ID: string
-  role: 'manager' | 'user'
-  token: string
-  name: string
-}

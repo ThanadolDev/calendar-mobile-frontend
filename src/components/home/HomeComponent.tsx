@@ -2,13 +2,26 @@
 
 import { useEffect, useState, useCallback } from 'react'
 
-import { Box, useTheme, useMediaQuery, Alert, Snackbar, CircularProgress, Typography, Paper } from '@mui/material'
+import {
+  Box,
+  useTheme,
+  useMediaQuery,
+  Alert,
+  Snackbar,
+  CircularProgress,
+  Typography,
+  Paper,
+  Button,
+  Chip
+} from '@mui/material'
 
 import { getUserInfo } from '@/utils/userInfo'
 import type { IUserInfo, IDiecut } from '../../types/types'
 import RequestTable from './RequestTable'
 import DetailPanel from './DetailPanel'
-import { api } from '../../services/api'
+import { useRoleAccess } from '../../hooks/useRoleAccess'
+import appConfig from '../../configs/appConfig'
+import { usePermission } from '../../contexts/PermissionContext'
 
 const HomeComponent = () => {
   const theme = useTheme()
@@ -21,39 +34,69 @@ const HomeComponent = () => {
   const [isEditing, setIsEditing] = useState(false)
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as const })
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedType, setSelectedType] = useState<string>('')
+  const [selectedType, setSelectedType] = useState<string>('DC')
+  const [diecutTypes, setDiecutTypes] = useState<string[]>([])
+  const [typesLoading, setTypesLoading] = useState(false)
 
-  const userInfo = getUserInfo() as IUserInfo | null
-  const isManager = true
+  // Use permissions from role access hook instead of static isManager flag
+  const { isManager, canModify, canRecordDetails, canApprove } = usePermission()
+  const canEdit = canModify || canRecordDetails
+
+  // Fetch diecut types from the API
+  const fetchDiecutTypes = useCallback(async () => {
+    setTypesLoading(true)
+
+    try {
+      const response = await fetch(`${appConfig.api.baseUrl}/diecuts/types`)
+
+      if (!response.ok) {
+        throw new Error(`Server responded with status: ${response.status}`)
+      }
+
+      const result = await response.json()
+
+      if (result.success) {
+        const types = result.data.diecutType.map(item => item.DIECUT_TYPE).filter(type => type !== null)
+
+        setDiecutTypes(types)
+      } else {
+        console.error('Failed to fetch diecut types:', result.message)
+      }
+    } catch (error) {
+      console.error('Error fetching diecut types:', error)
+    } finally {
+      setTypesLoading(false)
+    }
+  }, [])
 
   const fetchData = useCallback(async () => {
-    // if (!userInfo?.id && !userInfo?.ORG_ID) {
-    //   setError('User information not found. Please log in again.')
-
-    //   return
-    // }
-
     setLoading(true)
     setError(null)
 
     try {
-      const response = await fetch(`http://localhost:2525/api/diecuts/status`)
+      // If selectedType has a value, include it in the API call
+      const url = selectedType
+        ? `${appConfig.api.baseUrl}/diecuts/status?diecutType=${encodeURIComponent(selectedType)}`
+        : `${appConfig.api.baseUrl}/diecuts/status`
 
-      // setData(result.data || [])
-      // const response = await api.get(`http://localhost:2525/api/diecuts/status`)
-
+      const response = await fetch(url)
       const result = await response.json()
 
       if (!response.ok) throw new Error(`Server responded with status: ${response.status}`)
       console.log(result.data.diecuts)
       setData(result.data.diecuts)
-      setLoading(false)
     } catch (error) {
       console.error('Error fetching data:', error)
       setError(error instanceof Error ? error.message : 'Failed to fetch data. Please try again later.')
+    } finally {
       setLoading(false)
     }
-  }, [])
+  }, [selectedType])
+
+  // Handle type change
+  const handleTypeChange = event => {
+    setSelectedType(event.target.value)
+  }
 
   const handleItemSelect = (item: IDiecut) => {
     // Reset editing state when selecting a new item
@@ -62,24 +105,54 @@ const HomeComponent = () => {
   }
 
   const handleEditClick = (item: IDiecut) => {
-    setSelectedItem(item)
-    setIsEditing(true)
+    // Only allow edit if user has permission
+    if (roleAccess.canModify) {
+      setSelectedItem(item)
+      setIsEditing(true)
+    } else {
+      setSnackbar({
+        open: true,
+        message: 'You do not have permission to edit requests',
+        severity: 'warning'
+      })
+    }
   }
 
   const handleEdit = () => {
-    setIsEditing(true)
+    // Only allow edit if user has permission
+    if (roleAccess.canModify) {
+      setIsEditing(true)
+    } else {
+      setSnackbar({
+        open: true,
+        message: 'You do not have permission to edit requests',
+        severity: 'warning'
+      })
+    }
   }
 
-  const handleStatusChange = () => {
+  const handleStatusChange = (status: 'Pending' | 'Pass' | 'Rejected') => {
+    // Only allow status change if user has permission to approve
+    if (!roleAccess.canApprove) {
+      setSnackbar({
+        open: true,
+        message: 'You do not have permission to change status',
+        severity: 'warning'
+      })
+
+      return
+    }
+
     if (selectedItem) {
       setSelectedItem({
-        ...selectedItem
+        ...selectedItem,
+        STATUS: status
       })
     }
   }
 
   const handleSave = async () => {
-    if (!isManager || !selectedItem) return
+    if (!roleAccess.canModify || !selectedItem) return
 
     setLoading(true)
 
@@ -135,6 +208,12 @@ const HomeComponent = () => {
     setSnackbar(prev => ({ ...prev, open: false }))
   }
 
+  // Fetch diecut types when the component mounts
+  useEffect(() => {
+    fetchDiecutTypes()
+  }, [fetchDiecutTypes])
+
+  // Fetch data when the component mounts or when selectedType changes
   useEffect(() => {
     fetchData()
   }, [fetchData, selectedType])
@@ -171,6 +250,26 @@ const HomeComponent = () => {
 
   return (
     <>
+      {/* Display user role and feature toggles in development mode */}
+      {process.env.NODE_ENV === 'development' && (
+        <Box sx={{ mb: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          {/* <Chip label={`User: ${userRole || 'Not logged in'}`} size='small' color='primary' />
+          <Chip
+            label={`RBAC: ${appConfig.features.enableRoleBasedAccess ? 'ON' : 'OFF'}`}
+            size='small'
+            color={appConfig.features.enableRoleBasedAccess ? 'success' : 'default'}
+          />
+          <Chip
+            label={`Formatting: ${appConfig.features.enableNumberFormatting ? 'ON' : 'OFF'}`}
+            size='small'
+            color={appConfig.features.enableNumberFormatting ? 'success' : 'default'}
+          />
+          {!appConfig.features.enableRoleBasedAccess && (
+            <Chip label={`Default Role: ${appConfig.defaultRole}`} size='small' color='info' />
+          )} */}
+        </Box>
+      )}
+
       <Box
         sx={{
           display: 'grid',
@@ -196,7 +295,6 @@ const HomeComponent = () => {
         )}
 
         {/* Main content area */}
-
         <Paper
           sx={{
             p: 2,
@@ -216,6 +314,9 @@ const HomeComponent = () => {
             setSearchQuery={setSearchQuery}
             setSelectedType={setSelectedType}
             selectedType={selectedType}
+            diecutTypes={diecutTypes}
+            typesLoading={typesLoading}
+            handleTypeChange={handleTypeChange}
           />
         </Paper>
 
@@ -237,6 +338,7 @@ const HomeComponent = () => {
             handleSave={handleSave}
             handleCancel={handleCancel}
             handleStatusChange={handleStatusChange}
+            canEdit={canEdit}
           />
         </Box>
       </Box>

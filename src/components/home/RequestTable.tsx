@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState } from 'react'
 
 import type { MRT_ColumnDef } from 'material-react-table'
 import { MaterialReactTable } from 'material-react-table'
@@ -19,15 +19,11 @@ import {
   MenuItem
 } from '@mui/material'
 import { alpha } from '@mui/material/styles'
-import {
-  Edit as EditIcon,
-  Visibility as VisibilityIcon,
-  Search as SearchIcon,
-  FilterAlt as FilterIcon,
-  Clear as ClearIcon
-} from '@mui/icons-material'
+import { Search as SearchIcon, Clear as ClearIcon } from '@mui/icons-material'
 
 import type { IDiecut } from '../../types/types'
+import { formatNumber } from '../../utils/formatters'
+import appConfig from '../../configs/appConfig'
 
 interface RequestTableProps {
   data: IDiecut[]
@@ -37,6 +33,11 @@ interface RequestTableProps {
   handleEditClick: (item: IDiecut) => void
   searchQuery: string
   setSearchQuery: (query: string) => void
+  selectedType: string
+  setSelectedType: (type: string) => void
+  diecutTypes: string[]
+  typesLoading: boolean
+  handleTypeChange: (event: SelectChangeEvent) => void
 }
 
 const RequestTable = ({
@@ -48,19 +49,14 @@ const RequestTable = ({
   searchQuery,
   setSearchQuery,
   setSelectedType,
-  selectedType
+  selectedType,
+  diecutTypes,
+  typesLoading,
+  handleTypeChange
 }: RequestTableProps) => {
   const [selectedStatus, setSelectedStatus] = useState<string>('')
 
-  // const [selectedType, setSelectedType] = useState<string>('')
-
-  // Extract unique values for dropdowns
-  const uniqueDiecutTypes = useMemo(() => {
-    const types = new Set(data.map(item => item.DIECUT_TYPE).filter(Boolean))
-
-    return Array.from(types).sort()
-  }, [data])
-
+  // Extract unique statuses from the fetched data
   const uniqueStatuses = useMemo(() => {
     const statuses = new Set(data.map(item => item.STATUS).filter(Boolean))
 
@@ -90,11 +86,6 @@ const RequestTable = ({
       filtered = filtered.filter(item => item.STATUS === selectedStatus)
     }
 
-    // Apply diecut type filter
-    // if (selectedType) {
-    //   filtered = filtered.filter(item => item.DIECUT_TYPE === selectedType)
-    // }
-
     return filtered
   }, [data, searchQuery, selectedStatus])
 
@@ -102,8 +93,7 @@ const RequestTable = ({
   const handleClearFilters = () => {
     setSearchQuery('')
     setSelectedStatus('')
-
-    // setSelectedType('')
+    setSelectedType('')
   }
 
   // Define table columns
@@ -111,29 +101,84 @@ const RequestTable = ({
     () => [
       {
         accessorKey: 'DIECUT_ID',
-        header: 'ID',
-        size: 100
+        header: 'DIECUT_ID',
+        size: 100,
+        Cell: ({ cell }) => {
+          const value = cell.getValue<number | string>()
+
+          return (
+            <Box sx={{ width: '100%' }}>
+              <Typography>{value}</Typography>
+            </Box>
+          )
+        }
       },
       {
         accessorKey: 'DIECUT_SN',
         header: 'DIECUT_SN',
-        size: 200
+        size: 200,
+        Cell: ({ cell }) => {
+          const value = cell.getValue<number | string>()
+
+          return (
+            <Box sx={{ width: '100%' }}>
+              <Typography>{value}</Typography>
+            </Box>
+          )
+        }
       },
+
       {
         accessorKey: 'AGES',
-        header: 'AGES'
+        header: 'AGES',
+        Cell: ({ cell }) => {
+          const value = cell.getValue<number | string>()
+
+          return (
+            <Box sx={{ width: '100%', textAlign: 'right' }}>
+              <Typography>{formatNumber(value)}</Typography>
+            </Box>
+          )
+        }
       },
       {
         accessorKey: 'USED',
-        header: 'USED'
+        header: 'USED',
+        Cell: ({ cell }) => {
+          const value = cell.getValue<number | string>()
+
+          return (
+            <Box sx={{ width: '100%', textAlign: 'right' }}>
+              <Typography>{formatNumber(value)}</Typography>
+            </Box>
+          )
+        }
       },
       {
         accessorKey: 'REMAIN',
-        header: 'REMAIN'
+        header: 'REMAIN',
+        Cell: ({ cell }) => {
+          const value = cell.getValue<number | string>()
+
+          return (
+            <Box sx={{ width: '100%', textAlign: 'right' }}>
+              <Typography>{formatNumber(value)}</Typography>
+            </Box>
+          )
+        }
       },
       {
         accessorKey: 'DIECUT_NEAR_EXP',
-        header: 'DIECUT_NEAR_EXP'
+        header: 'DIECUT_NEAR_EXP',
+        Cell: ({ cell }) => {
+          const value = cell.getValue<number | string>()
+
+          return (
+            <Box sx={{ width: '100%', textAlign: 'right' }}>
+              <Typography>{formatNumber(value)}</Typography>
+            </Box>
+          )
+        }
       },
       {
         accessorKey: 'PRIORITY',
@@ -175,11 +220,29 @@ const RequestTable = ({
       },
       {
         accessorKey: 'DIECUT_TYPE',
-        header: 'DIECUT_TYPE'
+        header: 'DIECUT_TYPE',
+        Cell: ({ cell }) => {
+          const value = cell.getValue<number | string>()
+
+          return (
+            <Box sx={{ width: '100%' }}>
+              <Typography>{value}</Typography>
+            </Box>
+          )
+        }
       },
       {
         accessorKey: 'TL_STATUS',
-        header: 'TL_STATUS'
+        header: 'TL_STATUS',
+        Cell: ({ cell }) => {
+          const value = cell.getValue<number | string>()
+
+          return (
+            <Box sx={{ width: '100%' }}>
+              <Typography>{value}</Typography>
+            </Box>
+          )
+        }
       },
       {
         accessorKey: 'LAST_MODIFY',
@@ -190,7 +253,7 @@ const RequestTable = ({
           if (!date) return null
 
           try {
-            return new Date(date).toLocaleDateString()
+            return <Typography>{new Date(date).toLocaleDateString()}</Typography>
           } catch (e) {
             return date
           }
@@ -213,7 +276,16 @@ const RequestTable = ({
       },
       {
         accessorKey: 'MODIFY_TYPE',
-        header: 'MODIFY_TYPE'
+        header: 'MODIFY_TYPE',
+        Cell: ({ cell }) => {
+          const value = cell.getValue<number | string>()
+
+          return (
+            <Box sx={{ width: '100%' }}>
+              <Typography>{value}</Typography>
+            </Box>
+          )
+        }
       }
     ],
     []
@@ -296,15 +368,15 @@ const RequestTable = ({
 
         <Box sx={{ marginLeft: 'auto' }}>
           <Chip
-            label={`รวม ${filteredData.length} รายการ จากทั้งหมด ${data.length} รายการ`}
+            label={`รวม ${formatNumber(filteredData.length)} รายการ จากทั้งหมด ${formatNumber(data.length)} รายการ`}
             size='small'
             sx={{ mr: 1 }}
           />
-          <Chip
+          {/* <Chip
             label={isManager ? 'Manager View' : 'User View'}
             color={isManager ? 'primary' : 'default'}
             size='small'
-          />
+          /> */}
         </Box>
       </Box>
     )
@@ -314,18 +386,34 @@ const RequestTable = ({
     <>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
         <Typography variant='h6'>{isManager ? 'Manage Requests' : 'View Requests'}</Typography>
+
+        {/* Show feature toggle status in dev mode */}
+        {process.env.NODE_ENV === 'development' && (
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Chip size='small' color={'default'} label={`ROLE : ${appConfig.defaultRole}`} />
+          </Box>
+        )}
       </Box>
+
       <FormControl size='small' sx={{ minWidth: 150, mb: 2 }}>
-        <InputLabel id='diecut-type-filter-label'>Diecut Type</InputLabel>
+        <InputLabel id='diecut-type-filter-label'>เลือกประเภท Diecut</InputLabel>
         <Select
           labelId='diecut-type-filter-label'
           id='diecut-type-filter'
-          value={selectedType}
-          label='Diecut Type'
-          onChange={(e: SelectChangeEvent) => setSelectedType(e.target.value)}
+          value={selectedType || 'DC'}
+          label='เลือกประเภท Diecut'
+          onChange={handleTypeChange}
+          disabled={typesLoading}
+          startAdornment={
+            typesLoading ? (
+              <InputAdornment position='start'>
+                <CircularProgress size={20} sx={{ color: '#98867B' }} />
+              </InputAdornment>
+            ) : null
+          }
         >
-          <MenuItem value=''>All Types</MenuItem>
-          {uniqueDiecutTypes.map(type => (
+          <MenuItem value=''>ทั้งหมด</MenuItem>
+          {diecutTypes.map(type => (
             <MenuItem key={type} value={type}>
               {type}
             </MenuItem>
@@ -389,11 +477,11 @@ const RequestTable = ({
             boxShadow: '0px 2px 4px rgba(208, 198, 189, 0.2)'
           }
         }}
-        muiTableBodyCellProps={{
-          sx: {
-            color: '#000000'
-          }
-        }}
+        // muiTableBodyCellProps={{
+        //   sx: {
+        //     color: '#000000'
+        //   }
+        // }}
         muiSelectCheckboxProps={{
           sx: {
             color: '#5A4D40',
@@ -423,11 +511,7 @@ const RequestTable = ({
           }
         }}
         muiPaginationProps={{
-          rowsPerPageOptions: [
-            10, 50, 100, 500
-
-            // { value: -1, label: 'All' }
-          ],
+          rowsPerPageOptions: [10, 50, 100, 500],
           SelectProps: {
             sx: {
               backgroundColor: '#f5f5f5',
@@ -439,8 +523,7 @@ const RequestTable = ({
               },
               '& .MuiSelect-select.MuiInputBase-input.MuiInput-input': {
                 paddingRight: '34px !important'
-              },
-              '& .tabler-chevron-down': {}
+              }
             }
           },
           color: 'primary',
@@ -452,7 +535,6 @@ const RequestTable = ({
             '.MuiPagination-ul': {
               gap: '4px'
             },
-
             '.MuiPaginationItem-root': {
               backgroundColor: '#f5f5f5',
               border: '1px solid #D0C6BD',
