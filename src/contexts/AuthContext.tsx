@@ -57,6 +57,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setUser(null)
 
     if (typeof window !== 'undefined') {
+      console.log('typeof window')
       router.replace(
         `${process.env.REACT_APP_URLMAIN_LOGIN}/logout?ogwebsite=${currentUrl}&redirectWebsite=${redirectUrl}`
       )
@@ -66,7 +67,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const refreshTokens = async (): Promise<boolean> => {
     const userInfo = getUserInfo()
 
-    if (!userInfo?.sessionId || !userInfo?.id || !userInfo?.accessToken) {
+    if (!userInfo?.sessionId || !userInfo?.accessToken) {
       await logout()
       return false
     }
@@ -82,23 +83,23 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       if (verifyResult === 401) {
         // Token expired, try to refresh it
-        const tokenUserData = await getTokenBySessionIdAndUserId(userInfo.sessionId, userInfo.id)
+        // const tokenUserData = await getTokenBySessionIdAndUserId(userInfo.sessionId, userInfo.id)
 
-        if (!tokenUserData) {
-          console.error('Failed to get token data')
-          await logout()
-          return false
-        }
+        // if (!tokenUserData) {
+        //   console.error('Failed to get token data')
+        //   await logout()
+        //   return false
+        // }
 
-        // Verify that the stored token matches the session token
-        if (userInfo.accessToken !== tokenUserData.ACCESS_TOKEN) {
-          console.error('Token mismatch between local storage and session')
-          await logout()
-          return false
-        }
+        // // Verify that the stored token matches the session token
+        // if (userInfo.accessToken !== tokenUserData.ACCESS_TOKEN) {
+        //   console.error('Token mismatch between local storage and session')
+        //   await logout()
+        //   return false
+        // }
 
         // Try to get a new token using refresh token
-        const refreshResult = await getRefreshToken(tokenUserData.REFRESH_TOKEN)
+        const refreshResult = await getRefreshToken(localStorage.getItem('refreshToken'))
 
         if (typeof refreshResult === 'object') {
           // Update tokens in localStorage
@@ -160,6 +161,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
         // If not on a public route, redirect to login
         if (pathname && !publicRoutes.some(route => pathname.includes(route))) {
+          console.log('If not on a public route, redirect to login')
           router.replace(
             `${process.env.REACT_APP_URLMAIN_LOGIN}/logout?ogwebsite=${currentUrl}&redirectWebsite=${redirectUrl}`
             // `${process.env.REACT_APP_URLMAIN_LOGIN}/login?ogwebsite=${encodeURIComponent(currentUrl)}&redirectWebsite=${encodeURIComponent(redirectUrl)}`
@@ -188,6 +190,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
         // Redirect to login if not on a public route
         if (pathname && !publicRoutes.some(route => pathname.includes(route))) {
+          console.log('Redirect to login if not on a public route')
           router.replace(
             `${process.env.REACT_APP_URLMAIN_LOGIN}/logout?ogwebsite=${currentUrl}&redirectWebsite=${redirectUrl}`
             // `${process.env.REACT_APP_URLMAIN_LOGIN}/login?ogwebsite=${encodeURIComponent(currentUrl)}&redirectWebsite=${encodeURIComponent(redirectUrl)}`
@@ -210,7 +213,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       () => {
         refreshTokens().catch(error => {
           console.error('Periodic token refresh failed:', error)
-          logout()
         })
       },
       4 * 60 * 1000

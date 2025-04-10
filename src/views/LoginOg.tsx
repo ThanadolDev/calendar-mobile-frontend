@@ -81,7 +81,7 @@ const LoginOg = ({ mode }: { mode: SystemMode }) => {
       const currentUrl = window.location.origin + '/tooling/login-og'
 
       // Check current user session
-      await checkCurrentSession()
+      // await checkCurrentSession()
 
       // Case 1: New login with tokens in URL
       if (urlToken && urlTokenRe && sessionId) {
@@ -134,14 +134,14 @@ const LoginOg = ({ mode }: { mode: SystemMode }) => {
 
     if (userInfo?.id) {
       try {
-        const res = await getCheckAuth(userInfo.id)
-        console.log('Session check result:', res.data)
+        // const res = await getCheckAuth(userInfo.id)
+        // console.log('Session check result:', res.data)
 
-        if (res?.data?.isLoggedIn === false) {
-          console.log('Session invalid, logging out')
-          await logout()
-          return false
-        }
+        // if (res?.data?.isLoggedIn === false) {
+        //   console.log('Session invalid, logging out')
+        //   await logout()
+        //   return false
+        // }
         return true
       } catch (error) {
         console.error('Error checking session:', error)
@@ -155,7 +155,7 @@ const LoginOg = ({ mode }: { mode: SystemMode }) => {
   useEffect(() => {
     checkAuthentication()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated])
+  }, [])
 
   return (
     <div className='flex flex-col text-center justify-center items-center h-full'>

@@ -19,7 +19,7 @@ import { getUserInfo } from '@/utils/userInfo'
 import type { IUserInfo, IDiecut } from '../../types/types'
 import RequestTable from './RequestTable'
 import DetailPanel from './DetailPanel'
-import { useRoleAccess } from '../../hooks/useRoleAccess'
+import useRoleAccess from '../../hooks/useRoleAccess'
 import appConfig from '../../configs/appConfig'
 import { usePermission } from '../../contexts/PermissionContext'
 
@@ -84,7 +84,7 @@ const HomeComponent = () => {
       const result = await response.json()
 
       if (!response.ok) throw new Error(`Server responded with status: ${response.status}`)
-      console.log(result.data.diecuts)
+      // console.log(result.data.diecuts)
       setData(result.data.diecuts)
     } catch (error) {
       console.error('Error fetching data:', error)
@@ -95,7 +95,7 @@ const HomeComponent = () => {
   }, [selectedType])
 
   // Handle type change
-  const handleTypeChange = event => {
+  const handleTypeChange = (event: any) => {
     setSelectedType(event.target.value)
   }
 
@@ -166,15 +166,7 @@ const HomeComponent = () => {
     setLoading(true)
 
     try {
-      // Mock API call - replace with actual implementation
-      // const response = await fetch(`/api/requests/${selectedItem.id}`, {
-      //   method: 'PUT',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //     Authorization: `Bearer ${userInfo?.token}`
-      //   },
-      //   body: JSON.stringify(selectedItem)
-      // })
+    
 
       // Simulate API request
       await new Promise(resolve => setTimeout(resolve, 1000))

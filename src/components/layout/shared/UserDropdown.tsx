@@ -25,7 +25,6 @@ import { useSettings } from '@core/hooks/useSettings'
 import { clearUserInfo, getUserInfo } from '@/utils/userInfo'
 
 import useRedirect from '@/utils/useRedirect'
-import { getRefreshToken, getTokenBySessionIdAndUserId, getVerifyToken } from '@/services/apiService'
 
 // Styled component for badge content
 // const BadgeContentSpan = styled('span')({
@@ -79,71 +78,7 @@ const UserDropdown = () => {
   // Check for user redirection
   useRedirect(userInfo)
 
-  const checkVerifyToken = async (accessToken: string) => {
-    if (!userInfo?.sessionId || !userInfo?.id) {
-      console.error('User session or ID is missing.')
 
-      handleUserLogout()
-
-      return
-    }
-
-    const resVerifyToken = await getVerifyToken(accessToken)
-
-    console.log('resVerifyToken', resVerifyToken)
-
-    // เอา refreshToken  ส่งไปใน getRefreshToken เอา token และ accessToken ใหม่
-
-    if (resVerifyToken === 401) {
-      const resTokenUserData = await getTokenBySessionIdAndUserId(userInfo?.sessionId, userInfo?.id)
-
-      if (!resTokenUserData) {
-        console.log('Invalid token response, redirecting to logout')
-        handleUserLogout()
-
-        return
-      }
-
-      console.log('jwt expired 401')
-      const verifyTokenBetween = accessToken === resTokenUserData?.ACCESS_TOKEN
-
-      if (!verifyTokenBetween) {
-        console.log('verifyTokenBetween invalid  redirect logout', verifyTokenBetween)
-
-        // redirect logout
-        handleUserLogout()
-
-        return
-      }
-
-      console.log('res resTokenUserData', resTokenUserData)
-
-      const resRefreshToken = await getRefreshToken(resTokenUserData.REFRESH_TOKEN)
-
-      if (typeof resRefreshToken === 'object') {
-        console.log('update tokens to local storage', resRefreshToken)
-
-        // save to localstorage
-        // update tokens to local storage
-        localStorage.setItem('accessToken', resRefreshToken.accessToken)
-        localStorage.setItem('refreshToken', resRefreshToken.refreshToken)
-      } else {
-        console.log('resRefreshToken invalid signature 403 redirect logout', resRefreshToken)
-
-        // redirect logout
-        handleUserLogout()
-
-        return
-      }
-    }
-
-    if (resVerifyToken === 403) {
-      console.log('resVerifyToken invalid signature 403 redirect logout')
-
-      // redirect logout
-      handleUserLogout()
-    }
-  }
 
   useEffect(() => {
     setHydrated(true)
