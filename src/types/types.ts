@@ -5,6 +5,8 @@ export interface IUserInfo {
   email: string
   role: 'Manager' | 'User' | 'Mod' | 'View'
   token?: string
+  accessToken: string
+  refreshToken: string
 }
 
 export interface IDiecut {

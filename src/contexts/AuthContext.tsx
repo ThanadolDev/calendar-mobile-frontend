@@ -1,0 +1,245 @@
+'use client'
+
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
+import { getVerifyToken, getRefreshToken, getTokenBySessionIdAndUserId } from '@/services/apiService'
+import { clearUserInfo, getUserInfo, setUserInfo } from '@/utils/userInfo'
+import { CircularProgress } from '@mui/material'
+
+interface AuthContextType {
+  isAuthenticated: boolean
+  user: any | null
+  loading: boolean
+  logout: () => Promise<void>
+  refreshTokens: () => Promise<boolean>
+  checkAccess: (requiredRole?: string) => boolean
+}
+
+const AuthContext = createContext<AuthContextType>({
+  isAuthenticated: false,
+  user: null,
+  loading: true,
+  logout: async () => {},
+  refreshTokens: async () => false,
+  checkAccess: () => false
+})
+
+export const useAuth = () => useContext(AuthContext)
+
+// Define public routes that don't require authentication
+const publicRoutes = ['/login-og', '/public', '/unauthorized']
+
+// Configure route-based role requirements
+const roleRequirements: Record<string, string[]> = {
+  '/admin': ['Manager'],
+  '/reports': ['Manager', 'User'],
+  '/settings': ['Manager']
+  // Add more routes with their required roles
+}
+
+interface AuthProviderProps {
+  children: ReactNode
+}
+
+export const AuthProvider = ({ children }: AuthProviderProps) => {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
+  const [user, setUser] = useState<any | null>(null)
+  const [loading, setLoading] = useState<boolean>(true)
+  const router = useRouter()
+  const pathname = usePathname()
+
+  const currentUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/tooling/login-og`
+  const redirectUrl = typeof window !== 'undefined' ? window.location.href : ''
+
+  const logout = async () => {
+    clearUserInfo()
+    setIsAuthenticated(false)
+    setUser(null)
+
+    if (typeof window !== 'undefined') {
+      router.replace(
+        `${process.env.REACT_APP_URLMAIN_LOGIN}/logout?ogwebsite=${currentUrl}&redirectWebsite=${redirectUrl}`
+      )
+    }
+  }
+
+  const refreshTokens = async (): Promise<boolean> => {
+    const userInfo = getUserInfo()
+
+    if (!userInfo?.sessionId || !userInfo?.id || !userInfo?.accessToken) {
+      await logout()
+      return false
+    }
+
+    try {
+      // First try to verify with current token
+      const verifyResult = await getVerifyToken(userInfo.accessToken)
+
+      if (typeof verifyResult !== 'number') {
+        // Token is still valid
+        return true
+      }
+
+      if (verifyResult === 401) {
+        // Token expired, try to refresh it
+        const tokenUserData = await getTokenBySessionIdAndUserId(userInfo.sessionId, userInfo.id)
+
+        if (!tokenUserData) {
+          console.error('Failed to get token data')
+          await logout()
+          return false
+        }
+
+        // Verify that the stored token matches the session token
+        if (userInfo.accessToken !== tokenUserData.ACCESS_TOKEN) {
+          console.error('Token mismatch between local storage and session')
+          await logout()
+          return false
+        }
+
+        // Try to get a new token using refresh token
+        const refreshResult = await getRefreshToken(tokenUserData.REFRESH_TOKEN)
+
+        if (typeof refreshResult === 'object') {
+          // Update tokens in localStorage
+          const updatedUserInfo = {
+            ...userInfo,
+            accessToken: refreshResult.accessToken,
+            refreshToken: refreshResult.refreshToken
+          }
+
+          setUserInfo(updatedUserInfo)
+          setUser(updatedUserInfo)
+          return true
+        } else {
+          console.error('Failed to refresh token')
+          await logout()
+          return false
+        }
+      }
+
+      if (verifyResult === 403) {
+        console.error('Invalid token signature')
+        await logout()
+        return false
+      }
+
+      return false
+    } catch (error) {
+      console.error('Error during token refresh:', error)
+      await logout()
+      return false
+    }
+  }
+
+  // Check if user has access to the current route based on their role
+  const checkAccess = (requiredRole?: string): boolean => {
+    // If no role required or user has the required role, grant access
+    if (!requiredRole || (user?.role && requiredRole === user.role)) {
+      return true
+    }
+
+    // If route has role requirements, check if user's role is in the allowed roles
+    if (pathname && roleRequirements[pathname]) {
+      return user?.role && roleRequirements[pathname].includes(user.role)
+    }
+
+    // Default to true if no specific requirements
+    return true
+  }
+
+  // Authentication check and route protection
+  useEffect(() => {
+    const checkAuth = async () => {
+      const userInfo = getUserInfo()
+
+      if (!userInfo) {
+        setIsAuthenticated(false)
+        setUser(null)
+        setLoading(false)
+
+        // If not on a public route, redirect to login
+        if (pathname && !publicRoutes.some(route => pathname.includes(route))) {
+          router.replace(
+            `${process.env.REACT_APP_URLMAIN_LOGIN}/logout?ogwebsite=${currentUrl}&redirectWebsite=${redirectUrl}`
+            // `${process.env.REACT_APP_URLMAIN_LOGIN}/login?ogwebsite=${encodeURIComponent(currentUrl)}&redirectWebsite=${encodeURIComponent(redirectUrl)}`
+          )
+        }
+        return
+      }
+
+      const refreshSuccessful = await refreshTokens()
+
+      if (refreshSuccessful) {
+        setIsAuthenticated(true)
+        setUser(userInfo)
+
+        // Check if user has access to this route
+        if (
+          pathname &&
+          roleRequirements[pathname] &&
+          (!userInfo.role || !roleRequirements[pathname].includes(userInfo.role))
+        ) {
+          router.replace('/unauthorized')
+        }
+      } else {
+        setIsAuthenticated(false)
+        setUser(null)
+
+        // Redirect to login if not on a public route
+        if (pathname && !publicRoutes.some(route => pathname.includes(route))) {
+          router.replace(
+            `${process.env.REACT_APP_URLMAIN_LOGIN}/logout?ogwebsite=${currentUrl}&redirectWebsite=${redirectUrl}`
+            // `${process.env.REACT_APP_URLMAIN_LOGIN}/login?ogwebsite=${encodeURIComponent(currentUrl)}&redirectWebsite=${encodeURIComponent(redirectUrl)}`
+          )
+        }
+      }
+
+      setLoading(false)
+    }
+
+    checkAuth()
+  }, [pathname])
+
+  // Set up a periodic token refresh
+  useEffect(() => {
+    if (!isAuthenticated) return
+
+    // Refresh token every 4 minutes to prevent 5-minute expiration
+    const refreshInterval = setInterval(
+      () => {
+        refreshTokens().catch(error => {
+          console.error('Periodic token refresh failed:', error)
+          logout()
+        })
+      },
+      4 * 60 * 1000
+    ) // 4 minutes
+
+    return () => clearInterval(refreshInterval)
+  }, [isAuthenticated])
+
+  // Show loading spinner while checking authentication
+  if (loading) {
+    return (
+      <div className='flex justify-center items-center h-screen'>
+        <CircularProgress />
+      </div>
+    )
+  }
+
+  return (
+    <AuthContext.Provider
+      value={{
+        isAuthenticated,
+        user,
+        loading,
+        logout,
+        refreshTokens,
+        checkAccess
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  )
+}

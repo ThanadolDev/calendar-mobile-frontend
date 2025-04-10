@@ -37,6 +37,7 @@ const HomeComponent = () => {
   const [selectedType, setSelectedType] = useState<string>('DC')
   const [diecutTypes, setDiecutTypes] = useState<string[]>([])
   const [typesLoading, setTypesLoading] = useState(false)
+  const [detailLoading, setDetailLoading] = useState(false)
 
   // Use permissions from role access hook instead of static isManager flag
   const { isManager, canModify, canRecordDetails, canApprove } = usePermission()
@@ -99,9 +100,17 @@ const HomeComponent = () => {
   }
 
   const handleItemSelect = (item: IDiecut) => {
+    // Show loading state
+    setDetailLoading(true)
+
     // Reset editing state when selecting a new item
     setSelectedItem(item)
     setIsEditing(false)
+
+    // Simulate delay or use actual data loading time
+    setTimeout(() => {
+      setDetailLoading(false)
+    }, 800) // Adjust timing based on your actual data loading performance
   }
 
   const handleEditClick = (item: IDiecut) => {
@@ -334,6 +343,7 @@ const HomeComponent = () => {
             isEditing={isEditing}
             isManager={isManager}
             loading={loading}
+            detailLoading={detailLoading} // Add this new prop
             handleEdit={handleEdit}
             handleSave={handleSave}
             handleCancel={handleCancel}

@@ -14,6 +14,7 @@ import '@assets/iconify-icons/generated-icons.css'
 
 import { PermissionProvider } from '../contexts/PermissionContext'
 
+
 // ตั้งค่า Sarabun
 const sarabun = Sarabun({
   weight: ['400', '700'], // กำหนดน้ำหนักของฟอนต์ที่ต้องการใช้ เช่น 400 (normal) และ 700 (bold)
@@ -34,11 +35,11 @@ const RootLayout = ({ children }: ChildrenType) => {
 
   return (
     <PermissionProvider>
-      <html id='__next' lang='en' dir={direction}>
-        <body className={`flex is-full min-bs-full flex-auto flex-col ${sarabun.variable} antialiased`}>
-          {children}
-        </body>
-      </html>
+        <html id='__next' lang='en' dir={direction}>
+          <body className={`flex is-full min-bs-full flex-auto flex-col ${sarabun.variable} antialiased`}>
+            {children}
+          </body>
+        </html>
     </PermissionProvider>
   )
 }

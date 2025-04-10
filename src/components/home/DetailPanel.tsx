@@ -45,6 +45,7 @@ interface DetailPanelProps {
   isEditing: boolean
   isManager: boolean
   loading: boolean
+  detailLoading?: boolean
   handleEdit: () => void
   handleSave: () => void
   handleCancel: () => void
@@ -56,6 +57,7 @@ const DetailPanel = ({
   selectedItem,
   isEditing,
   loading,
+  detailLoading,
   handleEdit,
   handleSave,
   handleCancel,
@@ -414,375 +416,229 @@ const DetailPanel = ({
       </Typography>
 
       {selectedItem ? (
-        <>
-          {!isEditing && editingBladeSN === null && (
-            <>
-              {/* Top 30% - Request Details */}
-              <Box
-                sx={{
-                  mb: 2,
-                  pb: 2,
-                  height: '30%',
-                  borderBottom: '1px solid #E0E0E0',
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  gap: 1
-                }}
-              >
-                <Grid container spacing={1}>
-                  <Grid item xs={6}>
-                    <Typography variant='subtitle2'>รหัสคำขอ</Typography>
-                    <Typography variant='body2' gutterBottom>
-                      {selectedItem.DIECUT_ID}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant='subtitle2'>หมายเลขใบมีด</Typography>
-                    <Typography variant='body2' gutterBottom>
-                      {selectedItem.DIECUT_SN}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant='subtitle2'>สถานะ</Typography>
-                    <Chip
-                      label={selectedItem.STATUS || 'รอดำเนินการ'}
-                      color={
-                        selectedItem.STATUS === 'Pass'
-                          ? 'success'
-                          : selectedItem.STATUS === 'Pending'
-                            ? 'warning'
-                            : selectedItem.STATUS === 'Rejected'
-                              ? 'error'
+        detailLoading ? (
+          <Box sx={{ mb: 2, pb: 2, height: '30%', borderBottom: '1px solid #E0E0E0' }}>
+            <Grid container spacing={1}>
+              <Grid item xs={6}>
+                <Typography variant='subtitle2'>รหัสคำขอ</Typography>
+                <Box sx={{ width: '70%', height: 20, bgcolor: '#f0f0f0', borderRadius: 1, mt: 0.5 }} />
+              </Grid>
+              <Grid item xs={6}>
+                <Typography variant='subtitle2'>หมายเลขใบมีด</Typography>
+                <Box sx={{ width: '80%', height: 20, bgcolor: '#f0f0f0', borderRadius: 1, mt: 0.5 }} />
+              </Grid>
+              <Grid item xs={6}>
+                <Typography variant='subtitle2'>สถานะ</Typography>
+                <Box sx={{ width: '50%', height: 24, bgcolor: '#f0f0f0', borderRadius: 1, mt: 0.5 }} />
+              </Grid>
+              <Grid item xs={6}>
+                <Typography variant='subtitle2'>ประเภท</Typography>
+                <Box sx={{ width: '60%', height: 20, bgcolor: '#f0f0f0', borderRadius: 1, mt: 0.5 }} />
+              </Grid>
+              <Grid item xs={6}>
+                <Typography variant='subtitle2'>อายุการใช้งาน</Typography>
+                <Box sx={{ width: '40%', height: 20, bgcolor: '#f0f0f0', borderRadius: 1, mt: 0.5 }} />
+              </Grid>
+              <Grid item xs={6}>
+                <Typography variant='subtitle2'>ความเร่งด่วน</Typography>
+                <Box sx={{ width: '50%', height: 24, bgcolor: '#f0f0f0', borderRadius: 1, mt: 0.5 }} />
+              </Grid>
+            </Grid>
+          </Box>
+        ) : (
+          <>
+            {!isEditing && editingBladeSN === null && (
+              <>
+                {/* Top 30% - Request Details */}
+                <Box
+                  sx={{
+                    mb: 2,
+                    pb: 2,
+                    height: '30%',
+                    borderBottom: '1px solid #E0E0E0',
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: 1
+                  }}
+                >
+                  <Grid container spacing={1}>
+                    <Grid item xs={6}>
+                      <Typography variant='subtitle2'>รหัสคำขอ</Typography>
+                      <Typography variant='body2' gutterBottom>
+                        {selectedItem.DIECUT_ID}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant='subtitle2'>หมายเลขใบมีด</Typography>
+                      <Typography variant='body2' gutterBottom>
+                        {selectedItem.DIECUT_SN}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant='subtitle2'>สถานะ</Typography>
+                      <Chip
+                        label={selectedItem.STATUS || 'รอดำเนินการ'}
+                        color={
+                          selectedItem.STATUS === 'Pass'
+                            ? 'success'
+                            : selectedItem.STATUS === 'Pending'
+                              ? 'warning'
+                              : selectedItem.STATUS === 'Rejected'
+                                ? 'error'
+                                : 'default'
+                        }
+                        size='small'
+                        sx={{ mb: 1 }}
+                      />
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant='subtitle2'>ประเภท</Typography>
+                      <Typography variant='body2' gutterBottom>
+                        {selectedItem.BLADE_TYPE || 'ไม่ระบุ'}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant='subtitle2'>อายุการใช้งาน</Typography>
+                      <Typography variant='body2' gutterBottom>
+                        {formatNumber(selectedItem.AGES) || 'ไม่ระบุ'}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant='subtitle2'>ความเร่งด่วน</Typography>
+                      <Chip
+                        label={selectedItem.PRIORITY || 'ไม่ระบุ'}
+                        color={
+                          selectedItem.PRIORITY === 'High'
+                            ? 'error'
+                            : selectedItem.PRIORITY === 'Medium'
+                              ? 'primary'
                               : 'default'
-                      }
-                      size='small'
-                      sx={{ mb: 1 }}
-                    />
+                        }
+                        size='small'
+                        sx={{ mb: 1 }}
+                      />
+                    </Grid>
                   </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant='subtitle2'>ประเภท</Typography>
-                    <Typography variant='body2' gutterBottom>
-                      {selectedItem.BLADE_TYPE || 'ไม่ระบุ'}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant='subtitle2'>อายุการใช้งาน</Typography>
-                    <Typography variant='body2' gutterBottom>
-                      {formatNumber(selectedItem.AGES) || 'ไม่ระบุ'}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant='subtitle2'>ความเร่งด่วน</Typography>
-                    <Chip
-                      label={selectedItem.PRIORITY || 'ไม่ระบุ'}
-                      color={
-                        selectedItem.PRIORITY === 'High'
-                          ? 'error'
-                          : selectedItem.PRIORITY === 'Medium'
-                            ? 'primary'
-                            : 'default'
-                      }
-                      size='small'
-                      sx={{ mb: 1 }}
-                    />
-                  </Grid>
-                </Grid>
-              </Box>
+                </Box>
 
-              {/* Middle 60% - Blade Card List */}
-              <Box sx={{ height: '50vh', overflow: 'auto', mb: 2 }}>
-                <div className='flex w-full'>
-                  <Typography variant='subtitle1' gutterBottom sx={{ fontWeight: 'bold', mb: 2 }}>
-                    รายการใบมีด
-                  </Typography>
-                  <div className='ml-auto mr-4'>
-                    <PermissionGate requiredPermission='canModify'>
-                      <IconButton onClick={handleAddBlade} color='primary' size='small'>
-                        <AddIcon className='cursor-pointer' />
-                        <Typography>เพิ่ม</Typography>
-                      </IconButton>
-                    </PermissionGate>
+                {/* Middle 60% - Blade Card List */}
+                <Box sx={{ height: '50vh', overflow: 'auto', mb: 2 }}>
+                  <div className='flex w-full'>
+                    <Typography variant='subtitle1' gutterBottom sx={{ fontWeight: 'bold', mb: 2 }}>
+                      รายการใบมีด
+                    </Typography>
+                    <div className='ml-auto mr-4'>
+                      <PermissionGate requiredPermission='canModify'>
+                        <IconButton onClick={handleAddBlade} color='primary' size='small'>
+                          <AddIcon className='cursor-pointer' />
+                          <Typography>เพิ่ม</Typography>
+                        </IconButton>
+                      </PermissionGate>
+                    </div>
                   </div>
-                </div>
 
-                {/* Update the JSX rendering for the blade cards to match the API data structure */}
-                {dieCutSNList.length === 0 ? (
-                  <Typography variant='body2' color='text.secondary' sx={{ textAlign: 'center', py: 3 }}>
-                    ไม่พบรายการใบมีด กดปุ่ม + เพื่อเพิ่มรายการ
-                  </Typography>
-                ) : (
-                  dieCutSNList.map(blade => (
-                    <Paper
-                      key={blade.DIECUT_SN}
-                      variant='outlined'
-                      sx={{
-                        p: 2,
-                        mb: 2,
-                        transition: 'all 0.3s ease',
-                        '&:hover': {
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                        }
-                      }}
-                    >
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                        <Typography variant='subtitle2' sx={{ fontWeight: 'bold' }}>
-                          {blade.DIECUT_SN || 'ใบมีดใหม่'}
-                        </Typography>
-                        <PermissionGate requiredPermission='canView'>
-                          <Box>
-                            {blade.isNewlyAdded ? (
-                              <IconButton
-                                size='small'
-                                color='error'
-                                onClick={() => handleDeleteBlade(blade.DIECUT_SN)}
-                                sx={{ mr: 1 }}
-                              >
-                                <DeleteIcon fontSize='small' />
-                                <Typography>ลบ</Typography>
-                              </IconButton>
-                            ) : (
-                              <Button
-                                size='small'
-                                variant='outlined'
-                                sx={{
-                                  borderColor: '#98867B',
-                                  color: '#98867B',
-                                  '&:hover': {
-                                    borderColor: '#5A4D40',
-                                    backgroundColor: 'rgba(152, 134, 123, 0.04)'
-                                  }
-                                }}
-                                onClick={() => handleEditBlade(blade)}
-                              >
-                                <EditIcon />
-                                <Typography>แก้ไข</Typography>
-                              </Button>
-                            )}
-                          </Box>
-                        </PermissionGate>
-                      </Box>
-
-                      <Grid container spacing={1}>
-                        <Grid item xs={6}>
-                          <Typography variant='caption' color='text.secondary'>
-                            ประเภทใบมีด
-                          </Typography>
-                          <Typography variant='body2'>{blade.BLADE_TYPE || 'ไม่ระบุ'}</Typography>
-                        </Grid>
-                        <Grid item xs={6}>
-                          <Typography variant='caption' color='text.secondary'>
-                            อายุ tooling
-                          </Typography>
-                          <Typography variant='body2'>{formatNumber(blade.DIECUT_AGE) || 'ไม่ระบุ'}</Typography>
-                        </Grid>
-
-                        {blade.PROB_DESC && (
-                          <Grid item xs={12}>
-                            <Typography variant='caption' color='text.secondary'>
-                              รายละเอียดปัญหา
-                            </Typography>
-                            <Typography variant='body2'>{blade.PROB_DESC}</Typography>
-                          </Grid>
-                        )}
-                      </Grid>
-                    </Paper>
-                  ))
-                )}
-              </Box>
-
-              {/* Bottom 10% - Edit Button */}
-              <Box
-                sx={{
-                  pt: 2,
-                  mt: 'auto',
-                  borderTop: '1px solid #E0E0E0',
-                  position: 'sticky',
-                  bottom: 0,
-                  backgroundColor: 'background.paper',
-                  width: '100%'
-                }}
-              >
-                <Button
-                  variant='contained'
-                  color='primary'
-                  onClick={handleSaveList}
-                  disabled={!isManager || !hasListChanged()}
-                  fullWidth
-                  sx={{
-                    backgroundColor: '#98867B',
-                    '&:hover': {
-                      backgroundColor: '#5A4D40'
-                    },
-                    '&.Mui-disabled': {
-                      backgroundColor: 'action.disabledBackground',
-                      opacity: 0.7
-                    }
-                  }}
-                >
-                  {isManager ? 'บันทึก' : 'บันทึก'}
-                </Button>
-              </Box>
-            </>
-          )}
-
-          {/* Blade Editing Form */}
-          {editingBladeSN !== null && bladeFormData && (
-            <Box sx={{ p: 2 }}>
-              <Typography variant='subtitle1' gutterBottom>
-                แก้ไขใบมีด: {bladeFormData.DIECUT_SN}
-              </Typography>
-              <div className='flex-1 overflow-auto' style={{ height: '72vh' }}>
-                <Grid container spacing={2}>
-                  <Grid item xs={6}>
-                    <Typography variant='subtitle2'>เริ่มงานวันที่</Typography>
-                    <TextField
-                      fullWidth
-                      size='small'
-                      type='date'
-                      value={
-                        bladeFormData.START_TIME
-                          ? typeof bladeFormData.START_TIME === 'string'
-                            ? bladeFormData.START_TIME.split('T')[0]
-                            : new Date(bladeFormData.START_TIME).toISOString().split('T')[0]
-                          : ''
-                      }
-                      onChange={handleBladeChange('START_TIME')}
-                      InputLabelProps={{ shrink: true }}
-                      margin='normal'
-                    />
-                  </Grid>
-
-                  <Grid item xs={6}>
-                    <Typography variant='subtitle2'>สิ้นสุดวันที่</Typography>
-                    <TextField
-                      fullWidth
-                      size='small'
-                      type='date'
-                      value={
-                        bladeFormData.END_TIME
-                          ? typeof bladeFormData.END_TIME === 'string'
-                            ? bladeFormData.END_TIME.split('T')[0]
-                            : new Date(bladeFormData.END_TIME).toISOString().split('T')[0]
-                          : ''
-                      }
-                      onChange={handleBladeChange('END_TIME')}
-                      InputLabelProps={{ shrink: true }}
-                      margin='normal'
-                      inputProps={{
-                        min: bladeFormData.START_TIME || ''
-                      }}
-                      error={
-                        bladeFormData.END_TIME &&
-                        bladeFormData.START_TIME &&
-                        new Date(bladeFormData.END_TIME) < new Date(bladeFormData.START_TIME)
-                      }
-                      helperText={
-                        bladeFormData.END_TIME &&
-                        bladeFormData.START_TIME &&
-                        new Date(bladeFormData.END_TIME) < new Date(bladeFormData.START_TIME)
-                          ? 'วันที่สิ้นสุดต้องไม่น้อยกว่าวันที่เริ่มต้น'
-                          : ''
-                      }
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <Typography variant='subtitle2'>อายุ tooling</Typography>
-                    <TextField
-                      fullWidth
-                      size='small'
-                      type='number'
-                      value={bladeFormData.DIECUT_AGE || ''}
-                      onChange={handleBladeChange('DIECUT_AGE')}
-                      margin='normal'
-                      InputProps={{
-                        sx: {
-                          '& input': {
-                            textAlign: 'right'
+                  {dieCutSNList.length === 0 ? (
+                    <Typography variant='body2' color='text.secondary' sx={{ textAlign: 'center', py: 3 }}>
+                      ไม่พบรายการใบมีด กดปุ่ม + เพื่อเพิ่มรายการ
+                    </Typography>
+                  ) : (
+                    dieCutSNList.map(blade => (
+                      <Paper
+                        key={blade.DIECUT_SN}
+                        variant='outlined'
+                        sx={{
+                          p: 2,
+                          mb: 2,
+                          transition: 'all 0.3s ease',
+                          '&:hover': {
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                           }
-                        }
-                      }}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <Typography variant='subtitle2'>ปัญหาจาก production</Typography>
-                    <TextField
-                      fullWidth
-                      size='small'
-                      multiline
-                      rows={3}
-                      value={bladeFormData.PROB_DESC || ''}
-                      onChange={handleBladeChange('PROB_DESC')}
-                      margin='normal'
-                    />
-                  </Grid>
+                        }}
+                      >
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                          <Typography variant='subtitle2' sx={{ fontWeight: 'bold' }}>
+                            {blade.DIECUT_SN || 'ใบมีดใหม่'}
+                          </Typography>
+                          <PermissionGate requiredPermission='canView'>
+                            <Box>
+                              {blade.isNewlyAdded ? (
+                                <IconButton
+                                  size='small'
+                                  color='error'
+                                  onClick={() => handleDeleteBlade(blade.DIECUT_SN)}
+                                  sx={{ mr: 1 }}
+                                >
+                                  <DeleteIcon fontSize='small' />
+                                  <Typography>ลบ</Typography>
+                                </IconButton>
+                              ) : (
+                                <Button
+                                  size='small'
+                                  variant='outlined'
+                                  sx={{
+                                    borderColor: '#98867B',
+                                    color: '#98867B',
+                                    '&:hover': {
+                                      borderColor: '#5A4D40',
+                                      backgroundColor: 'rgba(152, 134, 123, 0.04)'
+                                    }
+                                  }}
+                                  onClick={() => handleEditBlade(blade)}
+                                >
+                                  <EditIcon />
+                                  <Typography>แก้ไข</Typography>
+                                </Button>
+                              )}
+                            </Box>
+                          </PermissionGate>
+                        </Box>
 
-                  <Grid item xs={12}>
-                    <Typography variant='subtitle2'>รายละเอียดในการแก้ไข</Typography>
-                    <TextField
-                      fullWidth
-                      size='small'
-                      multiline
-                      rows={3}
-                      value={bladeFormData.REMARK || ''}
-                      onChange={handleBladeChange('REMARK')}
-                      margin='normal'
-                    />
-                  </Grid>
+                        <Grid container spacing={1}>
+                          <Grid item xs={6}>
+                            <Typography variant='caption' color='text.secondary'>
+                              ประเภทใบมีด
+                            </Typography>
+                            <Typography variant='body2'>{blade.BLADE_TYPE || 'ไม่ระบุ'}</Typography>
+                          </Grid>
+                          <Grid item xs={6}>
+                            <Typography variant='caption' color='text.secondary'>
+                              อายุ tooling
+                            </Typography>
+                            <Typography variant='body2'>{formatNumber(blade.DIECUT_AGE) || 'ไม่ระบุ'}</Typography>
+                          </Grid>
 
-                  <Grid item xs={12}>
-                    <Typography variant='subtitle2'>ระยะมีด</Typography>
-                    <TextField
-                      fullWidth
-                      size='small'
-                      value={bladeFormData.BLADE_TYPE || ''}
-                      onChange={handleBladeChange('BLADE_TYPE')}
-                      margin='normal'
-                    />
-                  </Grid>
+                          {blade.PROB_DESC && (
+                            <Grid item xs={12}>
+                              <Typography variant='caption' color='text.secondary'>
+                                รายละเอียดปัญหา
+                              </Typography>
+                              <Typography variant='body2'>{blade.PROB_DESC}</Typography>
+                            </Grid>
+                          )}
+                        </Grid>
+                      </Paper>
+                    ))
+                  )}
+                </Box>
 
-                  <Grid item xs={12}>
-                    <Typography variant='subtitle2'>สาเหตุที่ใช้มีดคู่</Typography>
-                    <TextField
-                      fullWidth
-                      size='small'
-                      multiline
-                      rows={3}
-                      value={bladeFormData.MULTI_BLADE_REASON || ''}
-                      onChange={handleBladeChange('MULTI_BLADE_REASON')}
-                      margin='normal'
-                    />
-                  </Grid>
-
-                  <Grid item xs={12}>
-                    <Typography variant='subtitle2'>รายละเอียดในการใช้มีดคู่</Typography>
-                    <TextField
-                      fullWidth
-                      size='small'
-                      multiline
-                      rows={2}
-                      value={bladeFormData.MULTI_BLADE_REMARK || ''}
-                      onChange={handleBladeChange('MULTI_BLADE_REMARK')}
-                      margin='normal'
-                    />
-                  </Grid>
-                </Grid>
-              </div>
-              <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-                <Button
-                  variant='outlined'
-                  onClick={handleCancelBlade}
+                {/* Bottom 10% - Edit Button */}
+                <Box
                   sx={{
-                    borderColor: '#98867B',
-                    color: '#98867B'
+                    pt: 2,
+                    mt: 'auto',
+                    borderTop: '1px solid #E0E0E0',
+                    position: 'sticky',
+                    bottom: 0,
+                    backgroundColor: 'background.paper',
+                    width: '100%'
                   }}
                 >
-                  ยกเลิก
-                </Button>
-                <PermissionGate requiredPermission='canModify'>
                   <Button
                     variant='contained'
-                    onClick={handleSaveBlade}
-                    disabled={!hasFormChanged()}
+                    color='primary'
+                    onClick={handleSaveList}
+                    disabled={!isManager || !hasListChanged()}
+                    fullWidth
                     sx={{
                       backgroundColor: '#98867B',
                       '&:hover': {
@@ -794,13 +650,189 @@ const DetailPanel = ({
                       }
                     }}
                   >
-                    บันทึก
+                    {isManager ? 'บันทึก' : 'บันทึก'}
                   </Button>
-                </PermissionGate>
+                </Box>
+              </>
+            )}
+
+            {/* Blade Editing Form */}
+            {editingBladeSN !== null && bladeFormData && (
+              <Box sx={{ p: 2 }}>
+                <Typography variant='subtitle1' gutterBottom>
+                  แก้ไขใบมีด: {bladeFormData.DIECUT_SN}
+                </Typography>
+                <div className='flex-1 overflow-auto' style={{ height: '72vh' }}>
+                  <Grid container spacing={2}>
+                    <Grid item xs={6}>
+                      <Typography variant='subtitle2'>เริ่มงานวันที่</Typography>
+                      <TextField
+                        fullWidth
+                        size='small'
+                        type='date'
+                        value={
+                          bladeFormData.START_TIME
+                            ? typeof bladeFormData.START_TIME === 'string'
+                              ? bladeFormData.START_TIME.split('T')[0]
+                              : new Date(bladeFormData.START_TIME).toISOString().split('T')[0]
+                            : ''
+                        }
+                        onChange={handleBladeChange('START_TIME')}
+                        InputLabelProps={{ shrink: true }}
+                        margin='normal'
+                      />
+                    </Grid>
+
+                    <Grid item xs={6}>
+                      <Typography variant='subtitle2'>สิ้นสุดวันที่</Typography>
+                      <TextField
+                        fullWidth
+                        size='small'
+                        type='date'
+                        value={
+                          bladeFormData.END_TIME
+                            ? typeof bladeFormData.END_TIME === 'string'
+                              ? bladeFormData.END_TIME.split('T')[0]
+                              : new Date(bladeFormData.END_TIME).toISOString().split('T')[0]
+                            : ''
+                        }
+                        onChange={handleBladeChange('END_TIME')}
+                        InputLabelProps={{ shrink: true }}
+                        margin='normal'
+                        inputProps={{
+                          min: bladeFormData.START_TIME || ''
+                        }}
+                        error={
+                          bladeFormData.END_TIME &&
+                          bladeFormData.START_TIME &&
+                          new Date(bladeFormData.END_TIME) < new Date(bladeFormData.START_TIME)
+                        }
+                        helperText={
+                          bladeFormData.END_TIME &&
+                          bladeFormData.START_TIME &&
+                          new Date(bladeFormData.END_TIME) < new Date(bladeFormData.START_TIME)
+                            ? 'วันที่สิ้นสุดต้องไม่น้อยกว่าวันที่เริ่มต้น'
+                            : ''
+                        }
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Typography variant='subtitle2'>อายุ tooling</Typography>
+                      <TextField
+                        fullWidth
+                        size='small'
+                        type='number'
+                        value={bladeFormData.DIECUT_AGE || ''}
+                        onChange={handleBladeChange('DIECUT_AGE')}
+                        margin='normal'
+                        InputProps={{
+                          sx: {
+                            '& input': {
+                              textAlign: 'right'
+                            }
+                          }
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Typography variant='subtitle2'>ปัญหาจาก production</Typography>
+                      <TextField
+                        fullWidth
+                        size='small'
+                        multiline
+                        rows={3}
+                        value={bladeFormData.PROB_DESC || ''}
+                        onChange={handleBladeChange('PROB_DESC')}
+                        margin='normal'
+                      />
+                    </Grid>
+
+                    <Grid item xs={12}>
+                      <Typography variant='subtitle2'>รายละเอียดในการแก้ไข</Typography>
+                      <TextField
+                        fullWidth
+                        size='small'
+                        multiline
+                        rows={3}
+                        value={bladeFormData.REMARK || ''}
+                        onChange={handleBladeChange('REMARK')}
+                        margin='normal'
+                      />
+                    </Grid>
+
+                    <Grid item xs={12}>
+                      <Typography variant='subtitle2'>ระยะมีด</Typography>
+                      <TextField
+                        fullWidth
+                        size='small'
+                        value={bladeFormData.BLADE_TYPE || ''}
+                        onChange={handleBladeChange('BLADE_TYPE')}
+                        margin='normal'
+                      />
+                    </Grid>
+
+                    <Grid item xs={12}>
+                      <Typography variant='subtitle2'>สาเหตุที่ใช้มีดคู่</Typography>
+                      <TextField
+                        fullWidth
+                        size='small'
+                        multiline
+                        rows={3}
+                        value={bladeFormData.MULTI_BLADE_REASON || ''}
+                        onChange={handleBladeChange('MULTI_BLADE_REASON')}
+                        margin='normal'
+                      />
+                    </Grid>
+
+                    <Grid item xs={12}>
+                      <Typography variant='subtitle2'>รายละเอียดในการใช้มีดคู่</Typography>
+                      <TextField
+                        fullWidth
+                        size='small'
+                        multiline
+                        rows={2}
+                        value={bladeFormData.MULTI_BLADE_REMARK || ''}
+                        onChange={handleBladeChange('MULTI_BLADE_REMARK')}
+                        margin='normal'
+                      />
+                    </Grid>
+                  </Grid>
+                </div>
+                <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+                  <Button
+                    variant='outlined'
+                    onClick={handleCancelBlade}
+                    sx={{
+                      borderColor: '#98867B',
+                      color: '#98867B'
+                    }}
+                  >
+                    ยกเลิก
+                  </Button>
+                  <PermissionGate requiredPermission='canModify'>
+                    <Button
+                      variant='contained'
+                      onClick={handleSaveBlade}
+                      disabled={!hasFormChanged()}
+                      sx={{
+                        backgroundColor: '#98867B',
+                        '&:hover': {
+                          backgroundColor: '#5A4D40'
+                        },
+                        '&.Mui-disabled': {
+                          backgroundColor: 'action.disabledBackground',
+                          opacity: 0.7
+                        }
+                      }}
+                    >
+                      บันทึก
+                    </Button>
+                  </PermissionGate>
+                </Box>
               </Box>
-            </Box>
-          )}
-        </>
+            )}
+          </>
+        )
       ) : (
         <Typography variant='body2' color='text.secondary'>
           เลือกคำขอเพื่อดูรายละเอียด

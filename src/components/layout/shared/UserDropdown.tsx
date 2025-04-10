@@ -147,15 +147,6 @@ const UserDropdown = () => {
 
   useEffect(() => {
     setHydrated(true)
-
-    if (userInfo) {
-      // console.log('have userInfo===', userInfo)
-
-      // ส่งไปเช็ค verify
-      checkVerifyToken(userInfo.accessToken)
-    } else {
-      // console.log('not have userInfo===', userInfo)
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
