@@ -22,6 +22,7 @@ import DetailPanel from './DetailPanel'
 import useRoleAccess from '../../hooks/useRoleAccess'
 import appConfig from '../../configs/appConfig'
 import { usePermission } from '../../contexts/PermissionContext'
+import apiClient from '../../services/apiClient'
 
 const HomeComponent = () => {
   const theme = useTheme()
@@ -44,21 +45,40 @@ const HomeComponent = () => {
   const canEdit = canModify || canRecordDetails
 
   // Fetch diecut types from the API
+  // const fetchDiecutTypes = useCallback(async () => {
+  //   setTypesLoading(true)
+
+  //   try {
+  //     const response = await fetch(`${appConfig.api.baseUrl}/diecuts/types`)
+
+  //     if (!response.ok) {
+  //       throw new Error(`Server responded with status: ${response.status}`)
+  //     }
+
+  //     const result = await response.json()
+
+  //     if (result.success) {
+  //       const types = result.data.diecutType.map(item => item.DIECUT_TYPE).filter(type => type !== null)
+
+  //       setDiecutTypes(types)
+  //     } else {
+  //       console.error('Failed to fetch diecut types:', result.message)
+  //     }
+  //   } catch (error) {
+  //     console.error('Error fetching diecut types:', error)
+  //   } finally {
+  //     setTypesLoading(false)
+  //   }
+  // }, [])
+
   const fetchDiecutTypes = useCallback(async () => {
     setTypesLoading(true)
 
     try {
-      const response = await fetch(`${appConfig.api.baseUrl}/diecuts/types`)
-
-      if (!response.ok) {
-        throw new Error(`Server responded with status: ${response.status}`)
-      }
-
-      const result = await response.json()
+      const result = await apiClient.get('/api/diecuts/types')
 
       if (result.success) {
         const types = result.data.diecutType.map(item => item.DIECUT_TYPE).filter(type => type !== null)
-
         setDiecutTypes(types)
       } else {
         console.error('Failed to fetch diecut types:', result.message)
@@ -70,6 +90,31 @@ const HomeComponent = () => {
     }
   }, [])
 
+  // const fetchData = useCallback(async () => {
+  //   setLoading(true)
+  //   setError(null)
+
+  //   try {
+  //     // If selectedType has a value, include it in the API call
+  //     const url = selectedType
+  //       ? `${appConfig.api.baseUrl}/diecuts/status?diecutType=${encodeURIComponent(selectedType)}`
+  //       : `${appConfig.api.baseUrl}/diecuts/status`
+
+  //     const response = await fetch(url)
+  //     const result = await response.json()
+
+  //     if (!response.ok) throw new Error(`Server responded with status: ${response.status}`)
+  //     // console.log(result.data.diecuts)
+  //     setData(result.data.diecuts)
+  //   } catch (error) {
+  //     console.error('Error fetching data:', error)
+  //     setError(error instanceof Error ? error.message : 'Failed to fetch data. Please try again later.')
+  //   } finally {
+  //     setLoading(false)
+  //   }
+  // }, [selectedType])
+
+  // Handle type change
   const fetchData = useCallback(async () => {
     setLoading(true)
     setError(null)
@@ -77,15 +122,16 @@ const HomeComponent = () => {
     try {
       // If selectedType has a value, include it in the API call
       const url = selectedType
-        ? `${appConfig.api.baseUrl}/diecuts/status?diecutType=${encodeURIComponent(selectedType)}`
-        : `${appConfig.api.baseUrl}/diecuts/status`
+        ? `/api/diecuts/status?diecutType=${encodeURIComponent(selectedType)}`
+        : `/api/diecuts/status`
 
-      const response = await fetch(url)
-      const result = await response.json()
+      const result = await apiClient.get(url)
 
-      if (!response.ok) throw new Error(`Server responded with status: ${response.status}`)
-      // console.log(result.data.diecuts)
-      setData(result.data.diecuts)
+      if (result.success) {
+        setData(result.data.diecuts)
+      } else {
+        throw new Error('Failed to fetch data')
+      }
     } catch (error) {
       console.error('Error fetching data:', error)
       setError(error instanceof Error ? error.message : 'Failed to fetch data. Please try again later.')
@@ -94,7 +140,6 @@ const HomeComponent = () => {
     }
   }, [selectedType])
 
-  // Handle type change
   const handleTypeChange = (event: any) => {
     setSelectedType(event.target.value)
   }
@@ -166,8 +211,6 @@ const HomeComponent = () => {
     setLoading(true)
 
     try {
-    
-
       // Simulate API request
       await new Promise(resolve => setTimeout(resolve, 1000))
 

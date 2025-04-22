@@ -5,10 +5,32 @@ import { useState, useEffect, useRef } from 'react'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
-import { Box, Typography, Chip, Paper, Button, CircularProgress, TextField, Grid, IconButton } from '@mui/material'
+import BuildIcon from '@mui/icons-material/Build'
+import {
+  Box,
+  Typography,
+  Chip,
+  Paper,
+  Button,
+  CircularProgress,
+  TextField,
+  Grid,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Alert
+} from '@mui/material'
 
 import { isEqual } from 'lodash'
 
+import apiClient from '../../services/apiClient'
 import { usePermission } from '../../contexts/PermissionContext'
 import PermissionGate from '../PermissionGate'
 import { PermissionButton } from '../PermissionButton'
@@ -38,6 +60,17 @@ interface BladeItem {
   MULTI_BLADE_REMARK: string
   isNewlyAdded: boolean
   REMARK: string
+  JOB_ORDER?: string
+  PRODUCT_CODE?: string
+  PRODUCT_NAME?: string
+  PCS_PER_SHEET?: number
+  REQUIRED_DATE?: Date | null
+  MODIFY_TYPE?: string
+  MODIFY_TYPE_ORIGINAL?: string
+  MODIFY_TYPE_APPV_FLAG?: string | null
+  MODIFY_TYPE_APPV_BY?: string
+  MODIFY_TYPE_APPV_BY_NAME?: string
+  MODIFY_TYPE_APPV_DATE?: Date
 }
 
 interface DetailPanelProps {
@@ -51,6 +84,7 @@ interface DetailPanelProps {
   handleCancel: () => void
   handleStatusChange: (status: 'Pending' | 'Pass' | 'Rejected') => void
   canEdit: boolean
+  onProcessComplete?: () => void
 }
 
 const DetailPanel = ({
@@ -61,7 +95,8 @@ const DetailPanel = ({
   handleEdit,
   handleSave,
   handleCancel,
-  handleStatusChange
+  handleStatusChange,
+  onProcessComplete
 }: DetailPanelProps) => {
   const { isManager, canModify, canApprove, canRecordDetails } = usePermission()
   const canEdit = canModify || canRecordDetails
@@ -70,6 +105,10 @@ const DetailPanel = ({
   const [editingBladeSN, setEditingBladeSN] = useState<string | null>(null)
   const [dieCutSNList, setDieCutSNList] = useState<BladeItem[]>([])
   const [bladeFormData, setBladeFormData] = useState<BladeItem | null>(null)
+  const [showApprovalDialog, setShowApprovalDialog] = useState(false)
+  const [showTypeChangeDialog, setShowTypeChangeDialog] = useState(false)
+  const [showTypeApprovalDialog, setShowTypeApprovalDialog] = useState(false)
+  const [allowedChangeTypes, setAllowedChangeTypes] = useState<string[]>([])
 
   // Keep original data references to compare for changes
   const originalBladeDataRef = useRef<BladeItem | null>(null)
@@ -113,7 +152,19 @@ const DetailPanel = ({
 
     // Create comparison objects with only the fields we care about
     const getComparisonObject = (data: BladeItem) => {
-      const { DIECUT_AGE, BLADE_TYPE, PROB_DESC, REMARK, MULTI_BLADE_REASON, MULTI_BLADE_REMARK } = data
+      const {
+        DIECUT_AGE,
+        BLADE_TYPE,
+        PROB_DESC,
+        REMARK,
+        MULTI_BLADE_REASON,
+        MULTI_BLADE_REMARK,
+        JOB_ORDER,
+        PRODUCT_CODE,
+        PRODUCT_NAME,
+        PCS_PER_SHEET,
+        REQUIRED_DATE
+      } = data
 
       // Format dates consistently for comparison
       const formatDate = (date: any) => {
@@ -129,6 +180,11 @@ const DetailPanel = ({
         REMARK: REMARK ?? '',
         MULTI_BLADE_REASON: MULTI_BLADE_REASON ?? '',
         MULTI_BLADE_REMARK: MULTI_BLADE_REMARK ?? '',
+        JOB_ORDER: JOB_ORDER ?? '',
+        PRODUCT_CODE: PRODUCT_CODE ?? '',
+        PRODUCT_NAME: PRODUCT_NAME ?? '',
+        PCS_PER_SHEET: PCS_PER_SHEET ?? '',
+        REQUIRED_DATE: formatDate(REQUIRED_DATE),
         START_TIME: formatDate(data.START_TIME),
         END_TIME: formatDate(data.END_TIME)
       }
@@ -146,29 +202,25 @@ const DetailPanel = ({
 
     if (!bladeFormData) return
 
-    setBladeFormData(prev => ({
-      ...prev!,
-      [field]: field.includes('Date') && value ? new Date(value) : value
-    }))
+    // Special handling for datetime-local inputs
+    if (field === 'START_TIME' || field === 'END_TIME') {
+      setBladeFormData(prev => ({
+        ...prev!,
+        [field]: value ? new Date(value) : null
+      }))
+    } else {
+      setBladeFormData(prev => ({
+        ...prev!,
+        [field]: field.includes('Date') && value ? new Date(value) : value
+      }))
+    }
   }
 
   async function getDetailData(diecutId: any) {
     try {
-      const response = await fetch(`http://localhost:2525/api/diecuts/getdiecutsn`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          diecutId: selectedItem?.DIECUT_ID
-        })
+      const data = await apiClient.post('/api/diecuts/getdiecutsn', {
+        diecutId: selectedItem?.DIECUT_ID
       })
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`)
-      }
-
-      const data = await response.json()
 
       if (data.success) {
         return data.data.diecutList
@@ -183,6 +235,24 @@ const DetailPanel = ({
       return []
     }
   }
+
+  // Load allowed change types
+  // useEffect(() => {
+  //   const loadAllowedChangeTypes = async () => {
+  //     try {
+  //       const result = await apiClient.get('/api/profile/getsetting?key=DIECUT_CHG_MOD_TYPE_LIST')
+
+  //       if (result.success && result.data.value) {
+  //         // Parse the comma-separated list into an array
+  //         setAllowedChangeTypes(result.data.value.split(',').map((type: string) => type.trim()))
+  //       }
+  //     } catch (error) {
+  //       console.error('Error loading allowed change types:', error)
+  //     }
+  //   }
+
+  //   loadAllowedChangeTypes()
+  // }, [])
 
   // The useEffect hook to load data when a die cut is selected
   useEffect(() => {
@@ -227,25 +297,15 @@ const DetailPanel = ({
     try {
       const requestData = {
         diecutId: selectedItem.DIECUT_ID,
+        diecut_TYPE: selectedItem.DIECUT_TYPE,
         SNList: dieCutSNList.map(blade => ({
           DIECUT_SN: blade.DIECUT_SN,
-          BLADE_TYPE: blade.BLADE_TYPE
+          BLADE_TYPE: blade.BLADE_TYPE,
+          MODIFY_TYPE: blade.MODIFY_TYPE
         }))
       }
 
-      const response = await fetch(`http://localhost:2525/api/diecuts/savediecut`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestData)
-      })
-
-      if (!response.ok) {
-        throw new Error(`Server responded with status: ${response.status}`)
-      }
-
-      const result = await response.json()
+      const result = await apiClient.post('/api/diecuts/savediecut', requestData)
 
       console.log('Save result:', result)
 
@@ -279,8 +339,9 @@ const DetailPanel = ({
       ...blade,
 
       // Convert string dates to Date objects if they exist
-      START_TIME: blade.START_TIME ? new Date(blade.START_TIME) : null,
-      END_TIME: blade.END_TIME ? new Date(blade.END_TIME) : null
+      START_TIME: blade.START_TIME ? new Date(blade.START_TIME) : new Date(),
+      END_TIME: blade.END_TIME ? new Date(blade.END_TIME) : null,
+      REQUIRED_DATE: blade.REQUIRED_DATE ? new Date(blade.REQUIRED_DATE) : null
     }
 
     // Store original data for comparison
@@ -302,24 +363,17 @@ const DetailPanel = ({
         multiBladeReason: bladeFormData.MULTI_BLADE_REASON,
         multiBladeRemark: bladeFormData.MULTI_BLADE_REMARK,
         probDesc: bladeFormData.PROB_DESC,
-        remark: bladeFormData.REMARK
+        remark: bladeFormData.REMARK,
+        jobOrder: bladeFormData.JOB_ORDER,
+        productCode: bladeFormData.PRODUCT_CODE,
+        productName: bladeFormData.PRODUCT_NAME,
+        pcsPerSheet: bladeFormData.PCS_PER_SHEET,
+        requiredDate: bladeFormData.REQUIRED_DATE
       }
 
       console.log('Saving blade data:', payload)
 
-      const response = await fetch('http://localhost:2525/api/diecuts/savediecutmodidetail', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      })
-
-      if (!response.ok) {
-        throw new Error(`Server responded with status: ${response.status}`)
-      }
-
-      const result = await response.json()
+      const result = await apiClient.post('/api/diecuts/savediecutmodidetail', payload)
 
       if (result.success) {
         const updatedBlade = {
@@ -381,12 +435,14 @@ const DetailPanel = ({
         DIECUT_SN: newDiecutSN,
         BLADE_TYPE: '',
         DIECUT_AGE: 0,
-        STATUS: 'W',
+        STATUS: 'N',
         bladeType: '',
         bladeSize: '',
         details: '',
         TL_STATUS: 'GOOD',
         PROB_DESC: '',
+        START_TIME: new Date(),
+        MODIFY_TYPE: 'N',
 
         // Add this flag to mark as newly added
         isNewlyAdded: true
@@ -397,6 +453,501 @@ const DetailPanel = ({
   // Delete a blade from the list
   const handleDeleteBlade = (diecutSN: string) => {
     setDieCutSNList(dieCutSNList.filter(blade => blade.DIECUT_SN !== diecutSN))
+  }
+
+  // Auto date calculation
+  const handleAutoDate = async () => {
+    if (!bladeFormData || !bladeFormData.JOB_ORDER) {
+      console.warn('ต้องระบุ JOB Order ก่อนคำนวณวันที่อัตโนมัติ')
+
+      return
+    }
+
+    try {
+      // Call API to get suggested date based on JOB Order
+      const result = await apiClient.post('/api/diecuts/getautodate', {
+        jobOrder: bladeFormData.JOB_ORDER
+      })
+
+      if (result.success && result.data.suggestedDate) {
+        setBladeFormData(prev => ({
+          ...prev!,
+          REQUIRED_DATE: new Date(result.data.suggestedDate)
+        }))
+      } else {
+        console.info('ไม่สามารถคำนวณวันที่อัตโนมัติได้ กรุณาระบุวันที่ด้วยตนเอง')
+      }
+    } catch (error) {
+      console.error('Error calculating auto date:', error)
+    }
+  }
+
+  // Handle status change with approval
+  const handleStatusChangeWithApproval = async (newStatus: string) => {
+    if (!bladeFormData) return
+
+    // Check if we're changing from B to M which requires approval
+    if (bladeFormData.STATUS === 'B' && newStatus === 'M') {
+      // Create a state for the approval dialog
+      setShowApprovalDialog(true)
+    } else {
+      // For other status changes, just update directly
+      updateBladeStatus(newStatus)
+    }
+  }
+
+  // Update blade status
+  const updateBladeStatus = async (newStatus: string) => {
+    if (!bladeFormData) return
+
+    try {
+      const payload = {
+        diecutId: bladeFormData.DIECUT_ID,
+        diecutSN: bladeFormData.DIECUT_SN,
+        status: newStatus
+      }
+
+      const result = await apiClient.post('/api/diecuts/updatestatus', payload)
+
+      if (result.success) {
+        // Update local state
+        setBladeFormData(prev => ({
+          ...prev!,
+          STATUS: newStatus
+        }))
+
+        // If changing to status T, update parent component
+        if (newStatus === 'T') {
+          // Notify parent component that processing is complete
+          onProcessComplete && onProcessComplete()
+        }
+      }
+    } catch (error) {
+      console.error('Error updating status:', error)
+    }
+  }
+
+  // Dialog for status change approval
+  const ApprovalDialog = () => {
+    const [username, setUsername] = useState('')
+    const [password, setPassword] = useState('')
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState('')
+
+    const handleApproval = async () => {
+      setLoading(true)
+      setError('')
+
+      try {
+        const result = await apiClient.post('/api/auth/verifyapprover', {
+          username,
+          password
+        })
+
+        if (result.success) {
+          setShowApprovalDialog(false)
+
+          // Proceed with status change
+          updateBladeStatus('M')
+        } else {
+          setError('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง หรือคุณไม่มีสิทธิ์อนุมัติ')
+        }
+      } catch (error) {
+        setError('เกิดข้อผิดพลาดในการตรวจสอบ กรุณาลองใหม่อีกครั้ง')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    return (
+      <Dialog open={showApprovalDialog} onClose={() => setShowApprovalDialog(false)}>
+        <DialogTitle>การอนุมัติเปลี่ยนสถานะ</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            กรุณาใส่ชื่อผู้ใช้และรหัสผ่านของผู้มีสิทธิ์อนุมัติเพื่อเปลี่ยนสถานะจาก B (เปลี่ยนใบมีด) เป็น M (สร้างทดแทน)
+          </DialogContentText>
+          <TextField
+            autoFocus
+            margin='dense'
+            label='ชื่อผู้ใช้'
+            type='text'
+            fullWidth
+            value={username}
+            onChange={e => setUsername(e.target.value)}
+          />
+          <TextField
+            margin='dense'
+            label='รหัสผ่าน'
+            type='password'
+            fullWidth
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+          />
+          {error && (
+            <Alert severity='error' sx={{ mt: 2 }}>
+              {error}
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowApprovalDialog(false)}>ยกเลิก</Button>
+          <Button onClick={handleApproval} disabled={loading || !username || !password}>
+            {loading ? <CircularProgress size={24} /> : 'ยืนยัน'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    )
+  }
+
+  // Dialog for work type change
+  const TypeChangeDialog = () => {
+    const [newType, setNewType] = useState('')
+    const [loading, setLoading] = useState(false)
+
+    const handleTypeChange = async () => {
+      // if (!bladeFormData || !newType) return
+
+      setLoading(true)
+
+      try {
+        const payload = {
+          diecutId: bladeFormData.DIECUT_ID,
+          diecutSN: bladeFormData.DIECUT_SN,
+          modifyTypeAppvFlag: 'P'
+        }
+
+        const result = await apiClient.post('/api/diecuts/changetyperequest', payload)
+
+        if (result.success) {
+          // Update local state
+          setBladeFormData(prev => ({
+            ...prev!,
+            MODIFY_TYPE: newType,
+            MODIFY_TYPE_APPV_FLAG: 'P'
+          }))
+
+          // Close dialog
+          setShowTypeChangeDialog(false)
+
+          // Open approval dialog immediately
+          setShowTypeApprovalDialog(true)
+        } else {
+          console.error('Failed to request type change:', result.message)
+        }
+      } catch (error) {
+        console.error('Error requesting type change:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    return (
+      <Dialog open={showTypeChangeDialog} onClose={() => setShowTypeChangeDialog(false)}>
+        <DialogTitle>เปลี่ยนประเภทงาน</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            เลือกประเภทงานใหม่ โดยการเปลี่ยนประเภทงานจะต้องได้รับการอนุมัติจากหัวหน้า
+          </DialogContentText>
+          <FormControl fullWidth margin='dense'>
+            {/* <InputLabel>ประเภทงานใหม่</InputLabel> */}
+            {/* <Select value={newType} onChange={e => setNewType(e.target.value)} label='ประเภทงานใหม่'>
+              {allowedChangeTypes.map(type => (
+                <MenuItem key={type} value={type}>
+                  {type}
+                </MenuItem>
+              ))}
+            </Select> */}
+          </FormControl>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowTypeChangeDialog(false)}>ยกเลิก</Button>
+          <Button onClick={handleTypeChange}>{loading ? <CircularProgress size={24} /> : 'ยืนยัน'}</Button>
+        </DialogActions>
+      </Dialog>
+    )
+  }
+
+  // Dialog for work type change approval
+  const TypeApprovalDialog = () => {
+    const [username, setUsername] = useState('')
+    const [password, setPassword] = useState('')
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState('')
+    const [loadingStep, setLoadingStep] = useState(0) // 0=not started, 1=checking auth, 2=saving, 3=complete
+
+    const handleApprove = async () => {
+      if (!bladeFormData) return
+
+      setLoading(true)
+      setError('')
+      setLoadingStep(1) // Start with auth check
+
+      try {
+        // First verify the supervisor credentials
+        const authResult = await apiClient.post('/api/diecuts/verifyapprover', {
+          username,
+          password,
+          requiredPositionId: 'DIECUT_CHG_MOD_TYPE_APPV_POS'
+        })
+
+        if (authResult.success) {
+          setLoadingStep(2) // Move to saving step
+
+          // If authentication is successful, approve the change
+          const approvalResult = await apiClient.post('/api/diecuts/approvetypechange', {
+            diecutId: bladeFormData.DIECUT_ID,
+            diecutSN: bladeFormData.DIECUT_SN,
+            modifyType: bladeFormData.MODIFY_TYPE,
+            approverId: authResult.data.employeeId,
+            approverName: authResult.data.employeeName
+          })
+
+          if (approvalResult.success) {
+            setLoadingStep(3) // Complete
+
+            // Short delay to show completion state
+            setTimeout(() => {
+              // Update local state
+              setBladeFormData(prev => ({
+                ...prev!,
+                MODIFY_TYPE_APPV_FLAG: 'A'
+              }))
+
+              // Close dialog
+              setShowTypeApprovalDialog(false)
+            }, 1000)
+          } else {
+            setError('ไม่สามารถบันทึกการอนุมัติได้: ' + approvalResult.message)
+            setLoadingStep(0)
+          }
+        } else {
+          setError('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง หรือคุณไม่มีตำแหน่งงานที่สามารถอนุมัติได้')
+          setLoadingStep(0)
+        }
+      } catch (error) {
+        console.error('Error approving type change:', error)
+        setError('เกิดข้อผิดพลาดในการอนุมัติ กรุณาลองใหม่อีกครั้ง')
+        setLoadingStep(0)
+      } finally {
+        if (loadingStep !== 3) {
+          setLoading(false)
+        }
+      }
+    }
+
+    const handleCancel = async () => {
+      if (!bladeFormData) return
+
+      setLoading(true)
+      setLoadingStep(1)
+
+      try {
+        const result = await apiClient.post('/api/diecuts/canceltypechange', {
+          diecutId: bladeFormData.DIECUT_ID,
+          diecutSN: bladeFormData.DIECUT_SN
+        })
+
+        if (result.success) {
+          setLoadingStep(3)
+
+          // Short delay to show completion state
+          setTimeout(() => {
+            // Update local state - revert to original type and clear approval flag
+            setBladeFormData(prev => ({
+              ...prev!,
+              MODIFY_TYPE: result.data.originalType || prev!.MODIFY_TYPE,
+              MODIFY_TYPE_APPV_FLAG: null
+            }))
+
+            // Close dialog
+            setShowTypeApprovalDialog(false)
+          }, 1000)
+        } else {
+          setError('ไม่สามารถยกเลิกการเปลี่ยนประเภทงานได้: ' + result.message)
+          setLoadingStep(0)
+        }
+      } catch (error) {
+        console.error('Error canceling type change:', error)
+        setError('เกิดข้อผิดพลาดในการยกเลิก กรุณาลองใหม่อีกครั้ง')
+        setLoadingStep(0)
+      } finally {
+        if (loadingStep !== 3) {
+          setLoading(false)
+        }
+      }
+    }
+
+    return (
+      <Dialog open={showTypeApprovalDialog} onClose={() => !loading && setShowTypeApprovalDialog(false)}>
+        <DialogTitle>อนุมัติการเปลี่ยนประเภทงาน</DialogTitle>
+        <DialogContent>
+          {loadingStep === 0 ? (
+            <>
+              <DialogContentText>
+                กรุณาใส่ชื่อผู้ใช้และรหัสผ่านของหัวหน้าที่มีสิทธิ์อนุมัติการเปลี่ยนประเภทงานจาก
+                {bladeFormData?.MODIFY_TYPE_ORIGINAL || '-'} เป็น {bladeFormData?.MODIFY_TYPE || '-'}
+              </DialogContentText>
+              <TextField
+                autoFocus
+                margin='dense'
+                label='ชื่อผู้ใช้'
+                type='text'
+                fullWidth
+                value={username}
+                onChange={e => setUsername(e.target.value)}
+              />
+              <TextField
+                margin='dense'
+                label='รหัสผ่าน'
+                type='password'
+                fullWidth
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+              />
+              {error && (
+                <Alert severity='error' sx={{ mt: 2 }}>
+                  {error}
+                </Alert>
+              )}
+            </>
+          ) : (
+            <Box sx={{ textAlign: 'center', py: 2 }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                <Box sx={{ position: 'relative', display: 'inline-flex' }}>
+                  <CircularProgress size={60} />
+                  {loadingStep === 3 && (
+                    <Box
+                      sx={{
+                        top: 0,
+                        left: 0,
+                        bottom: 0,
+                        right: 0,
+                        position: 'absolute',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      <Typography variant='caption' component='div' color='text.secondary'>
+                        ✓
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
+                <Typography variant='h6'>
+                  {loadingStep === 1 && 'กำลังตรวจสอบสิทธิ์...'}
+                  {loadingStep === 2 && 'กำลังบันทึกข้อมูล...'}
+                  {loadingStep === 3 && 'ดำเนินการเสร็จสิ้น'}
+                </Typography>
+                <Box sx={{ width: '100%', mt: 1 }}>
+                  <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', mb: 1 }}>
+                    <Box
+                      sx={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: '50%',
+                        bgcolor: loadingStep >= 1 ? 'success.main' : '#eee',
+                        mr: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white'
+                      }}
+                    >
+                      {loadingStep > 1 ? '✓' : '1'}
+                    </Box>
+                    <Typography variant='body2' color={loadingStep >= 1 ? 'text.primary' : 'text.disabled'}>
+                      ตรวจสอบสิทธิ์การอนุมัติ
+                    </Typography>
+                  </Box>
+                  <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', mb: 1 }}>
+                    <Box
+                      sx={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: '50%',
+                        bgcolor: loadingStep >= 2 ? 'success.main' : '#eee',
+                        mr: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white'
+                      }}
+                    >
+                      {loadingStep > 2 ? '✓' : '2'}
+                    </Box>
+                    <Typography variant='body2' color={loadingStep >= 2 ? 'text.primary' : 'text.disabled'}>
+                      บันทึกการเปลี่ยนประเภทงาน
+                    </Typography>
+                  </Box>
+                  <Box sx={{ width: '100%', display: 'flex', alignItems: 'center' }}>
+                    <Box
+                      sx={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: '50%',
+                        bgcolor: loadingStep >= 3 ? 'success.main' : '#eee',
+                        mr: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white'
+                      }}
+                    >
+                      {loadingStep > 3 ? '✓' : '3'}
+                    </Box>
+                    <Typography variant='body2' color={loadingStep >= 3 ? 'text.primary' : 'text.disabled'}>
+                      ดำเนินการเสร็จสมบูรณ์
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          {loadingStep === 0 && (
+            <>
+              <Button onClick={handleCancel} color='error' disabled={loading}>
+                ยกเลิกการเปลี่ยน
+              </Button>
+              <Button onClick={handleApprove} disabled={loading || !username || !password}>
+                อนุมัติ
+              </Button>
+            </>
+          )}
+        </DialogActions>
+      </Dialog>
+    )
+  }
+
+  // Function to get status text display
+  const getStatusText = (status: string | null | undefined) => {
+    if (!status) return 'ไม่ระบุ'
+
+    switch (status) {
+      case 'N':
+        return 'สั่งทำใหม่'
+      case 'B':
+        return 'เปลี่ยนใบมีด'
+      case 'M':
+        return 'สร้างทดแทน'
+      case 'E':
+        return 'ซ่อม'
+      case 'T':
+        return 'พร้อมใช้งาน'
+      case 'F':
+        return 'ยกเลิก'
+      default:
+        return status
+    }
+  }
+
+  // Function to determine if status can be processed
+  const isActiveForProcess = (status: string | null | undefined) => {
+    if (!status) return false
+
+    return ['N', 'B', 'M', 'E'].includes(status)
   }
 
   return (
@@ -423,10 +974,7 @@ const DetailPanel = ({
                 <Typography variant='subtitle2'>รหัสคำขอ</Typography>
                 <Box sx={{ width: '70%', height: 20, bgcolor: '#f0f0f0', borderRadius: 1, mt: 0.5 }} />
               </Grid>
-              <Grid item xs={6}>
-                <Typography variant='subtitle2'>หมายเลขใบมีด</Typography>
-                <Box sx={{ width: '80%', height: 20, bgcolor: '#f0f0f0', borderRadius: 1, mt: 0.5 }} />
-              </Grid>
+
               <Grid item xs={6}>
                 <Typography variant='subtitle2'>สถานะ</Typography>
                 <Box sx={{ width: '50%', height: 24, bgcolor: '#f0f0f0', borderRadius: 1, mt: 0.5 }} />
@@ -468,22 +1016,20 @@ const DetailPanel = ({
                         {selectedItem.DIECUT_ID}
                       </Typography>
                     </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant='subtitle2'>หมายเลขใบมีด</Typography>
-                      <Typography variant='body2' gutterBottom>
-                        {selectedItem.DIECUT_SN}
-                      </Typography>
-                    </Grid>
+
                     <Grid item xs={6}>
                       <Typography variant='subtitle2'>สถานะ</Typography>
                       <Chip
-                        label={selectedItem.STATUS || 'รอดำเนินการ'}
+                        label={selectedItem.MODIFY_TYPE ? getStatusText(selectedItem.MODIFY_TYPE) : 'รอดำเนินการ'}
                         color={
-                          selectedItem.STATUS === 'Pass'
+                          selectedItem.MODIFY_TYPE === 'T'
                             ? 'success'
-                            : selectedItem.STATUS === 'Pending'
+                            : selectedItem.MODIFY_TYPE === 'N' ||
+                                selectedItem.MODIFY_TYPE === 'B' ||
+                                selectedItem.MODIFY_TYPE === 'M' ||
+                                selectedItem.MODIFY_TYPE === 'E'
                               ? 'warning'
-                              : selectedItem.STATUS === 'Rejected'
+                              : selectedItem.MODIFY_TYPE === 'F'
                                 ? 'error'
                                 : 'default'
                         }
@@ -492,9 +1038,13 @@ const DetailPanel = ({
                       />
                     </Grid>
                     <Grid item xs={6}>
-                      <Typography variant='subtitle2'>ประเภท</Typography>
+                      <Typography variant='subtitle2'>กว้าง</Typography>
                       <Typography variant='body2' gutterBottom>
-                        {selectedItem.BLADE_TYPE || 'ไม่ระบุ'}
+                        {selectedItem.BLANK_SIZE_X || 'ไม่ระบุ'}
+                      </Typography>
+                      <Typography variant='subtitle2'>ยาว</Typography>
+                      <Typography variant='body2' gutterBottom>
+                        {selectedItem.BLANK_SIZE_Y || 'ไม่ระบุ'}
                       </Typography>
                     </Grid>
                     <Grid item xs={6}>
@@ -503,7 +1053,7 @@ const DetailPanel = ({
                         {formatNumber(selectedItem.AGES) || 'ไม่ระบุ'}
                       </Typography>
                     </Grid>
-                    <Grid item xs={6}>
+                    {/* <Grid item xs={6}>
                       <Typography variant='subtitle2'>ความเร่งด่วน</Typography>
                       <Chip
                         label={selectedItem.PRIORITY || 'ไม่ระบุ'}
@@ -517,7 +1067,7 @@ const DetailPanel = ({
                         size='small'
                         sx={{ mb: 1 }}
                       />
-                    </Grid>
+                    </Grid> */}
                   </Grid>
                 </Box>
 
@@ -525,7 +1075,7 @@ const DetailPanel = ({
                 <Box sx={{ height: '50vh', overflow: 'auto', mb: 2 }}>
                   <div className='flex w-full'>
                     <Typography variant='subtitle1' gutterBottom sx={{ fontWeight: 'bold', mb: 2 }}>
-                      รายการใบมีด
+                      รหัส Tooling
                     </Typography>
                     <div className='ml-auto mr-4'>
                       <PermissionGate requiredPermission='canModify'>
@@ -584,9 +1134,11 @@ const DetailPanel = ({
                                     }
                                   }}
                                   onClick={() => handleEditBlade(blade)}
+
+                                  // disabled={!isActiveForProcess(blade.STATUS)}
                                 >
-                                  <EditIcon />
-                                  <Typography>แก้ไข</Typography>
+                                  <BuildIcon />
+                                  <Typography>Process</Typography>
                                 </Button>
                               )}
                             </Box>
@@ -605,6 +1157,35 @@ const DetailPanel = ({
                               อายุ tooling
                             </Typography>
                             <Typography variant='body2'>{formatNumber(blade.DIECUT_AGE) || 'ไม่ระบุ'}</Typography>
+                          </Grid>
+                          <Grid item xs={6}>
+                            <Typography variant='caption' color='text.secondary'>
+                              สถานะ
+                            </Typography>
+                            <Typography variant='body2'>
+                              <Chip
+                                label={getStatusText(blade.MODIFY_TYPE)}
+                                size='small'
+                                color={
+                                  blade.MODIFY_TYPE === 'T'
+                                    ? 'success'
+                                    : blade.MODIFY_TYPE === 'N' ||
+                                        blade.MODIFY_TYPE === 'B' ||
+                                        blade.MODIFY_TYPE === 'M' ||
+                                        blade.MODIFY_TYPE === 'E'
+                                      ? 'warning'
+                                      : blade.MODIFY_TYPE === 'F'
+                                        ? 'error'
+                                        : 'default'
+                                }
+                              />
+                            </Typography>
+                          </Grid>
+                          <Grid item xs={6}>
+                            <Typography variant='caption' color='text.secondary'>
+                              JOB Order
+                            </Typography>
+                            <Typography variant='body2'>{blade.JOB_ORDER || 'ไม่ระบุ'}</Typography>
                           </Grid>
 
                           {blade.PROB_DESC && (
@@ -660,22 +1241,73 @@ const DetailPanel = ({
             {editingBladeSN !== null && bladeFormData && (
               <Box sx={{ p: 2 }}>
                 <Typography variant='subtitle1' gutterBottom>
-                  แก้ไขใบมีด: {bladeFormData.DIECUT_SN}
+                  Process ใบมีด: {bladeFormData.DIECUT_SN}
                 </Typography>
-                <div className='flex-1 overflow-auto' style={{ height: '72vh' }}>
+
+                {/* Work Type Change Buttons */}
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 2,
+
+                    mb: 2,
+
+                    // p: 2,
+                    borderRadius: 1
+                  }}
+                >
+                  <Box>
+                    <Typography variant='subtitle2' sx={{ fontWeight: 'bold' }}>
+                      ประเภทงาน:
+                    </Typography>
+                    <Typography variant='body2' sx={{ display: 'inline-flex', alignItems: 'center' }}>
+                      <Chip
+                        label={getStatusText(bladeFormData?.MODIFY_TYPE) || 'ไม่ระบุ'}
+                        size='small'
+                        sx={{ mr: 1, bgcolor: bladeFormData?.MODIFY_TYPE_APPV_FLAG === 'P' ? '#fff3cd' : 'white' }}
+                      />
+                    </Typography>
+                  </Box>
+
+                  <Box sx={{ ml: 'auto' }}>
+                    <Button
+                      variant='outlined'
+                      size='small'
+                      // disabled={!allowedChangeTypes.includes(bladeFormData?.MODIFY_TYPE || '')}
+                      onClick={() =>
+                        bladeFormData?.MODIFY_TYPE_APPV_FLAG === 'P' || bladeFormData?.MODIFY_TYPE_APPV_FLAG === 'N'
+                          ? setShowTypeApprovalDialog(true)
+                          : setShowTypeChangeDialog(true)
+                      }
+                      sx={{
+                        borderColor: '#98867B',
+                        color: '#98867B',
+                        '&:hover': {
+                          borderColor: '#5A4D40',
+                          backgroundColor: 'rgba(152, 134, 123, 0.04)'
+                        }
+                      }}
+                    >
+                      {bladeFormData?.MODIFY_TYPE_APPV_FLAG === 'P' ? 'อนุมัติ' : 'เปลี่ยน'}
+                    </Button>
+                  </Box>
+                </Box>
+
+                <div className='flex-1 overflow-auto' style={{ height: '67vh' }}>
                   <Grid container spacing={2}>
                     <Grid item xs={6}>
                       <Typography variant='subtitle2'>เริ่มงานวันที่</Typography>
                       <TextField
                         fullWidth
                         size='small'
-                        type='date'
+                        type='datetime-local'
                         value={
                           bladeFormData.START_TIME
                             ? typeof bladeFormData.START_TIME === 'string'
-                              ? bladeFormData.START_TIME.split('T')[0]
-                              : new Date(bladeFormData.START_TIME).toISOString().split('T')[0]
-                            : ''
+                              ? bladeFormData.START_TIME.substring(0, 16) // Format to YYYY-MM-DDTHH:MM
+                              : new Date(bladeFormData.START_TIME).toISOString().substring(0, 16)
+                            : new Date().toISOString().substring(0, 16) // Default to current date and time
                         }
                         onChange={handleBladeChange('START_TIME')}
                         InputLabelProps={{ shrink: true }}
@@ -688,19 +1320,23 @@ const DetailPanel = ({
                       <TextField
                         fullWidth
                         size='small'
-                        type='date'
+                        type='datetime-local'
                         value={
                           bladeFormData.END_TIME
                             ? typeof bladeFormData.END_TIME === 'string'
-                              ? bladeFormData.END_TIME.split('T')[0]
-                              : new Date(bladeFormData.END_TIME).toISOString().split('T')[0]
+                              ? bladeFormData.END_TIME.substring(0, 16)
+                              : new Date(bladeFormData.END_TIME).toISOString().substring(0, 16)
                             : ''
                         }
                         onChange={handleBladeChange('END_TIME')}
                         InputLabelProps={{ shrink: true }}
                         margin='normal'
                         inputProps={{
-                          min: bladeFormData.START_TIME || ''
+                          min: bladeFormData.START_TIME
+                            ? typeof bladeFormData.START_TIME === 'string'
+                              ? bladeFormData.START_TIME.substring(0, 16)
+                              : new Date(bladeFormData.START_TIME).toISOString().substring(0, 16)
+                            : ''
                         }}
                         error={
                           bladeFormData.END_TIME &&
@@ -716,6 +1352,91 @@ const DetailPanel = ({
                         }
                       />
                     </Grid>
+
+                    <Grid item xs={12}>
+                      <Typography variant='subtitle2'>วันที่ต้องการ</Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <TextField
+                          fullWidth
+                          size='small'
+                          type='date'
+                          value={
+                            bladeFormData.REQUIRED_DATE
+                              ? typeof bladeFormData.REQUIRED_DATE === 'string'
+                                ? bladeFormData.REQUIRED_DATE.split('T')[0]
+                                : new Date(bladeFormData.REQUIRED_DATE).toISOString().split('T')[0]
+                              : ''
+                          }
+                          onChange={handleBladeChange('REQUIRED_DATE')}
+                          InputLabelProps={{ shrink: true }}
+                          margin='normal'
+                        />
+                        <Button
+                          variant='outlined'
+                          size='small'
+                          onClick={handleAutoDate}
+                          sx={{
+                            borderColor: '#98867B',
+                            color: '#98867B'
+                          }}
+                        >
+                          Auto
+                        </Button>
+                      </Box>
+                    </Grid>
+
+                    <Grid item xs={6}>
+                      <Typography variant='subtitle2'>JOB Order</Typography>
+                      <TextField
+                        fullWidth
+                        size='small'
+                        value={bladeFormData.JOB_ORDER || ''}
+                        onChange={handleBladeChange('JOB_ORDER')}
+                        margin='normal'
+                      />
+                    </Grid>
+
+                    <Grid item xs={6}>
+                      <Typography variant='subtitle2'>รหัสสินค้า</Typography>
+                      <TextField
+                        fullWidth
+                        size='small'
+                        value={bladeFormData.PRODUCT_CODE || ''}
+                        onChange={handleBladeChange('PRODUCT_CODE')}
+                        margin='normal'
+                      />
+                    </Grid>
+
+                    <Grid item xs={12}>
+                      <Typography variant='subtitle2'>ชื่องาน</Typography>
+                      <TextField
+                        fullWidth
+                        size='small'
+                        value={bladeFormData.PRODUCT_NAME || ''}
+                        onChange={handleBladeChange('PRODUCT_NAME')}
+                        margin='normal'
+                      />
+                    </Grid>
+
+                    <Grid item xs={6}>
+                      <Typography variant='subtitle2'>ตัว/แผ่น</Typography>
+                      <TextField
+                        fullWidth
+                        size='small'
+                        type='number'
+                        value={bladeFormData.PCS_PER_SHEET || ''}
+                        onChange={handleBladeChange('PCS_PER_SHEET')}
+                        margin='normal'
+                        InputProps={{
+                          sx: {
+                            '& input': {
+                              textAlign: 'right'
+                            }
+                          }
+                        }}
+                      />
+                    </Grid>
+
                     <Grid item xs={12}>
                       <Typography variant='subtitle2'>อายุ tooling</Typography>
                       <TextField
@@ -734,6 +1455,7 @@ const DetailPanel = ({
                         }}
                       />
                     </Grid>
+
                     <Grid item xs={12}>
                       <Typography variant='subtitle2'>ปัญหาจาก production</Typography>
                       <TextField
@@ -831,6 +1553,11 @@ const DetailPanel = ({
                 </Box>
               </Box>
             )}
+
+            {/* Render the dialogs */}
+            {showApprovalDialog && <ApprovalDialog />}
+            {showTypeChangeDialog && <TypeChangeDialog />}
+            {showTypeApprovalDialog && <TypeApprovalDialog />}
           </>
         )
       ) : (
