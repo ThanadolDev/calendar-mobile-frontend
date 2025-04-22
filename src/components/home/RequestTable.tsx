@@ -121,6 +121,30 @@ const RequestTable = ({
     }
   }
 
+  const getPriorityStyle = (item: IDiecut) => {
+    
+    const isExpired = item?.DIECUT_NEAR_EXP <= 0 || item?.REMAIN <= 0
+    const isNearingExpiration = item?.DIECUT_NEAR_EXP > 0 && item?.DIECUT_NEAR_EXP <= 10000
+
+    if (isExpired) {
+      if (item.STATUS !== 'T') {
+        return { backgroundColor: 'rgba(200, 200, 200, 0.7)' } // Gray
+      }
+
+      return { backgroundColor: 'rgba(255, 200, 200, 0.7)' } // Red tint
+    }
+
+    if (isNearingExpiration) {
+      if (item.STATUS !== 'T') {
+        return { backgroundColor: 'rgba(200, 200, 200, 0.7)' } // Gray
+      }
+
+      return { backgroundColor: 'rgba(255, 230, 180, 0.7)' } // Orange tint
+    }
+
+    return {}
+  }
+
   // Function to check if Process button should be active
   const isActiveForProcess = (status: string | null | undefined) => {
     if (!status) return false
@@ -193,6 +217,11 @@ const RequestTable = ({
         header: 'รหัส Tooling',
         size: 150
       },
+      {
+        accessorKey: 'PRIORITY',
+        header: 'PRIORITY',
+        size: 150
+      },
 
       //Type column with dropdown filter
       // {
@@ -260,13 +289,9 @@ const RequestTable = ({
         header: 'กว้าง',
         size: 150,
         Cell: ({ cell }) => {
-          const value = formatNumber(cell.getValue());
+          const value = formatNumber(cell.getValue())
 
-          return (
-            <div style={{ textAlign: 'right', width: '100%' }}>
-              {value || '-'}
-            </div>
-          );
+          return <div style={{ textAlign: 'right', width: '100%' }}>{value || '-'}</div>
         }
       },
       {
@@ -274,13 +299,9 @@ const RequestTable = ({
         header: 'ยาว',
         size: 150,
         Cell: ({ cell }) => {
-          const value = formatNumber(cell.getValue());
+          const value = formatNumber(cell.getValue())
 
-          return (
-            <div style={{ textAlign: 'right', width: '100%' }}>
-              {value || '-'}
-            </div>
-          );
+          return <div style={{ textAlign: 'right', width: '100%' }}>{value || '-'}</div>
         }
       },
       {
@@ -288,13 +309,9 @@ const RequestTable = ({
         header: 'AGES',
         size: 150,
         Cell: ({ cell }) => {
-          const value = formatNumber(cell.getValue());
+          const value = formatNumber(cell.getValue())
 
-          return (
-            <div style={{ textAlign: 'right', width: '100%' }}>
-              {value || '-'}
-            </div>
-          );
+          return <div style={{ textAlign: 'right', width: '100%' }}>{value || '-'}</div>
         }
       },
       {
@@ -302,13 +319,9 @@ const RequestTable = ({
         header: 'REMAIN',
         size: 150,
         Cell: ({ cell }) => {
-          const value = formatNumber(cell.getValue());
+          const value = formatNumber(cell.getValue())
 
-          return (
-            <div style={{ textAlign: 'right', width: '100%' }}>
-              {value || '-'}
-            </div>
-          );
+          return <div style={{ textAlign: 'right', width: '100%' }}>{value || '-'}</div>
         }
       },
       {
@@ -316,13 +329,9 @@ const RequestTable = ({
         header: 'DIECUT_NEAR_EXP',
         size: 150,
         Cell: ({ cell }) => {
-          const value = formatNumber(cell.getValue());
+          const value = formatNumber(cell.getValue())
 
-          return (
-            <div style={{ textAlign: 'right', width: '100%' }}>
-              {value || '-'}
-            </div>
-          );
+          return <div style={{ textAlign: 'right', width: '100%' }}>{value || '-'}</div>
         }
       },
 
@@ -570,7 +579,8 @@ const RequestTable = ({
             // Style for detail rows
             ...(!row.getIsGrouped() && {
               borderLeft: '4px solid',
-              borderColor: alpha('#D0C6BD', 0.5)
+              borderColor: alpha('#D0C6BD', 0.5),
+              ...getPriorityStyle(row.original)
             }),
             '&:hover': {
               backgroundColor: alpha('#D5AA9F', 0.2)
