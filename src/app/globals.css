@@ -132,5 +132,5 @@ code {
   border: 0;
 }
 * {
-  font-family: var(--font-sarabun), sans-serif !important; /* เรียกใช้ฟอนต์ Sarabun */
+  font-family: var(--font-noto-sans-thai), sans-serif !important; /* เรียกใช้ฟอนต์ Sarabun */
 }

@@ -35,7 +35,7 @@ const HomeComponent = () => {
   const [isEditing, setIsEditing] = useState(false)
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as const })
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedType, setSelectedType] = useState<string>('DC')
+  const [selectedType, setSelectedType] = useState<string[]>(['DC'])
   const [diecutTypes, setDiecutTypes] = useState<string[]>([])
   const [typesLoading, setTypesLoading] = useState(false)
   const [detailLoading, setDetailLoading] = useState(false)
@@ -78,9 +78,12 @@ const HomeComponent = () => {
       const result = await apiClient.get('/api/diecuts/types')
 
       if (result.success) {
-        const types = result.data.diecutType.map(item => item.DIECUT_TYPE).filter(type => type !== null)
-        setDiecutTypes(types)
-      } else {
+        // Update to use PTC_TYPE and PTC_DESC from the API response
+        const types = result.data.diecutType
+          .filter(item => item.PTC_TYPE !== null);
+
+        setDiecutTypes(types);
+      }  else {
         console.error('Failed to fetch diecut types:', result.message)
       }
     } catch (error) {

@@ -4,8 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
-import EditIcon from '@mui/icons-material/Edit'
-import BuildIcon from '@mui/icons-material/Build'
+import ConstructionIcon from '@mui/icons-material/Construction'
 import {
   Box,
   Typography,
@@ -964,6 +963,7 @@ const DetailPanel = ({
     >
       <Typography variant='h6' gutterBottom>
         {isEditing ? 'แก้ไขคำขอเปลี่ยนใบมีด' : selectedItem ? 'รายละเอียดคำขอ' : 'รายละเอียด'}
+        {selectedItem ? ' (' + selectedItem?.DIECUT_SN + ') ' : ''}
       </Typography>
 
       {selectedItem ? (
@@ -1020,16 +1020,16 @@ const DetailPanel = ({
                     <Grid item xs={6}>
                       <Typography variant='subtitle2'>สถานะ</Typography>
                       <Chip
-                        label={selectedItem.MODIFY_TYPE ? getStatusText(selectedItem.MODIFY_TYPE) : 'รอดำเนินการ'}
+                        label={selectedItem.STATUS ? getStatusText(selectedItem.STATUS) : 'รอดำเนินการ'}
                         color={
-                          selectedItem.MODIFY_TYPE === 'T'
+                          selectedItem.STATUS === 'T'
                             ? 'success'
-                            : selectedItem.MODIFY_TYPE === 'N' ||
-                                selectedItem.MODIFY_TYPE === 'B' ||
-                                selectedItem.MODIFY_TYPE === 'M' ||
-                                selectedItem.MODIFY_TYPE === 'E'
+                            : selectedItem.STATUS === 'N' ||
+                                selectedItem.STATUS === 'B' ||
+                                selectedItem.STATUS === 'M' ||
+                                selectedItem.STATUS === 'E'
                               ? 'warning'
-                              : selectedItem.MODIFY_TYPE === 'F'
+                              : selectedItem.STATUS === 'F'
                                 ? 'error'
                                 : 'default'
                         }
@@ -1038,11 +1038,11 @@ const DetailPanel = ({
                       />
                     </Grid>
                     <Grid item xs={6}>
-                      <Typography variant='subtitle2'>กว้าง</Typography>
+                      <Typography variant='subtitle2'>กว้าง (มม.)</Typography>
                       <Typography variant='body2' gutterBottom>
                         {selectedItem.BLANK_SIZE_X || 'ไม่ระบุ'}
                       </Typography>
-                      <Typography variant='subtitle2'>ยาว</Typography>
+                      <Typography variant='subtitle2'>ยาว (มม.)</Typography>
                       <Typography variant='body2' gutterBottom>
                         {selectedItem.BLANK_SIZE_Y || 'ไม่ระบุ'}
                       </Typography>
@@ -1137,7 +1137,7 @@ const DetailPanel = ({
 
                                   // disabled={!isActiveForProcess(blade.STATUS)}
                                 >
-                                  <BuildIcon />
+                                  <ConstructionIcon />
                                   <Typography>Process</Typography>
                                 </Button>
                               )}
@@ -1240,9 +1240,9 @@ const DetailPanel = ({
             {/* Blade Editing Form */}
             {editingBladeSN !== null && bladeFormData && (
               <Box sx={{ p: 2 }}>
-                <Typography variant='subtitle1' gutterBottom>
+                {/* <Typography variant='subtitle1' gutterBottom>
                   Process ใบมีด: {bladeFormData.DIECUT_SN}
-                </Typography>
+                </Typography> */}
 
                 {/* Work Type Change Buttons */}
                 <Box
@@ -1385,7 +1385,7 @@ const DetailPanel = ({
                       </Box>
                     </Grid>
 
-                    <Grid item xs={6}>
+                    {/* <Grid item xs={6}>
                       <Typography variant='subtitle2'>JOB Order</Typography>
                       <TextField
                         fullWidth
@@ -1416,8 +1416,8 @@ const DetailPanel = ({
                         onChange={handleBladeChange('PRODUCT_NAME')}
                         margin='normal'
                       />
-                    </Grid>
-
+                    </Grid> */}
+                    {/*
                     <Grid item xs={6}>
                       <Typography variant='subtitle2'>ตัว/แผ่น</Typography>
                       <TextField
@@ -1435,7 +1435,7 @@ const DetailPanel = ({
                           }
                         }}
                       />
-                    </Grid>
+                    </Grid> */}
 
                     <Grid item xs={12}>
                       <Typography variant='subtitle2'>อายุ tooling</Typography>

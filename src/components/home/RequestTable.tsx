@@ -4,7 +4,21 @@ import { useMemo, useState } from 'react'
 
 import type { MRT_ColumnDef, MRT_ColumnFiltersState, MRT_FilterFn } from 'material-react-table'
 import { MaterialReactTable } from 'material-react-table'
-import { Box, Button, Chip, CircularProgress, Typography, TextField, InputAdornment } from '@mui/material'
+import {
+  Box,
+  Button,
+  Chip,
+  CircularProgress,
+  Typography,
+  TextField,
+  InputAdornment,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Checkbox,
+  ListItemText
+} from '@mui/material'
 import { alpha } from '@mui/material/styles'
 import { Search as SearchIcon, Clear as ClearIcon } from '@mui/icons-material'
 
@@ -153,6 +167,25 @@ const RequestTable = ({
           </Box>
         )
       },
+      {
+        accessorKey: 'STATUS',
+        header: 'สถานะ',
+        size: 130,
+        filterVariant: 'select',
+        filterSelectOptions: [
+          { text: 'สั่งทำใหม่', value: 'N' },
+          { text: 'เปลี่ยนใบมีด', value: 'B' },
+          { text: 'สร้างทดแทน', value: 'M' },
+          { text: 'ซ่อม', value: 'E' },
+          { text: 'พร้อมใช้งาน', value: 'T' },
+          { text: 'ยกเลิก', value: 'F' }
+        ],
+        Cell: ({ cell }) => {
+          const status = cell.getValue<string | null | undefined>()
+
+          return status ? <Chip label={getStatusText(status)} size='small' color={getStatusColor(status)} /> : null
+        }
+      },
 
       // SN column
       {
@@ -161,47 +194,47 @@ const RequestTable = ({
         size: 150
       },
 
-      // Type column with dropdown filter
-      {
-        accessorKey: 'DIECUT_TYPE',
-        header: 'ประเภทงาน',
-        size: 130,
-        filterFn: diecutTypeFilterFn,
-        filterSelectOptions: diecutTypes.map(type => ({ text: type, value: type })),
-        filterVariant: 'select',
-        Filter: ({ header }) => (
-          <Box sx={{ minWidth: 200, display: 'flex', gap: 1, alignItems: 'center' }}>
-            <Typography variant='body2' fontWeight='bold'>
-              ประเภทงาน:
-            </Typography>
-            {typesLoading ? (
-              <CircularProgress size={20} sx={{ color: '#98867B' }} />
-            ) : (
-              <select
-                value={selectedType}
-                onChange={e => {
-                  handleTypeChange(e.target.value)
-                  header.column.setFilterValue(e.target.value)
-                }}
-                style={{
-                  padding: '6px 8px',
-                  borderRadius: '4px',
-                  border: '1px solid #D0C6BD',
-                  backgroundColor: '#f5f5f5',
-                  minWidth: 120
-                }}
-              >
-                <option value=''>ทั้งหมด</option>
-                {diecutTypes.map(type => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-            )}
-          </Box>
-        )
-      },
+      //Type column with dropdown filter
+      // {
+      //   accessorKey: 'DIECUT_TYPE',
+      //   header: 'ประเภทงาน',
+      //   size: 130,
+      //   filterFn: diecutTypeFilterFn,
+      //   filterSelectOptions: diecutTypes.map(type => ({ text: type, value: type })),
+      //   filterVariant: 'select',
+      //   Filter: ({ header }) => (
+      //     <Box sx={{ minWidth: 200, display: 'flex', gap: 1, alignItems: 'center' }}>
+      //       <Typography variant='body2' fontWeight='bold'>
+      //         ประเภทงาน:
+      //       </Typography>
+      //       {typesLoading ? (
+      //         <CircularProgress size={20} sx={{ color: '#98867B' }} />
+      //       ) : (
+      //         <select
+      //           value={selectedType}
+      //           onChange={e => {
+      //             handleTypeChange(e.target.value)
+      //             header.column.setFilterValue(e.target.value)
+      //           }}
+      //           style={{
+      //             padding: '6px 8px',
+      //             borderRadius: '4px',
+      //             border: '1px solid #D0C6BD',
+      //             backgroundColor: '#f5f5f5',
+      //             minWidth: 120
+      //           }}
+      //         >
+      //           <option value=''>ทั้งหมด</option>
+      //           {diecutTypes.map(type => (
+      //             <option key={type} value={type}>
+      //               {type}
+      //             </option>
+      //           ))}
+      //         </select>
+      //       )}
+      //     </Box>
+      //   )
+      // },
 
       {
         accessorKey: 'JOB_ORDER',
@@ -226,32 +259,70 @@ const RequestTable = ({
         accessorKey: 'BLANK_SIZE_X',
         header: 'กว้าง',
         size: 150,
-        Cell: ({ cell }) => cell.getValue() || '-'
+        Cell: ({ cell }) => {
+          const value = formatNumber(cell.getValue());
+
+          return (
+            <div style={{ textAlign: 'right', width: '100%' }}>
+              {value || '-'}
+            </div>
+          );
+        }
       },
       {
         accessorKey: 'BLANK_SIZE_Y',
         header: 'ยาว',
         size: 150,
-        Cell: ({ cell }) => cell.getValue() || '-'
-      },
-
-      {
-        accessorKey: 'STATUS',
-        header: 'สถานะ',
-        size: 130,
-        filterVariant: 'select',
-        filterSelectOptions: [
-          { text: 'สั่งทำใหม่', value: 'N' },
-          { text: 'เปลี่ยนใบมีด', value: 'B' },
-          { text: 'สร้างทดแทน', value: 'M' },
-          { text: 'ซ่อม', value: 'E' },
-          { text: 'พร้อมใช้งาน', value: 'T' },
-          { text: 'ยกเลิก', value: 'F' }
-        ],
         Cell: ({ cell }) => {
-          const status = cell.getValue<string | null | undefined>()
+          const value = formatNumber(cell.getValue());
 
-          return status ? <Chip label={getStatusText(status)} size='small' color={getStatusColor(status)} /> : null
+          return (
+            <div style={{ textAlign: 'right', width: '100%' }}>
+              {value || '-'}
+            </div>
+          );
+        }
+      },
+      {
+        accessorKey: 'AGES',
+        header: 'AGES',
+        size: 150,
+        Cell: ({ cell }) => {
+          const value = formatNumber(cell.getValue());
+
+          return (
+            <div style={{ textAlign: 'right', width: '100%' }}>
+              {value || '-'}
+            </div>
+          );
+        }
+      },
+      {
+        accessorKey: 'REMAIN',
+        header: 'REMAIN',
+        size: 150,
+        Cell: ({ cell }) => {
+          const value = formatNumber(cell.getValue());
+
+          return (
+            <div style={{ textAlign: 'right', width: '100%' }}>
+              {value || '-'}
+            </div>
+          );
+        }
+      },
+      {
+        accessorKey: 'DIECUT_NEAR_EXP',
+        header: 'DIECUT_NEAR_EXP',
+        size: 150,
+        Cell: ({ cell }) => {
+          const value = formatNumber(cell.getValue());
+
+          return (
+            <div style={{ textAlign: 'right', width: '100%' }}>
+              {value || '-'}
+            </div>
+          );
         }
       },
 
@@ -260,29 +331,29 @@ const RequestTable = ({
         header: 'การดำเนินการ',
         size: 120,
         enableSorting: false,
-        enableColumnFilter: false
+        enableColumnFilter: false,
 
-        // Cell: ({ row }) => {
-        //   return (
-        //     <Button
-        //       size='small'
-        //       variant='contained'
-        //       disabled={!isActiveForProcess(row.original.STATUS)}
-        //       onClick={e => {
-        //         e.stopPropagation()
-        //         handleProcessClick(row.original)
-        //       }}
-        //       sx={{
-        //         backgroundColor: isActiveForProcess(row.original.STATUS) ? '#98867B' : 'gray',
-        //         '&:hover': {
-        //           backgroundColor: '#5A4D40'
-        //         }
-        //       }}
-        //     >
-        //       Process
-        //     </Button>
-        //   )
-        // }
+        Cell: ({ row }) => {
+          return (
+            <Button
+              size='small'
+              variant='contained'
+              disabled={!isActiveForProcess(row.original.STATUS)}
+              onClick={e => {
+                e.stopPropagation()
+                handleProcessClick(row.original)
+              }}
+              sx={{
+                backgroundColor: isActiveForProcess(row.original.STATUS) ? '#98867B' : 'gray',
+                '&:hover': {
+                  backgroundColor: '#5A4D40'
+                }
+              }}
+            >
+              Process
+            </Button>
+          )
+        }
       }
     ],
     [diecutTypes, typesLoading, selectedType, handleTypeChange]
@@ -378,6 +449,42 @@ const RequestTable = ({
           </Box>
         )}
       </Box>
+      <FormControl size='small' sx={{ minWidth: 150, mb: 2 }}>
+        <InputLabel id='diecut-type-filter-label'>เลือกประเภท Diecut</InputLabel>
+        <Select
+          labelId='diecut-type-filter-label'
+          id='diecut-type-filter'
+          value={selectedType}
+          label='เลือกประเภท Diecut'
+          multiple
+          onChange={handleTypeChange}
+          renderValue={selected => {
+            if (selected.includes('')) return 'ทั้งหมด'
+
+            return selected.join(', ')
+          }}
+          disabled={typesLoading}
+          startAdornment={
+            typesLoading ? (
+              <InputAdornment position='start'>
+                <CircularProgress size={20} sx={{ color: '#98867B' }} />
+              </InputAdornment>
+            ) : null
+          }
+        >
+          <MenuItem value=''>
+            <Checkbox checked={selectedType.includes('')} />
+            <ListItemText primary='ทั้งหมด' />
+          </MenuItem>
+
+          {diecutTypes.map(type => (
+            <MenuItem key={type.PTC_TYPE} value={type.PTC_TYPE}>
+              <Checkbox checked={selectedType.includes(type.PTC_TYPE)} />
+              <ListItemText primary={`${type.PTC_TYPE} - ${type.PTC_DESC}`} />
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
 
       <MaterialReactTable
         columns={columns}
