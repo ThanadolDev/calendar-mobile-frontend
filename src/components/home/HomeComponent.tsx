@@ -79,11 +79,10 @@ const HomeComponent = () => {
 
       if (result.success) {
         // Update to use PTC_TYPE and PTC_DESC from the API response
-        const types = result.data.diecutType
-          .filter(item => item.PTC_TYPE !== null);
+        const types = result.data.diecutType.filter(item => item.PTC_TYPE !== null)
 
-        setDiecutTypes(types);
-      }  else {
+        setDiecutTypes(types)
+      } else {
         console.error('Failed to fetch diecut types:', result.message)
       }
     } catch (error) {
@@ -163,28 +162,89 @@ const HomeComponent = () => {
 
   const handleEditClick = (item: IDiecut) => {
     // Only allow edit if user has permission
-    if (roleAccess.canModify) {
-      setSelectedItem(item)
-      setIsEditing(true)
-    } else {
-      setSnackbar({
-        open: true,
-        message: 'You do not have permission to edit requests',
-        severity: 'warning'
-      })
-    }
+
+    setSelectedItem(item)
+    setIsEditing(true)
   }
 
   const handleEdit = () => {
     // Only allow edit if user has permission
-    if (roleAccess.canModify) {
-      setIsEditing(true)
-    } else {
+
+    setIsEditing(true)
+  }
+
+  // Add this function to HomeComponent
+  const handleAddRecord = (type: string) => {
+    // Generate a temporary ID for the new record
+    const timestamp = Date.now()
+    const tempId = `${type || 'DC'}-TEMP-${timestamp}`
+
+    // Create a new record with default values
+    const newItem: IDiecut = {
+      DIECUT_ID: tempId,
+      DIECUT_SN: `${type || 'DC'}-NEW-${timestamp}`,
+      STATUS: 'N', // Default status for new records
+      DIECUT_TYPE: type || selectedType[0] || 'DC',
+      BLANK_SIZE_X: null,
+      BLANK_SIZE_Y: null,
+      AGES: 0,
+      REMAIN: 0,
+      DIECUT_NEAR_EXP: 0
+
+      // Add other required fields with default values
+    }
+
+    // Select the new item immediately
+    setSelectedItem(newItem)
+
+    // Set editing mode to true
+    setIsEditing(true)
+
+    // Show detail loading state briefly for visual feedback
+    setDetailLoading(true)
+    setTimeout(() => {
+      setDetailLoading(false)
+    }, 500)
+  }
+
+  // Function to handle newly created items after they've been saved
+  const handleNewRecordSave = async (newRecord: IDiecut) => {
+    setLoading(true)
+
+    try {
+      // Call API to create the new record
+      const result = await apiClient.post('/api/diecuts/create', newRecord)
+
+      if (result.success) {
+        // Add the new record to the data array
+        setData(prev => [result.data.diecut, ...prev])
+
+        // Update the selected item with the returned data (which should have proper IDs)
+        setSelectedItem(result.data.diecut)
+
+        // Show success message
+        setSnackbar({
+          open: true,
+          message: 'New record created successfully',
+          severity: 'success'
+        })
+
+        // Refresh the data to ensure everything is up to date
+        fetchData()
+      } else {
+        throw new Error(result.message || 'Failed to create new record')
+      }
+    } catch (error) {
+      console.error('Error creating new record:', error)
+
       setSnackbar({
         open: true,
-        message: 'You do not have permission to edit requests',
-        severity: 'warning'
+        message: `Failed to create record: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        severity: 'error'
       })
+    } finally {
+      setLoading(false)
+      setIsEditing(false)
     }
   }
 
@@ -253,6 +313,89 @@ const HomeComponent = () => {
 
   const handleSnackbarClose = () => {
     setSnackbar(prev => ({ ...prev, open: false }))
+  }
+
+  // Add this function to the HomeComponent for handling new blade creation
+  const handleNewBladeInGroup = (groupId: string) => {
+    // Generate a unique timestamp for the new blade
+    const timestamp = Date.now()
+
+    // Create a new blade object with the group's diecut ID
+    const newItem: IDiecut = {
+      DIECUT_ID: groupId,
+      DIECUT_SN: `${groupId}-NEW-${timestamp}`,
+      STATUS: 'N', // Default status for new records
+      DIECUT_TYPE: selectedType[0] || 'DC',
+
+      // Add common fields with default values
+      BLANK_SIZE_X: null,
+      BLANK_SIZE_Y: null,
+      AGES: 0,
+      REMAIN: 0,
+      PRIORITY: 'Medium',
+      MODIFY_TYPE: 'N',
+      JOB_ORDER: '',
+      PRODUCT_CODE: '',
+      DIECUT_NEAR_EXP: 0
+    }
+
+    // Add the new item to the data array for immediate UI feedback
+    setData(prevData => [...prevData, newItem])
+
+    // Set the selected item to the new blade
+    setSelectedItem(newItem)
+
+    // Set editing mode to true
+    setIsEditing(true)
+
+    // Show detail loading state briefly for visual feedback
+    setDetailLoading(true)
+    setTimeout(() => {
+      setDetailLoading(false)
+    }, 500)
+  }
+
+  // Function to handle saving a newly created blade
+  const handleSaveNewBlade = async (bladeData: IDiecut) => {
+    setLoading(true)
+
+    try {
+      // Prepare the API payload
+      const payload = {
+        diecutId: bladeData.DIECUT_ID,
+        diecutSN: bladeData.DIECUT_SN,
+        diecutType: bladeData.DIECUT_TYPE || selectedType[0] || 'DC',
+        status: 'N',
+
+        // Include any other fields from the form
+        ...bladeData
+      }
+
+      // Call the API to create the new blade
+      const result = await apiClient.post('/api/diecuts/create', payload)
+
+      if (result.success) {
+        // Replace the temporary blade in the data array with the saved one
+        setData(prevData => prevData.map(item => (item.DIECUT_SN === bladeData.DIECUT_SN ? result.data.diecut : item)))
+
+        // Update the selected item with the returned data
+        setSelectedItem(result.data.diecut)
+
+        // Exit editing mode
+        setIsEditing(false)
+
+        // Refresh the full data to ensure everything is up to date
+        fetchData()
+      } else {
+        throw new Error(result.message || 'Failed to create new blade')
+      }
+    } catch (error) {
+      console.error('Error creating new blade:', error)
+
+      // Handle error (use your existing toast/notification system)
+    } finally {
+      setLoading(false)
+    }
   }
 
   // Fetch diecut types when the component mounts
@@ -353,6 +496,7 @@ const HomeComponent = () => {
         >
           <RequestTable
             data={data}
+            setData={setData}
             loading={loading}
             isManager={isManager}
             handleItemSelect={handleItemSelect}
@@ -392,7 +536,7 @@ const HomeComponent = () => {
       </Box>
 
       {/* Notifications */}
-      <Snackbar
+      {/* <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
         onClose={handleSnackbarClose}
@@ -401,7 +545,7 @@ const HomeComponent = () => {
         <Alert onClose={handleSnackbarClose} severity={snackbar.severity} variant='filled'>
           {snackbar.message}
         </Alert>
-      </Snackbar>
+      </Snackbar> */}
     </>
   )
 }

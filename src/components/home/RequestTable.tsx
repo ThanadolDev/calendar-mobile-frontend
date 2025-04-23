@@ -18,10 +18,14 @@ import {
   MenuItem,
   Checkbox,
   ListItemText,
-  IconButton
+  IconButton,
+  FormControlLabel,
+  Divider,
+  Menu
 } from '@mui/material'
 import { alpha } from '@mui/material/styles'
-import { Search as SearchIcon, Clear as ClearIcon, Add as AddIcon } from '@mui/icons-material'
+import { Search as SearchIcon, Clear as ClearIcon, Add as AddIcon, FilterList } from '@mui/icons-material'
+import ConstructionIcon from '@mui/icons-material/Construction'
 
 import type { IDiecut } from '../../types/types'
 import { formatNumber } from '../../utils/formatters'
@@ -37,9 +41,10 @@ interface RequestTableProps {
   setSearchQuery: (query: string) => void
   selectedType: string
   setSelectedType: (type: string) => void
-  diecutTypes: string[]
+  diecutTypes: any[]
   typesLoading: boolean
   handleTypeChange: (type: string) => void
+  setData?: (data: IDiecut[]) => void
 }
 
 const RequestTable = ({
@@ -54,7 +59,8 @@ const RequestTable = ({
   selectedType,
   diecutTypes,
   typesLoading,
-  handleTypeChange
+  handleTypeChange,
+  setData
 }: RequestTableProps) => {
   const [columnFilters, setColumnFilters] = useState<MRT_ColumnFiltersState>([])
 
@@ -155,7 +161,9 @@ const RequestTable = ({
   // Function to handle Process button click
   const handleProcessClick = (item: IDiecut) => {
     // Notify the parent component to open the process dialog
-    handleEditClick(item)
+    handleItemSelect(item)
+
+    // handleEditClick(item)
   }
 
   // Custom filter function for DIECUT_TYPE
@@ -342,33 +350,130 @@ const RequestTable = ({
         enableSorting: false,
         enableColumnFilter: false,
 
-        AggregatedCell: ({ row }) => (
-          <IconButton
-            color='primary'
-            size='small'
-            onClick={e => {
-              e.stopPropagation() // Prevent row selection when clicking the button
-              // You can add any action you want here
-              // For example, expand the group
+        AggregatedCell: ({ row }) => {
+          const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null)
+
+          const handleMenuClick = (e: React.MouseEvent<HTMLElement>) => {
+            e.stopPropagation() // Prevent row selection when clicking the button
+            setMenuAnchor(e.currentTarget)
+          }
+
+          const handleClose = () => {
+            setMenuAnchor(null)
+          }
+
+          const handleCreateNewBladeInGroup = () => {
+            handleClose()
+
+            // Get the group's DIECUT_ID
+            const diecutId = row.getValue('DIECUT_ID')
+
+            // Find all existing blades with this DIECUT_ID
+            const existingBladesInGroup = data.filter(item => item.DIECUT_ID === diecutId)
+
+            // Extract sequence numbers from existing SNs
+            const sequenceNumbers = existingBladesInGroup.map(blade => {
+              // Parse SN to extract the sequence number at the end
+              const parts = blade.DIECUT_SN?.split('-') || []
+              const lastPart = parts[parts.length - 1]
+
+              // Try to convert the last part to a number
+              const num = parseInt(lastPart)
+
+              // Return the number if valid, otherwise 0
+              return isNaN(num) ? 0 : num
+            })
+
+            // Find the highest sequence number
+            const highestSequence = sequenceNumbers.length > 0 ? Math.max(...sequenceNumbers) : 0
+
+            // Generate the next sequence number
+            const nextSequence = highestSequence + 1
+
+            // Create new SN with incremented sequence
+            const newSN = `${diecutId}-${nextSequence}`
+
+            // Create a new item with this DIECUT_ID and sequential SN
+            const newItem: IDiecut = {
+              DIECUT_ID: diecutId,
+              DIECUT_SN: newSN,
+              STATUS: 'N', // Default status for new records
+              DIECUT_TYPE: selectedType[0] || 'DC',
+
+              // Add other required fields with default values
+              MODIFY_TYPE: 'N',
+              NEW_ADD: true
+            }
+
+            // Add the new item to the data array directly
+            if (typeof setData === 'function') {
+              setData([...data, newItem])
+            }
+
+            // Call the parent handlers to select and edit the new item
+            handleItemSelect(newItem)
+            handleEditClick(newItem)
+
+            // Expand the group to show the new item
+            if (!row.getIsExpanded()) {
               row.toggleExpanded()
-            }}
-            sx={{
-              backgroundColor: '#98867B',
-              color: 'white',
-              '&:hover': {
-                backgroundColor: '#5A4D40'
-              }
-            }}
-          >
-            <AddIcon />
-          </IconButton>
-        ),
+            }
+          }
+
+          const handleExpandGroup = () => {
+            handleClose()
+            row.toggleExpanded()
+          }
+
+          return (
+            <>
+              {/* <Button
+                size='small'
+                variant='contained'
+                onClick={handleMenuClick}
+                sx={{
+                  backgroundColor: '#98867B',
+                  color: 'white',
+                  '&:hover': {
+                    backgroundColor: '#5A4D40'
+                  }
+                }}
+              >
+                <AddIcon />
+                <Typography>เพิ่ม COPY</Typography>
+              </Button> */}
+              <Button
+                size='small'
+                variant='contained'
+                onClick={handleMenuClick}
+                sx={{
+                  backgroundColor: '#98867B',
+                  color: 'white',
+                  '&:hover': {
+                    backgroundColor: '#5A4D40'
+                  }
+                }}
+              >
+                <AddIcon fontSize='small' sx={{ mr: 0.5 }} />
+                เพิ่ม COPY
+              </Button>
+
+              <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={handleClose} sx={{ mt: 1 }}>
+                <MenuItem onClick={handleCreateNewBladeInGroup}>
+                  <AddIcon fontSize='small' sx={{ mr: 1 }} />
+                  เพิ่มใบมีดในกลุ่มนี้
+                </MenuItem>
+              </Menu>
+            </>
+          )
+        },
 
         Cell: ({ row }) => {
           const status = row.original.STATUS
+          const isNewRecord = row.original.DIECUT_SN?.includes('-NEW-')
 
           // Define which statuses show the Process button
-          const showProcessButton = ['N', 'B', 'M', 'E'].includes(status)
+          const showProcessButton = ['N', 'B', 'M', 'E'].includes(status) || isNewRecord
 
           // Define which status shows the Order button
           const showOrderButton = status === 'T'
@@ -378,23 +483,62 @@ const RequestTable = ({
             return null
           }
 
+          const handleProcessButtonClick = (e: React.MouseEvent) => {
+            e.stopPropagation() // Prevent row selection when clicking the button
+
+            // First select the item
+            handleItemSelect(row.original)
+
+            // Then trigger the edit mode by calling handleEditBlade, similar to the detail page
+            if (row.original) {
+              // Convert the IDiecut to BladeItem for edit mode
+              const bladeToEdit: BladeItem = {
+                DIECUT_ID: row.original.DIECUT_ID,
+                DIECUT_SN: row.original.DIECUT_SN,
+                BLADE_TYPE: row.original.BLADE_TYPE || '',
+                DIECUT_AGE: row.original.DIECUT_AGE || 0,
+                STATUS: row.original.STATUS || 'N',
+                bladeType: row.original.BLADE_TYPE || '',
+                bladeSize: '',
+                details: '',
+                TL_STATUS: 'GOOD',
+                PROB_DESC: row.original.PROB_DESC || '',
+                START_TIME: new Date(),
+                END_TIME: null,
+                PRODUCTION_ISSUE: '',
+                TOOLING_AGE: row.original.DIECUT_AGE || 0,
+                FIX_DETAILS: '',
+                BLADE_SIZE: '',
+                MULTI_BLADE_REASON: '',
+                MULTI_BLADE_REMARK: '',
+                isNewlyAdded: isNewRecord,
+                REMARK: row.original.REMARK || '',
+                MODIFY_TYPE: row.original.MODIFY_TYPE || 'N',
+                JOB_ORDER: row.original.JOB_ORDER || '',
+                PRODUCT_CODE: row.original.PRODUCT_CODE || '',
+                PRODUCT_NAME: row.original.PRODUCT_NAME || ''
+              }
+
+              // Call handleEditClick which should trigger the edit mode in DetailPanel
+              handleEditClick(row.original)
+            }
+          }
+
           return (
             <>
               {showProcessButton && (
                 <Button
                   size='small'
                   variant='contained'
-                  onClick={e => {
-                    e.stopPropagation()
-                    handleProcessClick(row.original)
-                  }}
+                  onClick={handleProcessButtonClick}
                   sx={{
-                    backgroundColor: '#98867B',
+                    backgroundColor: isNewRecord ? '#5A9E6F' : '#98867B', // Different color for new records
                     '&:hover': {
-                      backgroundColor: '#5A4D40'
+                      backgroundColor: isNewRecord ? '#3F7F4F' : '#5A4D40'
                     }
                   }}
                 >
+                  <ConstructionIcon fontSize='small' sx={{ mr: 0.5 }} />
                   Process
                 </Button>
               )}
@@ -403,10 +547,7 @@ const RequestTable = ({
                 <Button
                   size='small'
                   variant='contained'
-                  onClick={e => {
-                    e.stopPropagation()
-                    handleProcessClick(row.original)
-                  }}
+                  onClick={handleProcessButtonClick} // Use the same handler for consistency
                   sx={{
                     backgroundColor: '#98867B',
                     '&:hover': {
@@ -434,6 +575,58 @@ const RequestTable = ({
 
   // Define custom top toolbar with search and filters
   const renderTopToolbar = () => {
+    const [filterMenuAnchor, setFilterMenuAnchor] = useState<null | HTMLElement>(null)
+    const [showStatusT, setShowStatusT] = useState(true) // Default to showing all statuses
+
+    // Handle filter menu open/close
+    const handleFilterMenuClick = (event: React.MouseEvent<HTMLElement>) => {
+      setFilterMenuAnchor(event.currentTarget)
+    }
+
+    const handleFilterMenuClose = () => {
+      setFilterMenuAnchor(null)
+    }
+
+    // Handle filter change for status T
+    const handleStatusTFilterChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+      setShowStatusT(event.target.checked)
+
+      // Apply filter to the data
+      if (event.target.checked) {
+        // When checked, filter out status T records
+        setColumnFilters(prev => [
+          ...prev.filter(f => f.id !== 'STATUS'),
+          { id: 'STATUS', value: 'T', operator: 'notEquals' }
+        ])
+      } else {
+        // When unchecked, show all records (remove the filter)
+        setColumnFilters(prev => prev.filter(f => f.id !== 'STATUS'))
+      }
+    }
+
+    // Handle creating a new record
+    const handleCreateNewRecord = () => {
+      // Close menu
+      handleFilterMenuClose()
+
+      // Create a new record with default values
+      const newItem: IDiecut = {
+        DIECUT_ID: selectedType[0] || 'DC', // Use selected type or default to DC
+        DIECUT_SN: `${selectedType[0] || 'DC'}-NEW-${Date.now()}`, // Generate a temporary SN
+        STATUS: 'N', // Default status for new records
+        DIECUT_TYPE: selectedType[0] || 'DC'
+
+        // Add other required fields with default values
+      }
+
+      // Add the new item to the data (Note: This is just UI state change; actual API call will happen later)
+      // setData([newItem, ...data]);
+
+      // Select the new item and open edit mode
+      handleItemSelect(newItem)
+      handleEditClick(newItem)
+    }
+
     return (
       <Box
         sx={{
@@ -458,11 +651,17 @@ const RequestTable = ({
                 <SearchIcon fontSize='small' />
               </InputAdornment>
             ),
-            endAdornment: searchQuery ? (
+            endAdornment: (
               <InputAdornment position='end'>
-                <ClearIcon fontSize='small' sx={{ cursor: 'pointer' }} onClick={() => setSearchQuery('')} />
+                {searchQuery ? (
+                  <ClearIcon fontSize='small' sx={{ cursor: 'pointer' }} onClick={() => setSearchQuery('')} />
+                ) : (
+                  <IconButton size='small' onClick={handleFilterMenuClick}>
+                    <FilterList fontSize='small' />
+                  </IconButton>
+                )}
               </InputAdornment>
-            ) : null
+            )
           }}
           sx={{
             width: '300px',
@@ -471,24 +670,41 @@ const RequestTable = ({
             }
           }}
         />
-        {/* <>
-        <Button
-          variant='outlined'
-          startIcon={<ClearIcon />}
-          size='small'
-          onClick={handleClearFilters}
-          sx={{
-            borderColor: '#98867B',
-            color: '#5A4D40',
-            '&:hover': {
-              borderColor: '#5A4D40',
-              backgroundColor: alpha('#EFEDEA', 0.1)
+
+        {/* Filter and Create Menu */}
+        <Menu
+          anchorEl={filterMenuAnchor}
+          open={Boolean(filterMenuAnchor)}
+          onClose={handleFilterMenuClose}
+          PaperProps={{
+            sx: {
+              minWidth: '200px',
+              p: 1,
+              boxShadow: '0px 4px 8px rgba(0,0,0,0.1)'
             }
           }}
         >
-          Clear Filters
-        </Button>
-</> */}
+          <MenuItem sx={{ p: 0 }}>
+            <FormControlLabel
+              control={<Checkbox checked={showStatusT} onChange={handleStatusTFilterChange} size='small' />}
+              label='Show Ready Items (Status = T)'
+              sx={{ width: '100%', pl: 1 }}
+            />
+          </MenuItem>
+
+          <Divider sx={{ my: 1 }} />
+
+          {/* <MenuItem onClick={handleCreateNewRecord} sx={{ color: 'primary.main' }}>
+            <AddIcon fontSize='small' sx={{ mr: 1 }} />
+            Create New Record
+          </MenuItem>
+
+          <MenuItem onClick={handleClearFilters}>
+            <ClearIcon fontSize='small' sx={{ mr: 1 }} />
+            Clear All Filters
+          </MenuItem> */}
+        </Menu>
+
         <Box sx={{ marginLeft: 'auto' }}>
           <Chip
             label={`รวม ${formatNumber(

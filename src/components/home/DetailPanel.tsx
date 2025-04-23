@@ -217,8 +217,9 @@ const DetailPanel = ({
 
   async function getDetailData(diecutId: any) {
     try {
-      const data = await apiClient.post('/api/diecuts/getdiecutsn', {
-        diecutId: selectedItem?.DIECUT_ID
+      const data = await apiClient.post('/api/diecuts/getdiecutsndetail', {
+        diecutId: selectedItem?.DIECUT_ID,
+        diecutSN: selectedItem?.DIECUT_SN
       })
 
       if (data.success) {
@@ -254,6 +255,7 @@ const DetailPanel = ({
   // }, [])
 
   // The useEffect hook to load data when a die cut is selected
+
   useEffect(() => {
     // Clear editing state when selected item changes
     setEditingBladeSN(null)
@@ -263,22 +265,65 @@ const DetailPanel = ({
     if (selectedItem) {
       console.log('Selected item:', selectedItem)
 
-      // Fetch diecut SN data from API
+      // Check if this is a newly created item
+      if (isNewlyCreatedItem(selectedItem)) {
+        // For new items, we initialize with a single blank blade
+        console.log('pass')
+
+        const newBlade: BladeItem = {
+          DIECUT_ID: selectedItem.DIECUT_ID,
+          DIECUT_SN: selectedItem.DIECUT_SN,
+          BLADE_TYPE: '',
+          DIECUT_AGE: 0,
+          STATUS: 'N',
+          bladeType: '',
+          bladeSize: '',
+          details: '',
+          TL_STATUS: 'GOOD',
+          PROB_DESC: '',
+          START_TIME: new Date(),
+          END_TIME: null,
+          PRODUCTION_ISSUE: '',
+          TOOLING_AGE: 0,
+          FIX_DETAILS: '',
+          BLADE_SIZE: '',
+          MULTI_BLADE_REASON: '',
+          MULTI_BLADE_REMARK: '',
+          isNewlyAdded: true,
+          REMARK: '',
+          MODIFY_TYPE: 'N'
+        }
+
+        console.log('pass1')
+
+        setDieCutSNList([newBlade])
+        originalListRef.current = [newBlade]
+
+        // Automatically start editing the new blade
+        handleEditBlade(newBlade)
+
+        return // Skip the regular data fetching for new items
+      }
+
+      // Fetch diecut SN data from API for existing items
       const loadDiecutData = async () => {
         const diecutId = selectedItem.DIECUT_ID
         const snData = await getDetailData(diecutId)
 
+        console.log(snData)
+
         if (snData && snData.length > 0) {
           // Mark all blades from API as not newly added
-          const markedData = snData.map(blade => ({
-            ...blade,
-            isNewlyAdded: false
-          }))
+          // const markedData = snData.map(blade => ({
+          //   ...blade,
+          //   isNewlyAdded: false
+          // }))
 
-          setDieCutSNList(markedData)
+          // setDieCutSNList(markedData)
 
-          // Store original list for comparison
-          originalListRef.current = JSON.parse(JSON.stringify(markedData))
+          // // Store original list for comparison
+          // originalListRef.current = JSON.parse(JSON.stringify(markedData))
+          handleEditBlade(snData[0])
         } else {
           // Initialize with empty data if no data is returned
           setDieCutSNList([])
@@ -331,6 +376,7 @@ const DetailPanel = ({
 
   // Start editing a specific blade
   const handleEditBlade = (blade: BladeItem) => {
+    console.log(blade)
     setEditingBladeSN(blade.DIECUT_SN)
 
     // Create a proper copy of the blade data with appropriate date conversions
@@ -596,6 +642,13 @@ const DetailPanel = ({
         </DialogActions>
       </Dialog>
     )
+  }
+
+  const isNewlyCreatedItem = (item: IDiecut | null) => {
+    console.log(item)
+    if (!item?.NEW_ADD) return false
+
+    return item
   }
 
   // Dialog for work type change
