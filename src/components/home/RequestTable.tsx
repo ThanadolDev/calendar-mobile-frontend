@@ -17,10 +17,11 @@ import {
   Select,
   MenuItem,
   Checkbox,
-  ListItemText
+  ListItemText,
+  IconButton
 } from '@mui/material'
 import { alpha } from '@mui/material/styles'
-import { Search as SearchIcon, Clear as ClearIcon } from '@mui/icons-material'
+import { Search as SearchIcon, Clear as ClearIcon, Add as AddIcon } from '@mui/icons-material'
 
 import type { IDiecut } from '../../types/types'
 import { formatNumber } from '../../utils/formatters'
@@ -122,9 +123,8 @@ const RequestTable = ({
   }
 
   const getPriorityStyle = (item: IDiecut) => {
-    
-    const isExpired = item?.DIECUT_NEAR_EXP <= 0 || item?.REMAIN <= 0
-    const isNearingExpiration = item?.DIECUT_NEAR_EXP > 0 && item?.DIECUT_NEAR_EXP <= 10000
+    const isExpired = item?.USED >= item?.AGES
+    const isNearingExpiration = item?.USED >= item?.DIECUT_NEAR_EXP
 
     if (isExpired) {
       if (item.STATUS !== 'T') {
@@ -139,7 +139,7 @@ const RequestTable = ({
         return { backgroundColor: 'rgba(200, 200, 200, 0.7)' } // Gray
       }
 
-      return { backgroundColor: 'rgba(255, 230, 180, 0.7)' } // Orange tint
+      return { backgroundColor: 'rgba(255, 171, 2, 0.7)' } // Orange tint
     }
 
     return {}
@@ -197,7 +197,7 @@ const RequestTable = ({
         size: 130,
         filterVariant: 'select',
         filterSelectOptions: [
-          { text: 'สั่งทำใหม่', value: 'N' },
+          { text: 'สร้างใหม่', value: 'N' },
           { text: 'เปลี่ยนใบมีด', value: 'B' },
           { text: 'สร้างทดแทน', value: 'M' },
           { text: 'ซ่อม', value: 'E' },
@@ -342,25 +342,82 @@ const RequestTable = ({
         enableSorting: false,
         enableColumnFilter: false,
 
+        AggregatedCell: ({ row }) => (
+          <IconButton
+            color='primary'
+            size='small'
+            onClick={e => {
+              e.stopPropagation() // Prevent row selection when clicking the button
+              // You can add any action you want here
+              // For example, expand the group
+              row.toggleExpanded()
+            }}
+            sx={{
+              backgroundColor: '#98867B',
+              color: 'white',
+              '&:hover': {
+                backgroundColor: '#5A4D40'
+              }
+            }}
+          >
+            <AddIcon />
+          </IconButton>
+        ),
+
         Cell: ({ row }) => {
+          const status = row.original.STATUS
+
+          // Define which statuses show the Process button
+          const showProcessButton = ['N', 'B', 'M', 'E'].includes(status)
+
+          // Define which status shows the Order button
+          const showOrderButton = status === 'T'
+
+          // For status F, don't show any button
+          if (status === 'F') {
+            return null
+          }
+
           return (
-            <Button
-              size='small'
-              variant='contained'
-              disabled={!isActiveForProcess(row.original.STATUS)}
-              onClick={e => {
-                e.stopPropagation()
-                handleProcessClick(row.original)
-              }}
-              sx={{
-                backgroundColor: isActiveForProcess(row.original.STATUS) ? '#98867B' : 'gray',
-                '&:hover': {
-                  backgroundColor: '#5A4D40'
-                }
-              }}
-            >
-              Process
-            </Button>
+            <>
+              {showProcessButton && (
+                <Button
+                  size='small'
+                  variant='contained'
+                  onClick={e => {
+                    e.stopPropagation()
+                    handleProcessClick(row.original)
+                  }}
+                  sx={{
+                    backgroundColor: '#98867B',
+                    '&:hover': {
+                      backgroundColor: '#5A4D40'
+                    }
+                  }}
+                >
+                  Process
+                </Button>
+              )}
+
+              {showOrderButton && (
+                <Button
+                  size='small'
+                  variant='contained'
+                  onClick={e => {
+                    e.stopPropagation()
+                    handleProcessClick(row.original)
+                  }}
+                  sx={{
+                    backgroundColor: '#98867B',
+                    '&:hover': {
+                      backgroundColor: '#5A4D40'
+                    }
+                  }}
+                >
+                  Order
+                </Button>
+              )}
+            </>
           )
         }
       }
@@ -414,7 +471,7 @@ const RequestTable = ({
             }
           }}
         />
-
+        {/* <>
         <Button
           variant='outlined'
           startIcon={<ClearIcon />}
@@ -431,7 +488,7 @@ const RequestTable = ({
         >
           Clear Filters
         </Button>
-
+</> */}
         <Box sx={{ marginLeft: 'auto' }}>
           <Chip
             label={`รวม ${formatNumber(
@@ -507,6 +564,8 @@ const RequestTable = ({
           expanded: true, // Start with all groups expanded
           columnVisibility: {},
           columnFilters
+
+          // columnPinning:{left:''}
         }}
         state={{
           isLoading: loading,
@@ -523,12 +582,13 @@ const RequestTable = ({
         muiTableContainerProps={{
           sx: {
             maxHeight: '65vh',
-            '& .MuiTableRow-root:nth-of-type(odd)': {
-              backgroundColor: 'rgba(244, 242, 239, 0.7)' // Lighter shade
-            },
-            '& .MuiTableRow-root:nth-of-type(even)': {
-              backgroundColor: 'rgba(234, 232, 229, 0.7)' // Very slightly darker but still light
-            },
+
+            // '& .MuiTableRow-root:nth-of-type(odd)': {
+            //   backgroundColor: 'rgba(244, 242, 239, 0.7)' // Lighter shade
+            // },
+            // '& .MuiTableRow-root:nth-of-type(even)': {
+            //   backgroundColor: 'rgba(234, 232, 229, 0.7)' // Very slightly darker but still light
+            // },
             '& .MuiTableRow-root:hover': {
               backgroundColor: alpha('#D5AA9F', 0.2)
             },
@@ -571,7 +631,7 @@ const RequestTable = ({
 
             // Style for grouped rows
             ...(row.getIsGrouped() && {
-              backgroundColor: alpha('#E6E1DC', 0.7),
+              // ...getPriorityStyle(row.original),
               borderTop: '2px solid',
               borderColor: alpha('#98867B', 0.5)
             }),
