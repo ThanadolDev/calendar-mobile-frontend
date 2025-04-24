@@ -24,7 +24,7 @@ import {
   Menu
 } from '@mui/material'
 import { alpha } from '@mui/material/styles'
-import { Search as SearchIcon, Clear as ClearIcon, Add as AddIcon, FilterList } from '@mui/icons-material'
+import { Search as SearchIcon, Clear as ClearIcon, Add as AddIcon, FilterList, NoteAdd } from '@mui/icons-material'
 import ConstructionIcon from '@mui/icons-material/Construction'
 
 import type { IDiecut } from '../../types/types'
@@ -45,6 +45,7 @@ interface RequestTableProps {
   typesLoading: boolean
   handleTypeChange: (type: string) => void
   setData?: (data: IDiecut[]) => void
+  handleOrderClick?: (item: IDiecut) => void
 }
 
 const RequestTable = ({
@@ -60,7 +61,8 @@ const RequestTable = ({
   diecutTypes,
   typesLoading,
   handleTypeChange,
-  setData
+  setData,
+  handleOrderClick
 }: RequestTableProps) => {
   const [columnFilters, setColumnFilters] = useState<MRT_ColumnFiltersState>([])
 
@@ -225,11 +227,12 @@ const RequestTable = ({
         header: 'รหัส Tooling',
         size: 150
       },
-      {
-        accessorKey: 'PRIORITY',
-        header: 'PRIORITY',
-        size: 150
-      },
+
+      // {
+      //   accessorKey: 'PRIORITY',
+      //   header: 'PRIORITY',
+      //   size: 150
+      // },
 
       //Type column with dropdown filter
       // {
@@ -451,10 +454,11 @@ const RequestTable = ({
                   color: 'white',
                   '&:hover': {
                     backgroundColor: '#5A4D40'
-                  }
+                  },
+                  width: '150px'
                 }}
+                startIcon={<AddIcon fontSize='small' />}
               >
-                <AddIcon fontSize='small' sx={{ mr: 0.5 }} />
                 เพิ่ม COPY
               </Button>
 
@@ -524,6 +528,15 @@ const RequestTable = ({
             }
           }
 
+          // Add a new handler for Order button
+          const handleOrderButtonClick = (e: React.MouseEvent) => {
+            e.stopPropagation() // Prevent row selection when clicking the button
+
+            if (handleOrderClick) {
+              handleOrderClick(row.original)
+            }
+          }
+
           return (
             <>
               {showProcessButton && (
@@ -535,10 +548,11 @@ const RequestTable = ({
                     backgroundColor: isNewRecord ? '#5A9E6F' : '#98867B', // Different color for new records
                     '&:hover': {
                       backgroundColor: isNewRecord ? '#3F7F4F' : '#5A4D40'
-                    }
+                    },
+                    width: '150px'
                   }}
+                  startIcon={<ConstructionIcon fontSize='small' />}
                 >
-                  <ConstructionIcon fontSize='small' sx={{ mr: 0.5 }} />
                   Process
                 </Button>
               )}
@@ -547,15 +561,17 @@ const RequestTable = ({
                 <Button
                   size='small'
                   variant='contained'
-                  onClick={handleProcessButtonClick} // Use the same handler for consistency
+                  onClick={handleOrderButtonClick} // Use the new order handler instead
                   sx={{
                     backgroundColor: '#98867B',
                     '&:hover': {
                       backgroundColor: '#5A4D40'
-                    }
+                    },
+                    width: '150px'
                   }}
+                  startIcon={<NoteAdd />}
                 >
-                  Order
+                  สั่งทำ
                 </Button>
               )}
             </>
@@ -743,7 +759,10 @@ const RequestTable = ({
           renderValue={selected => {
             if (selected.includes('')) return 'ทั้งหมด'
 
-            return selected.join(', ')
+            // Map the selected PTC_TYPE values to their corresponding PTC_DESC values
+            return selected
+              .map(value => diecutTypes.find(type => type.PTC_TYPE === value)?.PTC_DESC || value)
+              .join(', ')
           }}
           disabled={typesLoading}
           startAdornment={
@@ -762,7 +781,7 @@ const RequestTable = ({
           {diecutTypes.map(type => (
             <MenuItem key={type.PTC_TYPE} value={type.PTC_TYPE}>
               <Checkbox checked={selectedType.includes(type.PTC_TYPE)} />
-              <ListItemText primary={`${type.PTC_TYPE} - ${type.PTC_DESC}`} />
+              <ListItemText primary={`${type.PTC_DESC}`} />
             </MenuItem>
           ))}
         </Select>
@@ -779,9 +798,11 @@ const RequestTable = ({
           grouping: ['DIECUT_ID'],
           expanded: true, // Start with all groups expanded
           columnVisibility: {},
-          columnFilters
-
-          // columnPinning:{left:''}
+          columnFilters,
+          columnPinning: {
+            left: ['DIECUT_ID', 'STATUS'],
+            right: ['actions']
+          }
         }}
         state={{
           isLoading: loading,
@@ -837,11 +858,11 @@ const RequestTable = ({
           }
         }}
         muiTableBodyRowProps={({ row }) => ({
-          onClick: () => {
-            if (!row.getIsGrouped()) {
-              handleItemSelect(row.original)
-            }
-          },
+          // onClick: () => {
+          //   if (!row.getIsGrouped()) {
+          //     handleItemSelect(row.original)
+          //   }
+          // },
           sx: {
             cursor: 'pointer',
 

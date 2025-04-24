@@ -53,7 +53,7 @@ const NavbarContent = () => {
               lineHeight: '1.5' // Optional: Adjust line height for better spacing
             }}
           >
-            {userInfo?.name}
+            Tooling
           </Box>
         </Tooltip>
       </div>

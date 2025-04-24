@@ -15,6 +15,7 @@ import {
   Chip
 } from '@mui/material'
 
+import OrderModal from '../OrderModal'
 import { getUserInfo } from '@/utils/userInfo'
 import type { IUserInfo, IDiecut } from '../../types/types'
 import RequestTable from './RequestTable'
@@ -39,37 +40,13 @@ const HomeComponent = () => {
   const [diecutTypes, setDiecutTypes] = useState<string[]>([])
   const [typesLoading, setTypesLoading] = useState(false)
   const [detailLoading, setDetailLoading] = useState(false)
+  const [showDetailPanel, setShowDetailPanel] = useState(false)
+  const [showOrderModal, setShowOrderModal] = useState(false)
+  const [orderItem, setOrderItem] = useState<IDiecut | null>(null)
 
   // Use permissions from role access hook instead of static isManager flag
   const { isManager, canModify, canRecordDetails, canApprove } = usePermission()
   const canEdit = canModify || canRecordDetails
-
-  // Fetch diecut types from the API
-  // const fetchDiecutTypes = useCallback(async () => {
-  //   setTypesLoading(true)
-
-  //   try {
-  //     const response = await fetch(`${appConfig.api.baseUrl}/diecuts/types`)
-
-  //     if (!response.ok) {
-  //       throw new Error(`Server responded with status: ${response.status}`)
-  //     }
-
-  //     const result = await response.json()
-
-  //     if (result.success) {
-  //       const types = result.data.diecutType.map(item => item.DIECUT_TYPE).filter(type => type !== null)
-
-  //       setDiecutTypes(types)
-  //     } else {
-  //       console.error('Failed to fetch diecut types:', result.message)
-  //     }
-  //   } catch (error) {
-  //     console.error('Error fetching diecut types:', error)
-  //   } finally {
-  //     setTypesLoading(false)
-  //   }
-  // }, [])
 
   const fetchDiecutTypes = useCallback(async () => {
     setTypesLoading(true)
@@ -92,41 +69,20 @@ const HomeComponent = () => {
     }
   }, [])
 
-  // const fetchData = useCallback(async () => {
-  //   setLoading(true)
-  //   setError(null)
-
-  //   try {
-  //     // If selectedType has a value, include it in the API call
-  //     const url = selectedType
-  //       ? `${appConfig.api.baseUrl}/diecuts/status?diecutType=${encodeURIComponent(selectedType)}`
-  //       : `${appConfig.api.baseUrl}/diecuts/status`
-
-  //     const response = await fetch(url)
-  //     const result = await response.json()
-
-  //     if (!response.ok) throw new Error(`Server responded with status: ${response.status}`)
-  //     // console.log(result.data.diecuts)
-  //     setData(result.data.diecuts)
-  //   } catch (error) {
-  //     console.error('Error fetching data:', error)
-  //     setError(error instanceof Error ? error.message : 'Failed to fetch data. Please try again later.')
-  //   } finally {
-  //     setLoading(false)
-  //   }
-  // }, [selectedType])
-
   // Handle type change
   const fetchData = useCallback(async () => {
     setLoading(true)
     setError(null)
 
     try {
+      console.log(selectedType)
+
       // If selectedType has a value, include it in the API call
       const url = selectedType
         ? `/api/diecuts/status?diecutType=${encodeURIComponent(selectedType)}`
         : `/api/diecuts/status`
 
+      console.log(url)
       const result = await apiClient.get(url)
 
       if (result.success) {
@@ -150,8 +106,11 @@ const HomeComponent = () => {
     // Show loading state
     setDetailLoading(true)
 
+    // Show the detail panel
+    setShowDetailPanel(true)
+
     // Reset editing state when selecting a new item
-    setSelectedItem(item)
+    // setSelectedItem(item)
     setIsEditing(false)
 
     // Simulate delay or use actual data loading time
@@ -162,15 +121,25 @@ const HomeComponent = () => {
 
   const handleEditClick = (item: IDiecut) => {
     // Only allow edit if user has permission
-
     setSelectedItem(item)
     setIsEditing(true)
+
+    // Show the detail panel
+    setShowDetailPanel(true)
   }
 
   const handleEdit = () => {
     // Only allow edit if user has permission
-
     setIsEditing(true)
+  }
+
+  const handleOrderClick = (item: IDiecut) => {
+    setOrderItem(item)
+    setShowOrderModal(true)
+  }
+
+  const handleOrderComplete = () => {
+    fetchData()
   }
 
   // Add this function to HomeComponent
@@ -199,6 +168,9 @@ const HomeComponent = () => {
 
     // Set editing mode to true
     setIsEditing(true)
+
+    // Show the detail panel
+    setShowDetailPanel(true)
 
     // Show detail loading state briefly for visual feedback
     setDetailLoading(true)
@@ -315,6 +287,13 @@ const HomeComponent = () => {
     setSnackbar(prev => ({ ...prev, open: false }))
   }
 
+  // Function to close the detail panel
+  const handleDetailClose = () => {
+    setShowDetailPanel(false)
+    setSelectedItem(null)
+    setIsEditing(false)
+  }
+
   // Add this function to the HomeComponent for handling new blade creation
   const handleNewBladeInGroup = (groupId: string) => {
     // Generate a unique timestamp for the new blade
@@ -347,6 +326,9 @@ const HomeComponent = () => {
 
     // Set editing mode to true
     setIsEditing(true)
+
+    // Show the detail panel
+    setShowDetailPanel(true)
 
     // Show detail loading state briefly for visual feedback
     setDetailLoading(true)
@@ -443,20 +425,7 @@ const HomeComponent = () => {
       {/* Display user role and feature toggles in development mode */}
       {process.env.NODE_ENV === 'development' && (
         <Box sx={{ mb: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-          {/* <Chip label={`User: ${userRole || 'Not logged in'}`} size='small' color='primary' />
-          <Chip
-            label={`RBAC: ${appConfig.features.enableRoleBasedAccess ? 'ON' : 'OFF'}`}
-            size='small'
-            color={appConfig.features.enableRoleBasedAccess ? 'success' : 'default'}
-          />
-          <Chip
-            label={`Formatting: ${appConfig.features.enableNumberFormatting ? 'ON' : 'OFF'}`}
-            size='small'
-            color={appConfig.features.enableNumberFormatting ? 'success' : 'default'}
-          />
-          {!appConfig.features.enableRoleBasedAccess && (
-            <Chip label={`Default Role: ${appConfig.defaultRole}`} size='small' color='info' />
-          )} */}
+          {/* Development mode chips removed for brevity */}
         </Box>
       )}
 
@@ -464,7 +433,7 @@ const HomeComponent = () => {
         sx={{
           display: 'grid',
           gap: 2,
-          gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)',
+          gridTemplateColumns: isMobile ? '1fr' : showDetailPanel ? 'repeat(4, 1fr)' : '1fr',
           gridTemplateRows: isMobile ? 'auto auto auto' : '1fr',
           height: 'calc(100vh - 120px)' // Adjust based on navbar height
         }}
@@ -488,9 +457,10 @@ const HomeComponent = () => {
         <Paper
           sx={{
             p: 2,
-            gridColumn: isMobile ? 'span 4' : 'span 3',
+            gridColumn: isMobile ? 'span 4' : showDetailPanel ? 'span 3' : 'span 4',
             overflow: 'hidden',
-            backgroundColor: 'background.paper'
+            backgroundColor: 'background.paper',
+            transition: 'all 0.3s ease'
           }}
           className='shadow'
         >
@@ -508,33 +478,43 @@ const HomeComponent = () => {
             diecutTypes={diecutTypes}
             typesLoading={typesLoading}
             handleTypeChange={handleTypeChange}
+            handleOrderClick={handleOrderClick}
           />
         </Paper>
 
-        {/* Right sidebar panel */}
-        <Box
-          sx={{
-            gridColumn: isMobile ? 'span 4' : 'span 1',
-            display: 'grid',
-            gap: 2,
-            gridTemplateRows: '1fr'
-          }}
-        >
-          <DetailPanel
-            selectedItem={selectedItem}
-            isEditing={isEditing}
-            isManager={isManager}
-            loading={loading}
-            detailLoading={detailLoading} // Add this new prop
-            handleEdit={handleEdit}
-            handleSave={handleSave}
-            handleCancel={handleCancel}
-            handleStatusChange={handleStatusChange}
-            canEdit={canEdit}
-          />
-        </Box>
+        {/* Right sidebar panel - only show when a process button has been clicked */}
+        {showDetailPanel && (
+          <Box
+            sx={{
+              gridColumn: isMobile ? 'span 4' : 'span 1',
+              display: 'grid',
+              gap: 2,
+              gridTemplateRows: '1fr',
+              transition: 'all 0.3s ease'
+            }}
+          >
+            <DetailPanel
+              selectedItem={selectedItem}
+              isEditing={isEditing}
+              isManager={isManager}
+              loading={loading}
+              detailLoading={detailLoading}
+              handleEdit={handleEdit}
+              handleSave={handleSave}
+              handleCancel={handleCancel}
+              handleStatusChange={handleStatusChange}
+              canEdit={canEdit}
+              onClose={handleDetailClose}
+            />
+          </Box>
+        )}
       </Box>
-
+      <OrderModal
+        open={showOrderModal}
+        onClose={() => setShowOrderModal(false)}
+        selectedItem={orderItem}
+        onComplete={handleOrderComplete}
+      />
       {/* Notifications */}
       {/* <Snackbar
         open={snackbar.open}

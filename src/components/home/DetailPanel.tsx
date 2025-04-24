@@ -84,6 +84,7 @@ interface DetailPanelProps {
   handleStatusChange: (status: 'Pending' | 'Pass' | 'Rejected') => void
   canEdit: boolean
   onProcessComplete?: () => void
+  onClose?: () => void
 }
 
 const DetailPanel = ({
@@ -95,7 +96,8 @@ const DetailPanel = ({
   handleSave,
   handleCancel,
   handleStatusChange,
-  onProcessComplete
+  onProcessComplete,
+  onClose
 }: DetailPanelProps) => {
   const { isManager, canModify, canApprove, canRecordDetails } = usePermission()
   const canEdit = canModify || canRecordDetails
@@ -203,9 +205,15 @@ const DetailPanel = ({
 
     // Special handling for datetime-local inputs
     if (field === 'START_TIME' || field === 'END_TIME') {
+      // Ensure we're creating valid date objects
+      const dateValue = value ? new Date(value) : null
+
+      // Validate date before setting
+      const isValidDate = dateValue && !isNaN(dateValue.getTime())
+
       setBladeFormData(prev => ({
         ...prev!,
-        [field]: value ? new Date(value) : null
+        [field]: isValidDate ? dateValue : null
       }))
     } else {
       setBladeFormData(prev => ({
@@ -442,6 +450,7 @@ const DetailPanel = ({
     } finally {
       setEditingBladeSN(null)
       setBladeFormData(null)
+      onClose()
       originalBladeDataRef.current = null
     }
   }
@@ -674,7 +683,6 @@ const DetailPanel = ({
           // Update local state
           setBladeFormData(prev => ({
             ...prev!,
-            MODIFY_TYPE: newType,
             MODIFY_TYPE_APPV_FLAG: 'P'
           }))
 
@@ -749,7 +757,7 @@ const DetailPanel = ({
           const approvalResult = await apiClient.post('/api/diecuts/approvetypechange', {
             diecutId: bladeFormData.DIECUT_ID,
             diecutSN: bladeFormData.DIECUT_SN,
-            modifyType: bladeFormData.MODIFY_TYPE,
+            modifyType: 'M',
             approverId: authResult.data.employeeId,
             approverName: authResult.data.employeeName
           })
@@ -762,7 +770,8 @@ const DetailPanel = ({
               // Update local state
               setBladeFormData(prev => ({
                 ...prev!,
-                MODIFY_TYPE_APPV_FLAG: 'A'
+                MODIFY_TYPE_APPV_FLAG: 'A',
+                MODIFY_TYPE: 'M'
               }))
 
               // Close dialog
@@ -1355,13 +1364,36 @@ const DetailPanel = ({
                         fullWidth
                         size='small'
                         type='datetime-local'
-                        value={
-                          bladeFormData.START_TIME
-                            ? typeof bladeFormData.START_TIME === 'string'
-                              ? bladeFormData.START_TIME.substring(0, 16) // Format to YYYY-MM-DDTHH:MM
-                              : new Date(bladeFormData.START_TIME).toISOString().substring(0, 16)
-                            : new Date().toISOString().substring(0, 16) // Default to current date and time
-                        }
+                        value={(() => {
+                          // Check if START_TIME exists
+                          if (!bladeFormData.START_TIME) {
+                            return new Date().toISOString().substring(0, 16) // Default to current date and time
+                          }
+
+                          // Convert to Date object if it's a string
+                          const startTimeDate =
+                            typeof bladeFormData.START_TIME === 'string'
+                              ? new Date(bladeFormData.START_TIME)
+                              : new Date(bladeFormData.START_TIME)
+
+                          // Check if the date is valid
+                          if (isNaN(startTimeDate.getTime())) {
+                            return new Date().toISOString().substring(0, 16) // Invalid date, use current date
+                          }
+
+                          // Check if date is more than 50 years ago
+                          const fiftyYearsAgo = new Date()
+
+                          fiftyYearsAgo.setFullYear(fiftyYearsAgo.getFullYear() - 50)
+
+                          if (startTimeDate < fiftyYearsAgo) {
+                            // If date is more than 50 years ago, use current date instead
+                            return new Date().toISOString().substring(0, 16)
+                          }
+
+                          // Format date to YYYY-MM-DDTHH:MM
+                          return startTimeDate.toISOString().substring(0, 16)
+                        })()}
                         onChange={handleBladeChange('START_TIME')}
                         InputLabelProps={{ shrink: true }}
                         margin='normal'
@@ -1374,35 +1406,99 @@ const DetailPanel = ({
                         fullWidth
                         size='small'
                         type='datetime-local'
-                        value={
-                          bladeFormData.END_TIME
-                            ? typeof bladeFormData.END_TIME === 'string'
-                              ? bladeFormData.END_TIME.substring(0, 16)
-                              : new Date(bladeFormData.END_TIME).toISOString().substring(0, 16)
-                            : ''
-                        }
+                        value={(() => {
+                          if (!bladeFormData.END_TIME) return ''
+
+                          try {
+                            const endDate =
+                              typeof bladeFormData.END_TIME === 'string'
+                                ? new Date(bladeFormData.END_TIME)
+                                : bladeFormData.END_TIME
+
+                            // Check if date is valid
+                            if (isNaN(endDate.getTime())) return ''
+
+                            return endDate.toISOString().substring(0, 16)
+                          } catch (e) {
+                            console.error('Error formatting END_TIME:', e)
+
+                            return ''
+                          }
+                        })()}
                         onChange={handleBladeChange('END_TIME')}
                         InputLabelProps={{ shrink: true }}
                         margin='normal'
                         inputProps={{
-                          min: bladeFormData.START_TIME
-                            ? typeof bladeFormData.START_TIME === 'string'
-                              ? bladeFormData.START_TIME.substring(0, 16)
-                              : new Date(bladeFormData.START_TIME).toISOString().substring(0, 16)
-                            : ''
+                          min: (() => {
+                            if (!bladeFormData.START_TIME) return ''
+
+                            try {
+                              const startDate =
+                                typeof bladeFormData.START_TIME === 'string'
+                                  ? new Date(bladeFormData.START_TIME)
+                                  : bladeFormData.START_TIME
+
+                              // Check if date is valid
+                              if (isNaN(startDate.getTime())) return ''
+
+                              return startDate.toISOString().substring(0, 16)
+                            } catch (e) {
+                              console.error('Error formatting START_TIME minimum:', e)
+
+                              return ''
+                            }
+                          })()
                         }}
-                        error={
-                          bladeFormData.END_TIME &&
-                          bladeFormData.START_TIME &&
-                          new Date(bladeFormData.END_TIME) < new Date(bladeFormData.START_TIME)
-                        }
-                        helperText={
-                          bladeFormData.END_TIME &&
-                          bladeFormData.START_TIME &&
-                          new Date(bladeFormData.END_TIME) < new Date(bladeFormData.START_TIME)
-                            ? 'วันที่สิ้นสุดต้องไม่น้อยกว่าวันที่เริ่มต้น'
-                            : ''
-                        }
+                        error={(() => {
+                          if (!bladeFormData.END_TIME || !bladeFormData.START_TIME) return false
+
+                          try {
+                            const endDate =
+                              typeof bladeFormData.END_TIME === 'string'
+                                ? new Date(bladeFormData.END_TIME)
+                                : bladeFormData.END_TIME
+
+                            const startDate =
+                              typeof bladeFormData.START_TIME === 'string'
+                                ? new Date(bladeFormData.START_TIME)
+                                : bladeFormData.START_TIME
+
+                            // Check if both dates are valid
+                            if (isNaN(endDate.getTime()) || isNaN(startDate.getTime())) return false
+
+                            // Return true if end date is before start date
+                            return endDate < startDate
+                          } catch (e) {
+                            console.error('Error comparing dates:', e)
+
+                            return false
+                          }
+                        })()}
+                        helperText={(() => {
+                          if (!bladeFormData.END_TIME || !bladeFormData.START_TIME) return ''
+
+                          try {
+                            const endDate =
+                              typeof bladeFormData.END_TIME === 'string'
+                                ? new Date(bladeFormData.END_TIME)
+                                : bladeFormData.END_TIME
+
+                            const startDate =
+                              typeof bladeFormData.START_TIME === 'string'
+                                ? new Date(bladeFormData.START_TIME)
+                                : bladeFormData.START_TIME
+
+                            // Check if both dates are valid
+                            if (isNaN(endDate.getTime()) || isNaN(startDate.getTime())) return ''
+
+                            // Show error message if end date is before start date
+                            return endDate < startDate ? 'วันที่สิ้นสุดต้องไม่น้อยกว่าวันที่เริ่มต้น' : ''
+                          } catch (e) {
+                            console.error('Error generating error message:', e)
+
+                            return ''
+                          }
+                        })()}
                       />
                     </Grid>
 
@@ -1515,6 +1611,7 @@ const DetailPanel = ({
                         fullWidth
                         size='small'
                         multiline
+                        disabled
                         rows={3}
                         value={bladeFormData.PROB_DESC || ''}
                         onChange={handleBladeChange('PROB_DESC')}
@@ -1539,6 +1636,7 @@ const DetailPanel = ({
                       <Typography variant='subtitle2'>ระยะมีด</Typography>
                       <TextField
                         fullWidth
+                        disabled
                         size='small'
                         value={bladeFormData.BLADE_TYPE || ''}
                         onChange={handleBladeChange('BLADE_TYPE')}
@@ -1551,6 +1649,7 @@ const DetailPanel = ({
                       <TextField
                         fullWidth
                         size='small'
+                        disabled
                         multiline
                         rows={3}
                         value={bladeFormData.MULTI_BLADE_REASON || ''}
@@ -1564,6 +1663,7 @@ const DetailPanel = ({
                       <TextField
                         fullWidth
                         size='small'
+                        disabled
                         multiline
                         rows={2}
                         value={bladeFormData.MULTI_BLADE_REMARK || ''}
@@ -1576,7 +1676,7 @@ const DetailPanel = ({
                 <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
                   <Button
                     variant='outlined'
-                    onClick={handleCancelBlade}
+                    onClick={onClose}
                     sx={{
                       borderColor: '#98867B',
                       color: '#98867B'
@@ -1604,6 +1704,9 @@ const DetailPanel = ({
                     </Button>
                   </PermissionGate>
                 </Box>
+                <Typography sx={{ color: 'red', mt: 4 }}>
+                  หมายเหตุ อายุ Tooling สามารถคีย์ได้ เมื่อระบุ สิ้นสุดวันที่ สร้างใหม่/สร้างทดแทน
+                </Typography>
               </Box>
             )}
 
