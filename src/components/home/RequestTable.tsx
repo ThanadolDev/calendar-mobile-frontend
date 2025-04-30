@@ -24,12 +24,14 @@ import {
   Menu
 } from '@mui/material'
 import { alpha } from '@mui/material/styles'
-import { Search as SearchIcon, Clear as ClearIcon, Add as AddIcon, FilterList, NoteAdd } from '@mui/icons-material'
+import { Search as SearchIcon, Clear, Add as AddIcon, NoteAdd } from '@mui/icons-material'
 import ConstructionIcon from '@mui/icons-material/Construction'
+import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined'
 
+import JobOrderModal from '../JobOrderModal'
 import type { IDiecut } from '../../types/types'
 import { formatNumber } from '../../utils/formatters'
-import appConfig from '../../configs/appConfig'
+import apiClient from '../../services/apiClient'
 
 interface RequestTableProps {
   data: IDiecut[]
@@ -46,12 +48,13 @@ interface RequestTableProps {
   handleTypeChange: (type: string) => void
   setData?: (data: IDiecut[]) => void
   handleOrderClick?: (item: IDiecut) => void
+  updateDiecutJobInfo?: (diecutId: string, diecutSn: string, jobId: string, prodId: string, revision: string) => void
+  handleTypeSearch?: (type: string) => void
 }
 
 const RequestTable = ({
   data,
   loading,
-  isManager,
   handleItemSelect,
   handleEditClick,
   searchQuery,
@@ -62,9 +65,12 @@ const RequestTable = ({
   typesLoading,
   handleTypeChange,
   setData,
-  handleOrderClick
+  handleOrderClick,
+  handleTypeSearch
 }: RequestTableProps) => {
   const [columnFilters, setColumnFilters] = useState<MRT_ColumnFiltersState>([])
+  const [jobOrderModalOpen, setJobOrderModalOpen] = useState(false)
+  const [selectedDiecut, setSelectedDiecut] = useState<IDiecut | null>(null)
 
   // Filter data based on search query
   const filteredData = useMemo(() => {
@@ -80,7 +86,11 @@ const RequestTable = ({
           (item.DIECUT_SN && item.DIECUT_SN.toLowerCase().includes(lowerCaseQuery)) ||
           (item.DIECUT_TYPE && item.DIECUT_TYPE.toLowerCase().includes(lowerCaseQuery)) ||
           (item.STATUS && item.STATUS.toLowerCase().includes(lowerCaseQuery)) ||
-          (item.MODIFY_TYPE && item.MODIFY_TYPE.toLowerCase().includes(lowerCaseQuery))
+          (item.MODIFY_TYPE && item.MODIFY_TYPE.toLowerCase().includes(lowerCaseQuery)) ||
+          (item.PROD_DESC && item.PROD_DESC.toLowerCase().includes(lowerCaseQuery)) ||
+          (item.PROD_ID && item.PROD_ID.toLowerCase().includes(lowerCaseQuery)) ||
+          (item.JOB_ID && item.JOB_ID.toLowerCase().includes(lowerCaseQuery)) ||
+          (item.JOB_DESC && item.JOB_DESC.toLowerCase().includes(lowerCaseQuery))
       )
     }
 
@@ -104,6 +114,8 @@ const RequestTable = ({
         return 'พร้อมใช้งาน'
       case 'F':
         return 'ยกเลิก'
+      case 'D':
+        return 'ทำลายแล้ว'
       default:
         return status
     }
@@ -125,8 +137,68 @@ const RequestTable = ({
         return 'success'
       case 'F':
         return 'error'
+      case 'D':
+        return 'primary'
       default:
         return 'default'
+    }
+  }
+
+  const handleOpenJobOrderModal = (item: IDiecut, event: React.MouseEvent) => {
+    event.stopPropagation() // Prevent row selection
+    setSelectedDiecut(item)
+    setJobOrderModalOpen(true)
+  }
+
+  const handleJobOrderSelect = async (jobOrderData: any) => {
+    if (!selectedDiecut) return
+    console.log(selectedDiecut)
+
+    try {
+      // Call API to update the diecut with the selected job order info
+      const result = await apiClient.post('/api/diecuts/updatejobinfo', {
+        diecutId: selectedDiecut.DIECUT_ID,
+        diecutSn: selectedDiecut.DIECUT_SN,
+        jobId: jobOrderData.JOB_ID,
+        prodId: jobOrderData.PROD_ID,
+        revision: jobOrderData.REVISION,
+        prodDesc: jobOrderData.PROD_DESC
+      })
+
+      if ((result as { success: boolean }).success) {
+        // Update the local data with the new job order info
+        if (setData && data) {
+          const updatedData = data.map(item => {
+            if (item.DIECUT_ID === selectedDiecut.DIECUT_ID && item.DIECUT_SN === selectedDiecut.DIECUT_SN) {
+              return {
+                ...item,
+                JOB_ORDER: jobOrderData.JOB_ID,
+                PRODUCT_CODE: jobOrderData.PROD_ID,
+                PRODUCT_DESC: jobOrderData.PROD_DESC
+              }
+            }
+
+            return item
+          })
+
+          setData(updatedData)
+        }
+
+        // If the parent provided an update function, call it
+        // if (updateDiecutJobInfo) {
+        //   updateDiecutJobInfo(
+        //     selectedDiecut.DIECUT_ID,
+        //     selectedDiecut.DIECUT_SN,
+        //     jobOrderData.JOB_ID,
+        //     jobOrderData.PROD_ID,
+        //     jobOrderData.REVISION
+        //   )
+        // }
+      } else {
+        console.error('Failed to update job order info:')
+      }
+    } catch (error) {
+      console.error('Error updating job order info:', error)
     }
   }
 
@@ -136,7 +208,7 @@ const RequestTable = ({
 
     if (isExpired) {
       if (item.STATUS !== 'T') {
-        return { backgroundColor: 'rgba(200, 200, 200, 0.7)' } // Gray
+        // return { backgroundColor: 'rgba(200, 200, 200, 0.7)' } // Gray
       }
 
       return { backgroundColor: 'rgba(255, 200, 200, 0.7)' } // Red tint
@@ -144,7 +216,7 @@ const RequestTable = ({
 
     if (isNearingExpiration) {
       if (item.STATUS !== 'T') {
-        return { backgroundColor: 'rgba(200, 200, 200, 0.7)' } // Gray
+        // return { backgroundColor: 'rgba(200, 200, 200, 0.7)' } // Gray
       }
 
       return { backgroundColor: 'rgba(255, 171, 2, 0.7)' } // Orange tint
@@ -154,27 +226,27 @@ const RequestTable = ({
   }
 
   // Function to check if Process button should be active
-  const isActiveForProcess = (status: string | null | undefined) => {
-    if (!status) return false
+  // const isActiveForProcess = (status: string | null | undefined) => {
+  //   if (!status) return false
 
-    return ['N', 'B', 'M', 'E'].includes(status)
-  }
+  //   return ['N', 'B', 'M', 'E'].includes(status)
+  // }
 
   // Function to handle Process button click
-  const handleProcessClick = (item: IDiecut) => {
-    // Notify the parent component to open the process dialog
-    handleItemSelect(item)
+  // const handleProcessClick = (item: IDiecut) => {
+  //   // Notify the parent component to open the process dialog
+  //   handleItemSelect(item)
 
-    // handleEditClick(item)
-  }
+  //   // handleEditClick(item)
+  // }
 
   // Custom filter function for DIECUT_TYPE
-  const diecutTypeFilterFn: MRT_FilterFn<IDiecut> = (row, id, filterValue) => {
-    if (!filterValue || filterValue === '') return true
-    const value = row.getValue(id)
+  // const diecutTypeFilterFn: MRT_FilterFn<IDiecut> = (row, id, filterValue) => {
+  //   if (!filterValue || filterValue === '') return true
+  //   const value = row.getValue(id)
 
-    return value === filterValue
-  }
+  //   return value === filterValue
+  // }
 
   // Define columns for the table
   const columns = useMemo<MRT_ColumnDef<IDiecut>[]>(
@@ -182,8 +254,8 @@ const RequestTable = ({
       // DIECUT_ID column (used for grouping)
       {
         accessorKey: 'DIECUT_ID',
-        header: 'เลขที่ Tooling',
-        size: 150,
+        header: 'เลขที่',
+        size: 125,
         enableGrouping: true,
         AggregatedCell: ({ row }) => (
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -212,20 +284,79 @@ const RequestTable = ({
           { text: 'สร้างทดแทน', value: 'M' },
           { text: 'ซ่อม', value: 'E' },
           { text: 'พร้อมใช้งาน', value: 'T' },
-          { text: 'ยกเลิก', value: 'F' }
-        ],
+          { text: 'ยกเลิก', value: 'F' },
+          { text: 'ทำลายแล้ว', value: 'D' }
+        ] as any,
         Cell: ({ cell }) => {
           const status = cell.getValue<string | null | undefined>()
 
           return status ? <Chip label={getStatusText(status)} size='small' color={getStatusColor(status)} /> : null
+        },
+
+        // Add this custom Filter component to override the default behavior
+        Filter: ({ header }) => {
+          const { column } = header
+          const filterValue = column.getFilterValue() as string
+
+          return (
+            <FormControl size='small' variant='outlined'>
+              <Select
+                value={filterValue || ''}
+                onChange={e => column.setFilterValue(e.target.value)}
+                displayEmpty
+                sx={{
+                  minWidth: '100px',
+                  maxWidth: '120px',
+                  height: '32px',
+                  backgroundColor: '#f5f5f5',
+                  '& .MuiSelect-select': {
+                    padding: '4px 8px',
+                    fontSize: '0.8rem'
+                  }
+                }}
+                MenuProps={{
+                  PaperProps: {
+                    style: {
+                      maxHeight: 200
+                    }
+                  }
+                }}
+              >
+                <MenuItem value=''>
+                  <em>ทั้งหมด</em>
+                </MenuItem>
+                <MenuItem value='N' dense>
+                  สร้างใหม่
+                </MenuItem>
+                <MenuItem value='B' dense>
+                  เปลี่ยนใบมีด
+                </MenuItem>
+                <MenuItem value='M' dense>
+                  สร้างทดแทน
+                </MenuItem>
+                <MenuItem value='E' dense>
+                  ซ่อม
+                </MenuItem>
+                <MenuItem value='T' dense>
+                  พร้อมใช้งาน
+                </MenuItem>
+                <MenuItem value='F' dense>
+                  ยกเลิก
+                </MenuItem>
+                <MenuItem value='D' dense>
+                  ทำลายแล้ว
+                </MenuItem>
+              </Select>
+            </FormControl>
+          )
         }
       },
 
       // SN column
       {
         accessorKey: 'DIECUT_SN',
-        header: 'รหัส Tooling',
-        size: 150
+        header: 'รหัส',
+        size: 125
       },
 
       // {
@@ -277,22 +408,64 @@ const RequestTable = ({
       // },
 
       {
-        accessorKey: 'JOB_ORDER',
-        header: 'JOB Order',
-        size: 150,
-        Cell: ({ cell }) => cell.getValue() || '-'
+        accessorKey: 'JOB_ID',
+        header: 'JOB',
+        size: 120,
+        Cell: ({ row, cell }) => {
+          const value = cell.getValue() || '-'
+
+          // Only show the button for statuses that allow editing
+
+          return (
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+              <Typography sx={{ color: '#555555' }}>{value}</Typography>
+              {/* {showButton && ( */}
+              <IconButton
+                size='small'
+                onClick={e => handleOpenJobOrderModal(row.original, e)}
+                sx={{
+                  ml: 'auto',
+                  color: '#98867B',
+                  '&:hover': {
+                    backgroundColor: 'rgba(152, 134, 123, 0.1)'
+                  }
+                }}
+              >
+                <SearchOutlinedIcon fontSize='small' />
+              </IconButton>
+              {/* )} */}
+            </Box>
+          )
+        }
       },
 
       {
-        accessorKey: 'PRODUCT_CODE',
+        accessorKey: 'PROD_ID',
         header: 'รหัสสินค้า',
         size: 150,
-        Cell: ({ cell }) => cell.getValue() || '-'
+        Cell: ({ row, cell }) => {
+          const value = cell.getValue()
+          const revision = row.original.REVISION // Try to get REVISION from the data
+
+          if (!value) return '-'
+
+          // Remove leading zeros using regular expression
+          const formattedProdId = value.replace(/^0+/, '') || '-'
+
+          // If revision exists, format as PROD_ID-REVISION
+          if (revision) {
+            return `${formattedProdId}-${revision}`
+          }
+
+          return formattedProdId
+        }
       },
+
       {
-        accessorKey: 'ชื่องาน',
+        accessorKey: 'JOB_DESC',
+        enableColumnOrdering: false,
         header: 'ชื่องาน',
-        size: 150,
+        size: 450,
         Cell: ({ cell }) => cell.getValue() || '-'
       },
       {
@@ -315,41 +488,167 @@ const RequestTable = ({
           return <div style={{ textAlign: 'right', width: '100%' }}>{value || '-'}</div>
         }
       },
-      {
-        accessorKey: 'AGES',
-        header: 'AGES',
-        size: 150,
-        Cell: ({ cell }) => {
-          const value = formatNumber(cell.getValue())
 
-          return <div style={{ textAlign: 'right', width: '100%' }}>{value || '-'}</div>
-        }
-      },
       {
         accessorKey: 'REMAIN',
-        header: 'REMAIN',
-        size: 150,
+        header: 'อายุคงเหลือ',
+        enableColumnOrdering: false,
+        size: 165,
         Cell: ({ cell }) => {
           const value = formatNumber(cell.getValue())
 
           return <div style={{ textAlign: 'right', width: '100%' }}>{value || '-'}</div>
         }
       },
-      {
-        accessorKey: 'DIECUT_NEAR_EXP',
-        header: 'DIECUT_NEAR_EXP',
-        size: 150,
-        Cell: ({ cell }) => {
-          const value = formatNumber(cell.getValue())
 
-          return <div style={{ textAlign: 'right', width: '100%' }}>{value || '-'}</div>
+      // Add these changes to the RequestTable component
+
+      // 1. Update the columns definition to include the DUE_DATE handling
+      // This part goes inside your useMemo for columns definition
+      {
+        accessorKey: 'DUE_DATE',
+        header: 'วันที่ใช้',
+        size: 150,
+        Cell: ({ row, cell }) => {
+          const value = cell.getValue()
+          const status = row.original.STATUS
+          const diecutId = row.original.DIECUT_ID
+          const diecutSN = row.original.DIECUT_SN
+
+          // Only allow editing for certain statuses
+          const canEdit = ['N', 'B', 'M', 'E'].includes(status) && !row.getIsGrouped()
+
+          // Parse the date more carefully
+          let date = null
+          let formattedDateValue = ''
+          let formattedDisplayDate = '-'
+
+          if (value) {
+            try {
+              // Handle various date formats
+              date = new Date(value)
+
+              // Check if date is valid
+              if (!isNaN(date.getTime())) {
+                // Format for display (DD/MM/YYYY)
+                formattedDisplayDate = `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1)
+                  .toString()
+                  .padStart(2, '0')}/${date.getFullYear()}`
+
+                // Format for input value (YYYY-MM-DD)
+                formattedDateValue = date.toISOString().split('T')[0]
+              }
+            } catch (error) {
+              console.error('Error parsing date:', error)
+            }
+          }
+
+          const handleDateChange = async e => {
+            e.stopPropagation() // Prevent row selection
+
+            // Get the new date value from the input
+            const newDateStr = e.target.value
+
+            if (!newDateStr || !diecutId || !diecutSN) return
+
+            try {
+              const newDate = new Date(newDateStr)
+
+              // Validate date
+              if (isNaN(newDate.getTime())) {
+                console.error('Invalid date')
+
+                return
+              }
+
+              // Call API to update the due date
+              const result = await apiClient.post('/api/diecuts/updatedate', {
+                diecutId: diecutId,
+                diecutSn: diecutSN,
+                dueDate: newDate.toISOString()
+              })
+
+              if ((result as { success: boolean }).success) {
+                // If the API call was successful, update the local data
+                if (setData && data) {
+                  const updatedData = data.map(item => {
+                    if (item.DIECUT_ID === diecutId && item.DIECUT_SN === diecutSN) {
+                      return {
+                        ...item,
+                        DUE_DATE: newDate
+                      }
+                    }
+
+                    return item
+                  })
+
+                  setData(updatedData)
+                }
+              } else {
+                console.error('Failed to update due date:')
+              }
+            } catch (error) {
+              console.error('Error updating due date:', error)
+            }
+          }
+
+          return (
+            <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+              {canEdit ? (
+                <TextField
+                  size='small'
+                  type='date'
+                  value={formattedDateValue}
+                  onChange={handleDateChange}
+                  onClick={e => e.stopPropagation()} // Prevent row selection when clicking the input
+                  // Improved styling to match app design
+                  sx={{
+                    width: '100%',
+                    '.MuiInputBase-root': {
+                      height: '32px',
+                      fontSize: '0.875rem',
+                      backgroundColor: '#f5f5f5',
+                      borderRadius: '4px'
+                    },
+                    '.MuiOutlinedInput-input': {
+                      padding: '6px 8px',
+                      height: '20px'
+                    },
+                    '.MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#D0C6BD'
+                    },
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#98867B'
+                    },
+                    '.MuiInputBase-input': {
+                      color: '#5A4D40'
+                    }
+                  }}
+                  // Add input props to ensure proper date handling
+                  inputProps={{
+                    max: '2100-12-31'
+                  }}
+                />
+              ) : (
+                <Typography
+                  variant='body2'
+                  sx={{
+                    color: '#5A4D40',
+                    fontWeight: 400
+                  }}
+                >
+                  {formattedDisplayDate}
+                </Typography>
+              )}
+            </Box>
+          )
         }
       },
 
       {
         accessorKey: 'actions',
         header: 'การดำเนินการ',
-        size: 120,
+        size: 150,
         enableSorting: false,
         enableColumnFilter: false,
 
@@ -666,18 +965,19 @@ const RequestTable = ({
               <InputAdornment position='start'>
                 <SearchIcon fontSize='small' />
               </InputAdornment>
-            ),
-            endAdornment: (
-              <InputAdornment position='end'>
-                {searchQuery ? (
-                  <ClearIcon fontSize='small' sx={{ cursor: 'pointer' }} onClick={() => setSearchQuery('')} />
-                ) : (
-                  <IconButton size='small' onClick={handleFilterMenuClick}>
-                    <FilterList fontSize='small' />
-                  </IconButton>
-                )}
-              </InputAdornment>
             )
+
+            // endAdornment: (
+            //   <InputAdornment position='end'>
+            //     {searchQuery ? (
+            //       <ClearIcon fontSize='small' sx={{ cursor: 'pointer' }} onClick={() => setSearchQuery('')} />
+            //     ) : (
+            //       <IconButton size='small' onClick={handleFilterMenuClick}>
+            //         <FilterList fontSize='small' />
+            //       </IconButton>
+            //     )}
+            //   </InputAdornment>
+            // )
           }}
           sx={{
             width: '300px',
@@ -738,14 +1038,14 @@ const RequestTable = ({
   return (
     <>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-        <Typography variant='h6'>{isManager ? 'Manage Requests' : 'View Requests'}</Typography>
+        {/* <Typography variant='h6'>{isManager ? 'Manage Requests' : 'View Requests'}</Typography> */}
 
         {/* Show feature toggle status in dev mode */}
-        {process.env.NODE_ENV === 'development' && (
+        {/* {process.env.NODE_ENV === 'development' && (
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Chip size='small' color={'default'} label={`ROLE : ${appConfig.defaultRole}`} />
           </Box>
-        )}
+        )} */}
       </Box>
       <FormControl size='small' sx={{ minWidth: 150, mb: 2 }}>
         <InputLabel id='diecut-type-filter-label'>เลือกประเภท Diecut</InputLabel>
@@ -786,7 +1086,9 @@ const RequestTable = ({
           ))}
         </Select>
       </FormControl>
-
+      <Button sx={{ ml: 2 }} variant='contained' onClick={handleTypeSearch}>
+        ค้นหา
+      </Button>
       <MaterialReactTable
         columns={columns}
         data={filteredData}
@@ -800,8 +1102,8 @@ const RequestTable = ({
           columnVisibility: {},
           columnFilters,
           columnPinning: {
-            left: ['DIECUT_ID', 'STATUS'],
-            right: ['actions']
+            left: ['DIECUT_ID', 'DIECUT_SN', 'DUE_DATE'],
+            right: ['REMAIN', 'STATUS', 'actions']
           }
         }}
         state={{
@@ -831,6 +1133,23 @@ const RequestTable = ({
             },
             '& .MuiTableRow-root.Mui-selected, & .MuiTableRow-root.Mui-selected:hover': {
               backgroundColor: alpha('#D5AA9F', 0.3)
+            }
+          }
+        }}
+        muiTableProps={{
+          sx: {
+            tableLayout: 'fixed',
+            '& .MuiTableCell-root': {
+              padding: '4px 8px', // Reduce padding in all cells
+              fontSize: '0.95rem' // Smaller font size
+            }
+          }
+        }}
+        // Make table rows shorter
+        muiTableBodyProps={{
+          sx: {
+            '& .MuiTableRow-root': {
+              height: '36px' // Reduce row height
             }
           }
         }}
@@ -867,24 +1186,26 @@ const RequestTable = ({
             cursor: 'pointer',
 
             // Style for grouped rows
-            ...(row.getIsGrouped() && {
-              // ...getPriorityStyle(row.original),
-              borderTop: '2px solid',
-              borderColor: alpha('#98867B', 0.5)
-            }),
+            ...(row.getIsGrouped() &&
+              {
+                // ...getPriorityStyle(row.original),
+                // borderTop: '2px solid',
+                // borderColor: alpha('#98867B', 0.5)
+              }),
 
             // Style for detail rows
             ...(!row.getIsGrouped() && {
-              borderLeft: '4px solid',
-              borderColor: alpha('#D0C6BD', 0.5),
+              // borderLeft: '4px solid',
+              // borderColor: alpha('#D0C6BD', 0.5),
               ...getPriorityStyle(row.original)
             }),
             '&:hover': {
               backgroundColor: alpha('#D5AA9F', 0.2)
             },
             '&.Mui-selected, &.Mui-selected:hover': {
-              backgroundColor: alpha('#D5AA9F', 0.3),
-              borderLeft: '3px solid #D5AA9F'
+              backgroundColor: alpha('#D5AA9F', 0.3)
+
+              // borderLeft: '3px solid #D5AA9F'
             }
           }
         })}
@@ -964,6 +1285,16 @@ const RequestTable = ({
           }
         }}
       />
+      <JobOrderModal
+        open={jobOrderModalOpen}
+        onClose={() => setJobOrderModalOpen(false)}
+        onSelect={handleJobOrderSelect}
+      />
+      <div className='flex gap-2 mt-1'>
+        <Typography sx={{ color: 'red' }}>*สีแดงคือถึงอายึใช้งานแล้ว</Typography>
+        <Typography sx={{ color: 'orange' }}>*สีส้มคือเกือบถึงอายุใช้งานแล้ว</Typography>
+        <Typography sx={{ color: 'gray' }}>*สีเทาคือไดคัทเข้าสู่รายการ Tooling รอสร้างใหม่/แก้ไขแล้ว</Typography>
+      </div>
     </>
   )
 }

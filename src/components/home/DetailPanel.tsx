@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
@@ -110,6 +111,7 @@ const DetailPanel = ({
   const [showTypeChangeDialog, setShowTypeChangeDialog] = useState(false)
   const [showTypeApprovalDialog, setShowTypeApprovalDialog] = useState(false)
   const [allowedChangeTypes, setAllowedChangeTypes] = useState<string[]>([])
+  const [showCancelOrderDialog, setShowCancelOrderDialog] = useState(false)
 
   // Keep original data references to compare for changes
   const originalBladeDataRef = useRef<BladeItem | null>(null)
@@ -221,6 +223,67 @@ const DetailPanel = ({
         [field]: field.includes('Date') && value ? new Date(value) : value
       }))
     }
+  }
+
+  const handleCancelOrder = async () => {
+    if (!bladeFormData) return
+
+    try {
+      // API call to cancel the order
+      const result = await apiClient.post('/api/diecuts/cancelorder', {
+        diecutId: bladeFormData.DIECUT_ID,
+        diecutSN: bladeFormData.DIECUT_SN
+      })
+
+      if (result.success) {
+        // Close the dialog
+        setShowCancelOrderDialog(false)
+
+        // Show success message
+        // You could add a snackbar notification here if needed
+
+        // Close the detail panel
+        onClose && onClose()
+
+        // If you have a callback to refresh the parent component's data
+        onProcessComplete && onProcessComplete()
+      } else {
+        console.error('Failed to cancel order:')
+
+        // You could show an error message here
+      }
+    } catch (error) {
+      console.error('Error cancelling order:', error)
+
+      // You could show an error message here
+    }
+  }
+
+  const CancelOrderDialog = () => {
+    return (
+      <Dialog open={showCancelOrderDialog} onClose={() => setShowCancelOrderDialog(false)}>
+        <DialogTitle>ยืนยันการยกเลิกคำสั่ง</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            คุณต้องการยกเลิกคำสั่งนี้ใช่หรือไม่? การดำเนินการนี้ไม่สามารถย้อนกลับได้
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setShowCancelOrderDialog(false)}
+            sx={{
+              borderColor: '#98867B',
+              color: '#98867B'
+            }}
+          >
+            ยกเลิก
+          </Button>
+          <Button onClick={handleCancelOrder} variant='contained' color='error'>
+            ตกลง
+          </Button>
+        </DialogActions>
+      </Dialog>
+    )
   }
 
   async function getDetailData(diecutId: any) {
@@ -988,13 +1051,13 @@ const DetailPanel = ({
 
     switch (status) {
       case 'N':
-        return 'สั่งทำใหม่'
+        return 'สร้างใหม่'
       case 'B':
         return 'เปลี่ยนใบมีด'
       case 'M':
         return 'สร้างทดแทน'
       case 'E':
-        return 'ซ่อม'
+        return 'แก้ไข'
       case 'T':
         return 'พร้อมใช้งาน'
       case 'F':
@@ -1336,7 +1399,8 @@ const DetailPanel = ({
                     <Button
                       variant='outlined'
                       size='small'
-                      // disabled={!allowedChangeTypes.includes(bladeFormData?.MODIFY_TYPE || '')}
+                      // Only enable the button when MODIFY_TYPE is 'B'
+                      disabled={bladeFormData?.MODIFY_TYPE !== 'B'}
                       onClick={() =>
                         bladeFormData?.MODIFY_TYPE_APPV_FLAG === 'P' || bladeFormData?.MODIFY_TYPE_APPV_FLAG === 'N'
                           ? setShowTypeApprovalDialog(true)
@@ -1348,6 +1412,12 @@ const DetailPanel = ({
                         '&:hover': {
                           borderColor: '#5A4D40',
                           backgroundColor: 'rgba(152, 134, 123, 0.04)'
+                        },
+
+                        // Add styling for disabled state
+                        '&.Mui-disabled': {
+                          borderColor: 'rgba(0, 0, 0, 0.12)',
+                          color: 'rgba(0, 0, 0, 0.26)'
                         }
                       }}
                     >
@@ -1502,7 +1572,7 @@ const DetailPanel = ({
                       />
                     </Grid>
 
-                    <Grid item xs={12}>
+                    {/* <Grid item xs={12}>
                       <Typography variant='subtitle2'>วันที่ต้องการ</Typography>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                         <TextField
@@ -1522,17 +1592,19 @@ const DetailPanel = ({
                         />
                         <Button
                           variant='outlined'
-                          size='small'
+                          // size='small'
                           onClick={handleAutoDate}
+                          disabled
                           sx={{
                             borderColor: '#98867B',
-                            color: '#98867B'
+                            color: '#98867B',
+                            mt: 2
                           }}
                         >
                           Auto
                         </Button>
                       </Box>
-                    </Grid>
+                    </Grid> */}
 
                     {/* <Grid item xs={6}>
                       <Typography variant='subtitle2'>JOB Order</Typography>
@@ -1674,6 +1746,19 @@ const DetailPanel = ({
                   </Grid>
                 </div>
                 <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+                  <PermissionGate requiredPermission='isManager'>
+                    <Button
+                      variant='outlined'
+                      color='error'
+                      onClick={() => setShowCancelOrderDialog(true)}
+                      sx={{
+                        borderColor: '#d32f2f',
+                        color: '#d32f2f'
+                      }}
+                    >
+                      ยกเลิกคำสั่ง
+                    </Button>
+                  </PermissionGate>
                   <Button
                     variant='outlined'
                     onClick={onClose}
@@ -1684,6 +1769,7 @@ const DetailPanel = ({
                   >
                     ยกเลิก
                   </Button>
+
                   <PermissionGate requiredPermission='canModify'>
                     <Button
                       variant='contained'
@@ -1714,6 +1800,7 @@ const DetailPanel = ({
             {showApprovalDialog && <ApprovalDialog />}
             {showTypeChangeDialog && <TypeChangeDialog />}
             {showTypeApprovalDialog && <TypeApprovalDialog />}
+            {showCancelOrderDialog && <CancelOrderDialog />}
           </>
         )
       ) : (

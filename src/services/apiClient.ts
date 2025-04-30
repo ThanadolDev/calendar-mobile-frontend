@@ -1,8 +1,8 @@
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
 import axios from 'axios'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:18814'
-const DIECUT_API_URL = 'http://localhost:2525' // Add the diecut API URL
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:2525'
+const DIECUT_API_URL = process.env.NEXT_PUBLIC_API_URL // Add the diecut API URL
 
 class ApiClient {
   private instance: AxiosInstance

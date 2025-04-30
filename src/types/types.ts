@@ -31,6 +31,10 @@ export interface IDiecut {
   FIX_DETAILS?: string
   BLADE_SIZE?: string
   MULTI_BLADE_REASON?: string
+  PROD_DESC?: string
+  PROD_ID?: string
+  JOB_ID?: string
+  JOB_DESC?: string
   MULTI_BLADE_REMARK?: string
 }
 

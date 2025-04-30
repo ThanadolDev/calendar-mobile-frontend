@@ -70,7 +70,7 @@ const HomeComponent = () => {
   }, [])
 
   // Handle type change
-  const fetchData = useCallback(async () => {
+  const fetchData = async () => {
     setLoading(true)
     setError(null)
 
@@ -96,10 +96,14 @@ const HomeComponent = () => {
     } finally {
       setLoading(false)
     }
-  }, [selectedType])
+  }
 
   const handleTypeChange = (event: any) => {
     setSelectedType(event.target.value)
+  }
+
+  const handleTypeSearch = (event: any) => {
+    fetchData()
   }
 
   const handleItemSelect = (item: IDiecut) => {
@@ -388,7 +392,7 @@ const HomeComponent = () => {
   // Fetch data when the component mounts or when selectedType changes
   useEffect(() => {
     fetchData()
-  }, [fetchData, selectedType])
+  }, [])
 
   // Reset selected item when data changes
   useEffect(() => {
@@ -475,6 +479,7 @@ const HomeComponent = () => {
             setSearchQuery={setSearchQuery}
             setSelectedType={setSelectedType}
             selectedType={selectedType}
+            handleTypeSearch={handleTypeSearch}
             diecutTypes={diecutTypes}
             typesLoading={typesLoading}
             handleTypeChange={handleTypeChange}

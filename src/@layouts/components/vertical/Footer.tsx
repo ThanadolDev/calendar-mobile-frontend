@@ -25,7 +25,7 @@ type Props = ChildrenType & {
 
 const Footer = (props: Props) => {
   // Props
-  const { children, overrideStyles } = props
+  const {  overrideStyles } = props
 
   // Hooks
   const { settings } = useSettings()
