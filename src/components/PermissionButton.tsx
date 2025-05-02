@@ -4,7 +4,7 @@ import React from 'react'
 import type { ButtonProps, IconButtonProps } from '@mui/material'
 import { Button, IconButton, Tooltip } from '@mui/material'
 
-import type { SxProps, Theme } from '@mui/material/styles'
+// import type { SxProps, Theme } from '@mui/material/styles'
 
 import { usePermission } from '../contexts/PermissionContext'
 
@@ -14,6 +14,7 @@ interface PermissionButtonProps extends ButtonProps {
   permissions?: Array<keyof Omit<ReturnType<typeof usePermission>, 'userRole'>>
   requiresManager?: boolean
   showDisabled?: boolean
+  disabledTooltip?: string
 }
 
 /**

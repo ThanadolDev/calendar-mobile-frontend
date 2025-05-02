@@ -57,7 +57,7 @@ const OrderModal = ({ open, onClose, selectedItem, onComplete }: OrderModalProps
     if (!selectedItem) return
 
     try {
-      const response = await apiClient.post('/api/diecuts/getbladechangecount', {
+      const response: any = await apiClient.post('/api/diecuts/getbladechangecount', {
         diecutId: selectedItem.DIECUT_ID,
         diecutSN: selectedItem.DIECUT_SN
       })
@@ -105,7 +105,7 @@ const OrderModal = ({ open, onClose, selectedItem, onComplete }: OrderModalProps
         dueDate: dueDateValue ? new Date(dueDateValue) : null
       }
 
-      const response = await apiClient.post('/api/diecuts/orderchange', payload)
+      const response: any = await apiClient.post('/api/diecuts/orderchange', payload)
 
       if (response.success) {
         toast.success('บันทึกข้อมูลสำเร็จ')

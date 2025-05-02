@@ -1,12 +1,13 @@
 interface AuthResponse {
-  id: string;
-  name: string;
-  email: string;
-  image_id: string;
-  ORG_ID: string;
-  accessToken: string;
-  refreshToken: string;
-  sessionId: string;
+  id: string
+  name: string
+  email: string
+  image_id: string
+  ORG_ID: string
+  accessToken: string
+  refreshToken: string
+  sessionId: string
+  role: string
 
   // authorizeSale: boolean;
   // authorizeAccountManager: boolean;
@@ -14,6 +15,4 @@ interface AuthResponse {
   // authorizeFactoryManager: boolean;
 }
 
-export type {
-  AuthResponse
-};
+export type { AuthResponse }

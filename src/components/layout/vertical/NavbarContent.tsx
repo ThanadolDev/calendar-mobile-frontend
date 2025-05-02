@@ -3,7 +3,7 @@
 // Third-party Imports
 import { useEffect, useState } from 'react'
 
-import { useRouter } from 'next/navigation'
+// import { useRouter } from 'next/navigation'
 
 import classnames from 'classnames'
 
@@ -19,7 +19,7 @@ import { verticalLayoutClasses } from '@layouts/utils/layoutClasses'
 import { getUserInfo } from '@/utils/userInfo'
 
 const NavbarContent = () => {
-  const router = useRouter()
+  // const router = useRouter()
   const userInfo = getUserInfo()
   const [hydrated, setHydrated] = useState(false)
 

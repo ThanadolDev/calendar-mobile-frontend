@@ -8,11 +8,9 @@ export const mockRequests: IDiecut[] = [
     USED: 0,
     REMAIN: 0,
     DIECUT_NEAR_EXP: 0,
-    PRIORITY: '1',
     STATUS: 'N',
     DIECUT_TYPE: 'DC',
     TL_STATUS: 'GOOD',
-    LAST_MODIFY: null,
     DUE_DATE: '2024-08-30T17:00:00.000Z',
     MODIFY_TYPE: 'N'
   }

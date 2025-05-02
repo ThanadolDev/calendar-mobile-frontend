@@ -43,9 +43,20 @@ export const PermissionProvider: React.FC<{ children: ReactNode }> = ({ children
   const permissions = useRoleAccess(userRole)
 
   // isManager is determined by canApprove permission
-  const isManager = permissions.canApprove
+  const isManager = 'canApprove' in permissions ? permissions.canApprove : false
 
-  const value = {
+  const value: PermissionContextType = {
+    ...{
+      canModify: false,
+      canApprove: false,
+      canEditDates: false,
+      canRecordDetails: false,
+      canRequestChanges: false,
+      canCreateNew: false,
+      canSelect: false,
+      canView: false,
+      isLoading: true
+    },
     ...permissions,
     isManager,
     userRole

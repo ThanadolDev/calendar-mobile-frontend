@@ -12,7 +12,7 @@ export interface IUserInfo {
 export interface IDiecut {
   DIECUT_ID: number | string
   DIECUT_SN: string
-  DIECUT_NEAR_EXP?: string
+  DIECUT_NEAR_EXP?: number
   DIECUT_TYPE?: string
   BLADE_TYPE?: string
   STATUS?: string
@@ -22,7 +22,7 @@ export interface IDiecut {
   USED?: number
   REMAIN?: number
   LAST_MODIFY?: string
-  DUE_DATE?: string
+  DUE_DATE?: string | Date
   MODIFY_TYPE?: string
   START_TIME?: Date | string
   END_TIME?: Date | string
@@ -36,6 +36,12 @@ export interface IDiecut {
   JOB_ID?: string
   JOB_DESC?: string
   MULTI_BLADE_REMARK?: string
+  NEW_ADD?: boolean
+  BLANK_SIZE_X?: string
+  BLANK_SIZE_Y?: string
+  REVISION?: number
+  isNewlyAdded?: boolean
+  REMARK?: string
 }
 
 export type UserRole = 'Manager' | 'User' | 'Mod' | 'View'

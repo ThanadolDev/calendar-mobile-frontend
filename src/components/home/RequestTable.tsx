@@ -1,8 +1,9 @@
 'use client'
 
+import type { Dispatch, SetStateAction, ChangeEvent } from 'react'
 import { useMemo, useState } from 'react'
 
-import type { MRT_ColumnDef, MRT_ColumnFiltersState, MRT_FilterFn } from 'material-react-table'
+import type { MRT_ColumnDef, MRT_ColumnFiltersState } from 'material-react-table'
 import { MaterialReactTable } from 'material-react-table'
 import {
   Box,
@@ -24,7 +25,7 @@ import {
   Menu
 } from '@mui/material'
 import { alpha } from '@mui/material/styles'
-import { Search as SearchIcon, Clear, Add as AddIcon, NoteAdd } from '@mui/icons-material'
+import { Search as SearchIcon, Add as AddIcon, NoteAdd } from '@mui/icons-material'
 import ConstructionIcon from '@mui/icons-material/Construction'
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined'
 
@@ -41,15 +42,15 @@ interface RequestTableProps {
   handleEditClick: (item: IDiecut) => void
   searchQuery: string
   setSearchQuery: (query: string) => void
-  selectedType: string
-  setSelectedType: (type: string) => void
+  selectedType: string[]
+  setSelectedType: Dispatch<SetStateAction<string[]>>
   diecutTypes: any[]
   typesLoading: boolean
-  handleTypeChange: (type: string) => void
+  handleTypeChange: (event: React.ChangeEvent<{ name?: string; value: unknown }>) => void
   setData?: (data: IDiecut[]) => void
   handleOrderClick?: (item: IDiecut) => void
   updateDiecutJobInfo?: (diecutId: string, diecutSn: string, jobId: string, prodId: string, revision: string) => void
-  handleTypeSearch?: (type: string) => void
+  handleTypeSearch?: () => void
 }
 
 const RequestTable = ({
@@ -59,7 +60,6 @@ const RequestTable = ({
   handleEditClick,
   searchQuery,
   setSearchQuery,
-  setSelectedType,
   selectedType,
   diecutTypes,
   typesLoading,
@@ -203,8 +203,8 @@ const RequestTable = ({
   }
 
   const getPriorityStyle = (item: IDiecut) => {
-    const isExpired = item?.USED >= item?.AGES
-    const isNearingExpiration = item?.USED >= item?.DIECUT_NEAR_EXP
+    const isExpired = (item?.USED ?? 0) >= (item?.AGES ?? Infinity)
+    const isNearingExpiration = (item?.USED ?? 0) >= (item?.DIECUT_NEAR_EXP ?? Infinity)
 
     if (isExpired) {
       if (item.STATUS !== 'T') {
@@ -418,7 +418,7 @@ const RequestTable = ({
 
           return (
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-              <Typography sx={{ color: '#555555' }}>{value}</Typography>
+              <Typography sx={{ color: '#555555' }}>{String(value || '-')}</Typography>
               {/* {showButton && ( */}
               <IconButton
                 size='small'
@@ -450,7 +450,7 @@ const RequestTable = ({
           if (!value) return '-'
 
           // Remove leading zeros using regular expression
-          const formattedProdId = value.replace(/^0+/, '') || '-'
+          const formattedProdId = (value as string).replace(/^0+/, '') || '-'
 
           // If revision exists, format as PROD_ID-REVISION
           if (revision) {
@@ -465,15 +465,14 @@ const RequestTable = ({
         accessorKey: 'JOB_DESC',
         enableColumnOrdering: false,
         header: 'ชื่องาน',
-        size: 450,
-        Cell: ({ cell }) => cell.getValue() || '-'
+        size: 450
       },
       {
         accessorKey: 'BLANK_SIZE_X',
         header: 'กว้าง',
         size: 150,
         Cell: ({ cell }) => {
-          const value = formatNumber(cell.getValue())
+          const value = formatNumber(cell.getValue() as string | number)
 
           return <div style={{ textAlign: 'right', width: '100%' }}>{value || '-'}</div>
         }
@@ -483,7 +482,7 @@ const RequestTable = ({
         header: 'ยาว',
         size: 150,
         Cell: ({ cell }) => {
-          const value = formatNumber(cell.getValue())
+          const value = formatNumber(cell.getValue() as string | number)
 
           return <div style={{ textAlign: 'right', width: '100%' }}>{value || '-'}</div>
         }
@@ -495,7 +494,7 @@ const RequestTable = ({
         enableColumnOrdering: false,
         size: 165,
         Cell: ({ cell }) => {
-          const value = formatNumber(cell.getValue())
+          const value = formatNumber(cell.getValue() as string | number)
 
           return <div style={{ textAlign: 'right', width: '100%' }}>{value || '-'}</div>
         }
@@ -516,7 +515,7 @@ const RequestTable = ({
           const diecutSN = row.original.DIECUT_SN
 
           // Only allow editing for certain statuses
-          const canEdit = ['N', 'B', 'M', 'E'].includes(status) && !row.getIsGrouped()
+          const canEdit = status !== undefined && ['N', 'B', 'M', 'E'].includes(status) && !row.getIsGrouped()
 
           // Parse the date more carefully
           let date = null
@@ -526,7 +525,7 @@ const RequestTable = ({
           if (value) {
             try {
               // Handle various date formats
-              date = new Date(value)
+              date = new Date(value as string)
 
               // Check if date is valid
               if (!isNaN(date.getTime())) {
@@ -543,7 +542,7 @@ const RequestTable = ({
             }
           }
 
-          const handleDateChange = async e => {
+          const handleDateChange = async (e: any) => {
             e.stopPropagation() // Prevent row selection
 
             // Get the new date value from the input
@@ -624,7 +623,6 @@ const RequestTable = ({
                       color: '#5A4D40'
                     }
                   }}
-                  // Add input props to ensure proper date handling
                   inputProps={{
                     max: '2100-12-31'
                   }}
@@ -668,7 +666,7 @@ const RequestTable = ({
             handleClose()
 
             // Get the group's DIECUT_ID
-            const diecutId = row.getValue('DIECUT_ID')
+            const diecutId: string = row.getValue('DIECUT_ID')
 
             // Find all existing blades with this DIECUT_ID
             const existingBladesInGroup = data.filter(item => item.DIECUT_ID === diecutId)
@@ -713,8 +711,8 @@ const RequestTable = ({
             }
 
             // Call the parent handlers to select and edit the new item
-            handleItemSelect(newItem)
-            handleEditClick(newItem)
+            // handleItemSelect(newItem)
+            // handleEditClick(newItem)
 
             // Expand the group to show the new item
             if (!row.getIsExpanded()) {
@@ -722,10 +720,10 @@ const RequestTable = ({
             }
           }
 
-          const handleExpandGroup = () => {
-            handleClose()
-            row.toggleExpanded()
-          }
+          // const handleExpandGroup = () => {
+          //   handleClose()
+          //   row.toggleExpanded()
+          // }
 
           return (
             <>
@@ -776,7 +774,7 @@ const RequestTable = ({
           const isNewRecord = row.original.DIECUT_SN?.includes('-NEW-')
 
           // Define which statuses show the Process button
-          const showProcessButton = ['N', 'B', 'M', 'E'].includes(status) || isNewRecord
+          const showProcessButton = (status !== undefined && ['N', 'B', 'M', 'E'].includes(status)) || isNewRecord
 
           // Define which status shows the Order button
           const showOrderButton = status === 'T'
@@ -795,32 +793,32 @@ const RequestTable = ({
             // Then trigger the edit mode by calling handleEditBlade, similar to the detail page
             if (row.original) {
               // Convert the IDiecut to BladeItem for edit mode
-              const bladeToEdit: BladeItem = {
-                DIECUT_ID: row.original.DIECUT_ID,
-                DIECUT_SN: row.original.DIECUT_SN,
-                BLADE_TYPE: row.original.BLADE_TYPE || '',
-                DIECUT_AGE: row.original.DIECUT_AGE || 0,
-                STATUS: row.original.STATUS || 'N',
-                bladeType: row.original.BLADE_TYPE || '',
-                bladeSize: '',
-                details: '',
-                TL_STATUS: 'GOOD',
-                PROB_DESC: row.original.PROB_DESC || '',
-                START_TIME: new Date(),
-                END_TIME: null,
-                PRODUCTION_ISSUE: '',
-                TOOLING_AGE: row.original.DIECUT_AGE || 0,
-                FIX_DETAILS: '',
-                BLADE_SIZE: '',
-                MULTI_BLADE_REASON: '',
-                MULTI_BLADE_REMARK: '',
-                isNewlyAdded: isNewRecord,
-                REMARK: row.original.REMARK || '',
-                MODIFY_TYPE: row.original.MODIFY_TYPE || 'N',
-                JOB_ORDER: row.original.JOB_ORDER || '',
-                PRODUCT_CODE: row.original.PRODUCT_CODE || '',
-                PRODUCT_NAME: row.original.PRODUCT_NAME || ''
-              }
+              // const bladeToEdit: BladeItem = {
+              //   DIECUT_ID: row.original.DIECUT_ID,
+              //   DIECUT_SN: row.original.DIECUT_SN,
+              //   BLADE_TYPE: row.original.BLADE_TYPE || '',
+              //   DIECUT_AGE: row.original.DIECUT_AGE || 0,
+              //   STATUS: row.original.STATUS || 'N',
+              //   bladeType: row.original.BLADE_TYPE || '',
+              //   bladeSize: '',
+              //   details: '',
+              //   TL_STATUS: 'GOOD',
+              //   PROB_DESC: row.original.PROB_DESC || '',
+              //   START_TIME: new Date(),
+              //   END_TIME: null,
+              //   PRODUCTION_ISSUE: '',
+              //   TOOLING_AGE: row.original.DIECUT_AGE || 0,
+              //   FIX_DETAILS: '',
+              //   BLADE_SIZE: '',
+              //   MULTI_BLADE_REASON: '',
+              //   MULTI_BLADE_REMARK: '',
+              //   isNewlyAdded: isNewRecord,
+              //   REMARK: row.original.REMARK || '',
+              //   MODIFY_TYPE: row.original.MODIFY_TYPE || 'N',
+              //   JOB_ORDER: row.original.JOB_ORDER || '',
+              //   PRODUCT_CODE: row.original.PRODUCT_CODE || '',
+              //   PRODUCT_NAME: row.original.PRODUCT_NAME || ''
+              // }
 
               // Call handleEditClick which should trigger the edit mode in DetailPanel
               handleEditClick(row.original)
@@ -882,21 +880,21 @@ const RequestTable = ({
   )
 
   // Clear all filters
-  const handleClearFilters = () => {
-    setSearchQuery('')
-    setSelectedType('')
-    setColumnFilters([])
-  }
+  // const handleClearFilters = () => {
+  //   setSearchQuery('')
+  //   setSelectedType('')
+  //   setColumnFilters([])
+  // }
 
   // Define custom top toolbar with search and filters
-  const renderTopToolbar = () => {
+  const RenderTopToolbar = () => {
     const [filterMenuAnchor, setFilterMenuAnchor] = useState<null | HTMLElement>(null)
     const [showStatusT, setShowStatusT] = useState(true) // Default to showing all statuses
 
     // Handle filter menu open/close
-    const handleFilterMenuClick = (event: React.MouseEvent<HTMLElement>) => {
-      setFilterMenuAnchor(event.currentTarget)
-    }
+    // const handleFilterMenuClick = (event: React.MouseEvent<HTMLElement>) => {
+    //   setFilterMenuAnchor(event.currentTarget)
+    // }
 
     const handleFilterMenuClose = () => {
       setFilterMenuAnchor(null)
@@ -920,27 +918,27 @@ const RequestTable = ({
     }
 
     // Handle creating a new record
-    const handleCreateNewRecord = () => {
-      // Close menu
-      handleFilterMenuClose()
+    // const handleCreateNewRecord = () => {
+    //   // Close menu
+    //   handleFilterMenuClose()
 
-      // Create a new record with default values
-      const newItem: IDiecut = {
-        DIECUT_ID: selectedType[0] || 'DC', // Use selected type or default to DC
-        DIECUT_SN: `${selectedType[0] || 'DC'}-NEW-${Date.now()}`, // Generate a temporary SN
-        STATUS: 'N', // Default status for new records
-        DIECUT_TYPE: selectedType[0] || 'DC'
+    //   // Create a new record with default values
+    //   const newItem: IDiecut = {
+    //     DIECUT_ID: selectedType[0] || 'DC', // Use selected type or default to DC
+    //     DIECUT_SN: `${selectedType[0] || 'DC'}-NEW-${Date.now()}`, // Generate a temporary SN
+    //     STATUS: 'N', // Default status for new records
+    //     DIECUT_TYPE: selectedType[0] || 'DC'
 
-        // Add other required fields with default values
-      }
+    //     // Add other required fields with default values
+    //   }
 
-      // Add the new item to the data (Note: This is just UI state change; actual API call will happen later)
-      // setData([newItem, ...data]);
+    //   // Add the new item to the data (Note: This is just UI state change; actual API call will happen later)
+    //   // setData([newItem, ...data]);
 
-      // Select the new item and open edit mode
-      handleItemSelect(newItem)
-      handleEditClick(newItem)
-    }
+    //   // Select the new item and open edit mode
+    //   handleItemSelect(newItem)
+    //   handleEditClick(newItem)
+    // }
 
     return (
       <Box
@@ -1024,7 +1022,6 @@ const RequestTable = ({
         <Box sx={{ marginLeft: 'auto' }}>
           <Chip
             label={`รวม ${formatNumber(
-              // Count unique DIECUT_IDs
               new Set(filteredData.map(item => item.DIECUT_ID)).size
             )} กลุ่ม (${formatNumber(filteredData.length)} รายการ)`}
             size='small'
@@ -1055,7 +1052,17 @@ const RequestTable = ({
           value={selectedType}
           label='เลือกประเภท Diecut'
           multiple
-          onChange={handleTypeChange}
+          onChange={event => {
+            // Convert the event here
+            const compatibleEvent = {
+              target: {
+                name: event.target.name,
+                value: event.target.value
+              }
+            } as ChangeEvent<{ name?: string; value: unknown }>
+
+            handleTypeChange(compatibleEvent)
+          }}
           renderValue={selected => {
             if (selected.includes('')) return 'ทั้งหมด'
 
@@ -1115,8 +1122,7 @@ const RequestTable = ({
         enableGlobalFilter={false}
         enableColumnResizing={true}
         enableColumnPinning={true}
-        renderTopToolbar={renderTopToolbar}
-        // positionToolbarAlertBanner='bottom'
+        renderTopToolbar={RenderTopToolbar}
         paginationDisplayMode='pages'
         muiTableContainerProps={{
           sx: {
@@ -1145,7 +1151,6 @@ const RequestTable = ({
             }
           }
         }}
-        // Make table rows shorter
         muiTableBodyProps={{
           sx: {
             '& .MuiTableRow-root': {
@@ -1249,41 +1254,42 @@ const RequestTable = ({
             }
           }
         }}
-        rowsPerPageOptions={[10, 50, 100, 500]}
-        pageSizeOptions={[10, 50, 100, 500]}
-        muiTablePaginationProps={{
-          SelectProps: {
-            sx: {
-              backgroundColor: '#f5f5f5',
-              border: '1px solid #D0C6BD',
-              borderRadius: '4px',
-              padding: '2px 8px',
-              '&:focus': {
-                backgroundColor: '#f5f5f5'
-              }
-            }
-          },
-          labelRowsPerPage: 'Rows:',
-          sx: {
-            '.MuiTablePagination-displayedRows': {
-              fontWeight: 'bold',
-              color: '#5A4D40',
-              marginRight: '8px'
-            },
-            '.MuiTablePagination-actions': {
-              marginLeft: '8px',
-              '& .MuiIconButton-root': {
-                color: '#5A4D40',
-                '&:hover': {
-                  backgroundColor: alpha('#D5AA9F', 0.2)
-                },
-                '&.Mui-disabled': {
-                  color: alpha('#5A4D40', 0.3)
-                }
-              }
-            }
-          }
-        }}
+
+        // rowsPerPageOptions={[10, 50, 100, 500]}
+        // pageSizeOptions={[10, 50, 100, 500]}
+        // muiTablePaginationProps={{
+        //   SelectProps: {
+        //     sx: {
+        //       backgroundColor: '#f5f5f5',
+        //       border: '1px solid #D0C6BD',
+        //       borderRadius: '4px',
+        //       padding: '2px 8px',
+        //       '&:focus': {
+        //         backgroundColor: '#f5f5f5'
+        //       }
+        //     }
+        //   },
+        //   labelRowsPerPage: 'Rows:',
+        //   sx: {
+        //     '.MuiTablePagination-displayedRows': {
+        //       fontWeight: 'bold',
+        //       color: '#5A4D40',
+        //       marginRight: '8px'
+        //     },
+        //     '.MuiTablePagination-actions': {
+        //       marginLeft: '8px',
+        //       '& .MuiIconButton-root': {
+        //         color: '#5A4D40',
+        //         '&:hover': {
+        //           backgroundColor: alpha('#D5AA9F', 0.2)
+        //         },
+        //         '&.Mui-disabled': {
+        //           color: alpha('#5A4D40', 0.3)
+        //         }
+        //       }
+        //     }
+        //   }
+        // }}
       />
       <JobOrderModal
         open={jobOrderModalOpen}

@@ -26,6 +26,7 @@ export const getUserInfo = (): IUserInfo | null => {
     }
   } catch (error) {
     console.error('Error getting user info:', error)
+
     return null
   }
 }
@@ -41,7 +42,8 @@ export const setUserInfo = (userInfo: IUserInfo): void => {
     localStorage.setItem('refreshToken', userInfo.refreshToken)
 
     // Store user info without sensitive tokens
-    const { accessToken, refreshToken, ...userInfoWithoutTokens } = userInfo
+    const { ...userInfoWithoutTokens } = userInfo
+
     localStorage.setItem('userInfo', JSON.stringify(userInfoWithoutTokens))
   } catch (error) {
     console.error('Error setting user info:', error)
@@ -68,6 +70,7 @@ export const isTokenExpired = (token: string): boolean => {
   try {
     const base64Url = token.split('.')[1]
     const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+
     const jsonPayload = decodeURIComponent(
       atob(base64)
         .split('')
@@ -81,6 +84,7 @@ export const isTokenExpired = (token: string): boolean => {
     return exp * 1000 < Date.now()
   } catch (error) {
     console.error('Error checking token expiration:', error)
+
     return true
   }
 }

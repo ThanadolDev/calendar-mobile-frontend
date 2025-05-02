@@ -78,9 +78,7 @@ const useRoleAccess = (role: UserRole | null) => {
   }, [role])
 
   // Handle invalid roles
-  const validRole = role && ['Manager', 'User', 'Mod', 'View'].includes(role)
-    ? role
-    : appConfig.defaultRole;
+  const validRole = role && ['Manager', 'User', 'Mod', 'View'].includes(role) ? role : appConfig.defaultRole
 
   // Get the permissions from the map based on role
   return useMemo(() => {
@@ -93,14 +91,21 @@ const useRoleAccess = (role: UserRole | null) => {
       canCreateNew: false,
       canSelect: false,
       canView: true // Everyone should at least be able to view
-    };
+    }
 
     // If role-based access is disabled, use default role
     if (!appConfig.features.enableRoleBasedAccess) {
-      return {
-        ...rolePermissionsMap[appConfig.defaultRole],
-        isLoading: false
-      };
+      const role = appConfig.defaultRole
+
+      if (Object.keys(rolePermissionsMap).includes(role)) {
+        return {
+          ...rolePermissionsMap[role as UserRole],
+          isLoading: false
+        }
+      }
+
+      // Handle the case where the role doesn't exist
+      return { isLoading: false }
     }
 
     // If loading or no valid role, return default permissions with loading state
@@ -108,15 +113,15 @@ const useRoleAccess = (role: UserRole | null) => {
       return {
         ...defaultPermissions,
         isLoading
-      };
+      }
     }
 
     // Return permissions for the valid role
     return {
-      ...rolePermissionsMap[validRole],
+      ...rolePermissionsMap[validRole as UserRole],
       isLoading: false
-    };
-  }, [validRole, isLoading]);
+    }
+  }, [validRole, isLoading])
 }
 
 export default useRoleAccess

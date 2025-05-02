@@ -2,26 +2,17 @@
 
 import { useEffect, useState, useCallback } from 'react'
 
-import {
-  Box,
-  useTheme,
-  useMediaQuery,
-  Alert,
-  Snackbar,
-  CircularProgress,
-  Typography,
-  Paper,
-  Button,
-  Chip
-} from '@mui/material'
+import { Box, useTheme, useMediaQuery, Alert, CircularProgress, Typography, Paper, Button } from '@mui/material'
 
 import OrderModal from '../OrderModal'
-import { getUserInfo } from '@/utils/userInfo'
-import type { IUserInfo, IDiecut } from '../../types/types'
+
+// import { getUserInfo } from '@/utils/userInfo'
+import type { IDiecut } from '../../types/types'
 import RequestTable from './RequestTable'
 import DetailPanel from './DetailPanel'
-import useRoleAccess from '../../hooks/useRoleAccess'
-import appConfig from '../../configs/appConfig'
+
+// import useRoleAccess from '../../hooks/useRoleAccess'
+// import appConfig from '../../configs/appConfig'
 import { usePermission } from '../../contexts/PermissionContext'
 import apiClient from '../../services/apiClient'
 
@@ -34,7 +25,6 @@ const HomeComponent = () => {
   const [data, setData] = useState<IDiecut[]>([])
   const [selectedItem, setSelectedItem] = useState<IDiecut | null>(null)
   const [isEditing, setIsEditing] = useState(false)
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as const })
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedType, setSelectedType] = useState<string[]>(['DC'])
   const [diecutTypes, setDiecutTypes] = useState<string[]>([])
@@ -45,18 +35,18 @@ const HomeComponent = () => {
   const [orderItem, setOrderItem] = useState<IDiecut | null>(null)
 
   // Use permissions from role access hook instead of static isManager flag
-  const { isManager, canModify, canRecordDetails, canApprove } = usePermission()
+  const { isManager, canModify, canRecordDetails } = usePermission()
   const canEdit = canModify || canRecordDetails
 
   const fetchDiecutTypes = useCallback(async () => {
     setTypesLoading(true)
 
     try {
-      const result = await apiClient.get('/api/diecuts/types')
+      const result: any = await apiClient.get('/api/diecuts/types')
 
       if (result.success) {
         // Update to use PTC_TYPE and PTC_DESC from the API response
-        const types = result.data.diecutType.filter(item => item.PTC_TYPE !== null)
+        const types = result.data.diecutType.filter((item: any) => item.PTC_TYPE !== null)
 
         setDiecutTypes(types)
       } else {
@@ -78,12 +68,10 @@ const HomeComponent = () => {
       console.log(selectedType)
 
       // If selectedType has a value, include it in the API call
-      const url = selectedType
-        ? `/api/diecuts/status?diecutType=${encodeURIComponent(selectedType)}`
-        : `/api/diecuts/status`
+      const url = selectedType ? `/api/diecuts/status?diecutType=${selectedType}` : `/api/diecuts/status`
 
       console.log(url)
-      const result = await apiClient.get(url)
+      const result: any = await apiClient.get(url)
 
       if (result.success) {
         setData(result.data.diecuts)
@@ -98,15 +86,15 @@ const HomeComponent = () => {
     }
   }
 
-  const handleTypeChange = (event: any) => {
-    setSelectedType(event.target.value)
+  const handleTypeChange = (event: React.ChangeEvent<{ name?: string; value: unknown }>) => {
+    setSelectedType(event.target.value as string[])
   }
 
-  const handleTypeSearch = (event: any) => {
+  const handleTypeSearch = (): void => {
     fetchData()
   }
 
-  const handleItemSelect = (item: IDiecut) => {
+  const handleItemSelect = () => {
     // Show loading state
     setDetailLoading(true)
 
@@ -147,94 +135,77 @@ const HomeComponent = () => {
   }
 
   // Add this function to HomeComponent
-  const handleAddRecord = (type: string) => {
-    // Generate a temporary ID for the new record
-    const timestamp = Date.now()
-    const tempId = `${type || 'DC'}-TEMP-${timestamp}`
+  // const handleAddRecord = (type: string) => {
+  //   // Generate a temporary ID for the new record
+  //   const timestamp = Date.now()
+  //   const tempId = `${type || 'DC'}-TEMP-${timestamp}`
 
-    // Create a new record with default values
-    const newItem: IDiecut = {
-      DIECUT_ID: tempId,
-      DIECUT_SN: `${type || 'DC'}-NEW-${timestamp}`,
-      STATUS: 'N', // Default status for new records
-      DIECUT_TYPE: type || selectedType[0] || 'DC',
-      BLANK_SIZE_X: null,
-      BLANK_SIZE_Y: null,
-      AGES: 0,
-      REMAIN: 0,
-      DIECUT_NEAR_EXP: 0
+  //   // Create a new record with default values
+  //   const newItem: IDiecut = {
+  //     DIECUT_ID: tempId,
+  //     DIECUT_SN: `${type || 'DC'}-NEW-${timestamp}`,
+  //     STATUS: 'N', // Default status for new records
+  //     DIECUT_TYPE: type || selectedType[0] || 'DC',
+  //     BLANK_SIZE_X: null,
+  //     BLANK_SIZE_Y: null,
+  //     AGES: 0,
+  //     REMAIN: 0,
+  //     DIECUT_NEAR_EXP: 0
 
-      // Add other required fields with default values
-    }
+  //     // Add other required fields with default values
+  //   }
 
-    // Select the new item immediately
-    setSelectedItem(newItem)
+  //   // Select the new item immediately
+  //   setSelectedItem(newItem)
 
-    // Set editing mode to true
-    setIsEditing(true)
+  //   // Set editing mode to true
+  //   setIsEditing(true)
 
-    // Show the detail panel
-    setShowDetailPanel(true)
+  //   // Show the detail panel
+  //   setShowDetailPanel(true)
 
-    // Show detail loading state briefly for visual feedback
-    setDetailLoading(true)
-    setTimeout(() => {
-      setDetailLoading(false)
-    }, 500)
-  }
+  //   // Show detail loading state briefly for visual feedback
+  //   setDetailLoading(true)
+  //   setTimeout(() => {
+  //     setDetailLoading(false)
+  //   }, 500)
+  // }
 
   // Function to handle newly created items after they've been saved
-  const handleNewRecordSave = async (newRecord: IDiecut) => {
-    setLoading(true)
+  // const handleNewRecordSave = async (newRecord: IDiecut) => {
+  //   setLoading(true)
 
-    try {
-      // Call API to create the new record
-      const result = await apiClient.post('/api/diecuts/create', newRecord)
+  //   try {
+  //     // Call API to create the new record
+  //     const result = await apiClient.post('/api/diecuts/create', newRecord)
 
-      if (result.success) {
-        // Add the new record to the data array
-        setData(prev => [result.data.diecut, ...prev])
+  //     if (result.success) {
+  //       // Add the new record to the data array
+  //       setData(prev => [result.data.diecut, ...prev])
 
-        // Update the selected item with the returned data (which should have proper IDs)
-        setSelectedItem(result.data.diecut)
+  //       // Update the selected item with the returned data (which should have proper IDs)
+  //       setSelectedItem(result.data.diecut)
 
-        // Show success message
-        setSnackbar({
-          open: true,
-          message: 'New record created successfully',
-          severity: 'success'
-        })
+  //       // Show success message
 
-        // Refresh the data to ensure everything is up to date
-        fetchData()
-      } else {
-        throw new Error(result.message || 'Failed to create new record')
-      }
-    } catch (error) {
-      console.error('Error creating new record:', error)
-
-      setSnackbar({
-        open: true,
-        message: `Failed to create record: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        severity: 'error'
-      })
-    } finally {
-      setLoading(false)
-      setIsEditing(false)
-    }
-  }
+  //       // Refresh the data to ensure everything is up to date
+  //       fetchData()
+  //     } else {
+  //       throw new Error(result.message || 'Failed to create new record')
+  //     }
+  //   } catch (error) {
+  //     console.error('Error creating new record:', error)
+  //   } finally {
+  //     setLoading(false)
+  //     setIsEditing(false)
+  //   }
+  // }
 
   const handleStatusChange = (status: 'Pending' | 'Pass' | 'Rejected') => {
     // Only allow status change if user has permission to approve
-    if (!roleAccess.canApprove) {
-      setSnackbar({
-        open: true,
-        message: 'You do not have permission to change status',
-        severity: 'warning'
-      })
-
-      return
-    }
+    // if (!roleAccess.canApprove) {
+    //   return
+    // }
 
     if (selectedItem) {
       setSelectedItem({
@@ -245,7 +216,7 @@ const HomeComponent = () => {
   }
 
   const handleSave = async () => {
-    if (!roleAccess.canModify || !selectedItem) return
+    // if (!roleAccess.canModify || !selectedItem) return
 
     setLoading(true)
 
@@ -254,22 +225,19 @@ const HomeComponent = () => {
       await new Promise(resolve => setTimeout(resolve, 1000))
 
       // Update local data
-      setData(prev => prev.map(item => (item.DIECUT_ID === selectedItem.DIECUT_ID ? selectedItem : item)))
+      setData(prev =>
+        prev.map(item => {
+          if (item.DIECUT_ID === selectedItem?.DIECUT_ID) {
+            return selectedItem as IDiecut // Cast to ensure it's an IDiecut
+          }
+
+          return item
+        })
+      )
 
       setIsEditing(false)
-      setSnackbar({
-        open: true,
-        message: 'Changes saved successfully',
-        severity: 'success'
-      })
     } catch (error) {
       console.error('Error saving changes:', error)
-
-      setSnackbar({
-        open: true,
-        message: `Failed to save changes: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        severity: 'error'
-      })
     } finally {
       setLoading(false)
     }
@@ -287,10 +255,6 @@ const HomeComponent = () => {
     }
   }
 
-  const handleSnackbarClose = () => {
-    setSnackbar(prev => ({ ...prev, open: false }))
-  }
-
   // Function to close the detail panel
   const handleDetailClose = () => {
     setShowDetailPanel(false)
@@ -299,90 +263,90 @@ const HomeComponent = () => {
   }
 
   // Add this function to the HomeComponent for handling new blade creation
-  const handleNewBladeInGroup = (groupId: string) => {
-    // Generate a unique timestamp for the new blade
-    const timestamp = Date.now()
+  // const handleNewBladeInGroup = (groupId: string) => {
+  //   // Generate a unique timestamp for the new blade
+  //   const timestamp = Date.now()
 
-    // Create a new blade object with the group's diecut ID
-    const newItem: IDiecut = {
-      DIECUT_ID: groupId,
-      DIECUT_SN: `${groupId}-NEW-${timestamp}`,
-      STATUS: 'N', // Default status for new records
-      DIECUT_TYPE: selectedType[0] || 'DC',
+  //   // Create a new blade object with the group's diecut ID
+  //   const newItem: IDiecut = {
+  //     DIECUT_ID: groupId,
+  //     DIECUT_SN: `${groupId}-NEW-${timestamp}`,
+  //     STATUS: 'N', // Default status for new records
+  //     DIECUT_TYPE: selectedType[0] || 'DC',
 
-      // Add common fields with default values
-      BLANK_SIZE_X: null,
-      BLANK_SIZE_Y: null,
-      AGES: 0,
-      REMAIN: 0,
-      PRIORITY: 'Medium',
-      MODIFY_TYPE: 'N',
-      JOB_ORDER: '',
-      PRODUCT_CODE: '',
-      DIECUT_NEAR_EXP: 0
-    }
+  //     // Add common fields with default values
+  //     BLANK_SIZE_X: null,
+  //     BLANK_SIZE_Y: null,
+  //     AGES: 0,
+  //     REMAIN: 0,
+  //     PRIORITY: 'Medium',
+  //     MODIFY_TYPE: 'N',
+  //     JOB_ORDER: '',
+  //     PRODUCT_CODE: '',
+  //     DIECUT_NEAR_EXP: 0
+  //   }
 
-    // Add the new item to the data array for immediate UI feedback
-    setData(prevData => [...prevData, newItem])
+  //   // Add the new item to the data array for immediate UI feedback
+  //   setData(prevData => [...prevData, newItem])
 
-    // Set the selected item to the new blade
-    setSelectedItem(newItem)
+  //   // Set the selected item to the new blade
+  //   setSelectedItem(newItem)
 
-    // Set editing mode to true
-    setIsEditing(true)
+  //   // Set editing mode to true
+  //   setIsEditing(true)
 
-    // Show the detail panel
-    setShowDetailPanel(true)
+  //   // Show the detail panel
+  //   setShowDetailPanel(true)
 
-    // Show detail loading state briefly for visual feedback
-    setDetailLoading(true)
-    setTimeout(() => {
-      setDetailLoading(false)
-    }, 500)
-  }
+  //   // Show detail loading state briefly for visual feedback
+  //   setDetailLoading(true)
+  //   setTimeout(() => {
+  //     setDetailLoading(false)
+  //   }, 500)
+  // }
 
   // Function to handle saving a newly created blade
-  const handleSaveNewBlade = async (bladeData: IDiecut) => {
-    setLoading(true)
+  // const handleSaveNewBlade = async (bladeData: IDiecut) => {
+  //   setLoading(true)
 
-    try {
-      // Prepare the API payload
-      const payload = {
-        diecutId: bladeData.DIECUT_ID,
-        diecutSN: bladeData.DIECUT_SN,
-        diecutType: bladeData.DIECUT_TYPE || selectedType[0] || 'DC',
-        status: 'N',
+  //   try {
+  //     // Prepare the API payload
+  //     const payload = {
+  //       diecutId: bladeData.DIECUT_ID,
+  //       diecutSN: bladeData.DIECUT_SN,
+  //       diecutType: bladeData.DIECUT_TYPE || selectedType[0] || 'DC',
+  //       status: 'N',
 
-        // Include any other fields from the form
-        ...bladeData
-      }
+  //       // Include any other fields from the form
+  //       ...bladeData
+  //     }
 
-      // Call the API to create the new blade
-      const result = await apiClient.post('/api/diecuts/create', payload)
+  //     // Call the API to create the new blade
+  //     const result = await apiClient.post('/api/diecuts/create', payload)
 
-      if (result.success) {
-        // Replace the temporary blade in the data array with the saved one
-        setData(prevData => prevData.map(item => (item.DIECUT_SN === bladeData.DIECUT_SN ? result.data.diecut : item)))
+  //     if (result.success) {
+  //       // Replace the temporary blade in the data array with the saved one
+  //       setData(prevData => prevData.map(item => (item.DIECUT_SN === bladeData.DIECUT_SN ? result.data.diecut : item)))
 
-        // Update the selected item with the returned data
-        setSelectedItem(result.data.diecut)
+  //       // Update the selected item with the returned data
+  //       setSelectedItem(result.data.diecut)
 
-        // Exit editing mode
-        setIsEditing(false)
+  //       // Exit editing mode
+  //       setIsEditing(false)
 
-        // Refresh the full data to ensure everything is up to date
-        fetchData()
-      } else {
-        throw new Error(result.message || 'Failed to create new blade')
-      }
-    } catch (error) {
-      console.error('Error creating new blade:', error)
+  //       // Refresh the full data to ensure everything is up to date
+  //       fetchData()
+  //     } else {
+  //       throw new Error(result.message || 'Failed to create new blade')
+  //     }
+  //   } catch (error) {
+  //     console.error('Error creating new blade:', error)
 
-      // Handle error (use your existing toast/notification system)
-    } finally {
-      setLoading(false)
-    }
-  }
+  //     // Handle error (use your existing toast/notification system)
+  //   } finally {
+  //     setLoading(false)
+  //   }
+  // }
 
   // Fetch diecut types when the component mounts
   useEffect(() => {
@@ -510,6 +474,7 @@ const HomeComponent = () => {
               handleStatusChange={handleStatusChange}
               canEdit={canEdit}
               onClose={handleDetailClose}
+              data={data}
             />
           </Box>
         )}

@@ -1,10 +1,14 @@
 'use client'
 
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import type { ReactNode } from 'react'
+import React, { createContext, useContext, useEffect, useState } from 'react'
+
 import { useRouter, usePathname } from 'next/navigation'
-import { getVerifyToken, getRefreshToken, getTokenBySessionIdAndUserId } from '@/services/apiService'
-import { clearUserInfo, getUserInfo, setUserInfo } from '@/utils/userInfo'
+
 import { CircularProgress } from '@mui/material'
+
+import { getVerifyToken, getRefreshToken } from '@/services/apiService'
+import { clearUserInfo, getUserInfo, setUserInfo } from '@/utils/userInfo'
 
 interface AuthContextType {
   isAuthenticated: boolean
@@ -34,6 +38,7 @@ const roleRequirements: Record<string, string[]> = {
   '/admin': ['Manager'],
   '/reports': ['Manager', 'User'],
   '/settings': ['Manager']
+
   // Add more routes with their required roles
 }
 
@@ -69,6 +74,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     if (!userInfo?.sessionId || !userInfo?.accessToken) {
       await logout()
+
       return false
     }
 
@@ -99,7 +105,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         // }
 
         // Try to get a new token using refresh token
-        const refreshResult = await getRefreshToken(localStorage.getItem('refreshToken'))
+        const refreshResult = await getRefreshToken(localStorage.getItem('refreshToken') || '')
 
         if (typeof refreshResult === 'object') {
           // Update tokens in localStorage
@@ -111,10 +117,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
           setUserInfo(updatedUserInfo)
           setUser(updatedUserInfo)
+
           return true
         } else {
           console.error('Failed to refresh token')
           await logout()
+
           return false
         }
       }
@@ -122,6 +130,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       if (verifyResult === 403) {
         console.error('Invalid token signature')
         await logout()
+
         return false
       }
 
@@ -129,6 +138,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     } catch (error) {
       console.error('Error during token refresh:', error)
       await logout()
+
       return false
     }
   }
@@ -164,9 +174,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           console.log('If not on a public route, redirect to login')
           router.replace(
             `${process.env.REACT_APP_URLMAIN_LOGIN}/logout?ogwebsite=${currentUrl}&redirectWebsite=${redirectUrl}`
+
             // `${process.env.REACT_APP_URLMAIN_LOGIN}/login?ogwebsite=${encodeURIComponent(currentUrl)}&redirectWebsite=${encodeURIComponent(redirectUrl)}`
           )
         }
+
         return
       }
 
@@ -180,7 +192,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         if (
           pathname &&
           roleRequirements[pathname] &&
-          (!userInfo.role || !roleRequirements[pathname].includes(userInfo.role))
+          (!(userInfo as any).role || !roleRequirements[pathname].includes((userInfo as any).role))
         ) {
           router.replace('/unauthorized')
         }
@@ -193,6 +205,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           console.log('Redirect to login if not on a public route')
           router.replace(
             `${process.env.REACT_APP_URLMAIN_LOGIN}/logout?ogwebsite=${currentUrl}&redirectWebsite=${redirectUrl}`
+
             // `${process.env.REACT_APP_URLMAIN_LOGIN}/login?ogwebsite=${encodeURIComponent(currentUrl)}&redirectWebsite=${encodeURIComponent(redirectUrl)}`
           )
         }

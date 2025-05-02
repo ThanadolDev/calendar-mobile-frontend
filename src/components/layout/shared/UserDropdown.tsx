@@ -8,7 +8,7 @@ import type { MouseEvent } from 'react'
 import { useRouter } from 'next/navigation'
 
 // MUI Imports
-import { styled } from '@mui/material/styles'
+// import { styled } from '@mui/material/styles'
 import Badge from '@mui/material/Badge'
 import Avatar from '@mui/material/Avatar'
 import Popper from '@mui/material/Popper'
@@ -77,8 +77,6 @@ const UserDropdown = () => {
 
   // Check for user redirection
   useRedirect(userInfo)
-
-
 
   useEffect(() => {
     setHydrated(true)

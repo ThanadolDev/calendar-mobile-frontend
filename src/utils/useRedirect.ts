@@ -20,6 +20,7 @@ const useRedirect = (userData: AuthResponse | null) => {
       const urlAddress = `${process.env.REACT_APP_URLMAIN_LOGIN}/login?ogwebsite=${encodeURIComponent(currentUrl)}&redirectWebsite=${redirectUrl}`;
 
       console.log("urlAddress=", urlAddress)
+
       // router.replace(urlAddress)
     } else {
       console.log("authenticate")

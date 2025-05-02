@@ -2,19 +2,23 @@
 
 // React Imports
 import { useEffect, useState } from 'react'
+
 import { useRouter } from 'next/navigation'
+
 import { CircularProgress } from '@mui/material'
+
 import type { SystemMode } from '@core/types'
 
 // Auth Context
 import { useAuth } from '@/contexts/AuthContext' // Update this path
 
 // Hook Imports
-import { getUserInfo, setUserInfo } from '@/utils/userInfo'
+import { setUserInfo } from '@/utils/userInfo'
 import type { AuthResponse } from '@/types/auth'
-import { getCheckAuth } from '@/services/apiService'
 
-const LoginOg = ({ mode }: { mode: SystemMode }) => {
+// import { getCheckAuth } from '@/services/apiService'
+
+const LoginOg = ({}: { mode: SystemMode }) => {
   const router = useRouter()
   const [isProcessing, setIsProcessing] = useState(true)
 
@@ -86,6 +90,7 @@ const LoginOg = ({ mode }: { mode: SystemMode }) => {
       // Case 1: New login with tokens in URL
       if (urlToken && urlTokenRe && sessionId) {
         const decoded = decodeJWT(urlToken)
+
         console.log('Token decoded:', decoded)
 
         // Create user data object from token
@@ -108,11 +113,13 @@ const LoginOg = ({ mode }: { mode: SystemMode }) => {
         // Redirect to the specified page or home
         router.replace(redirectWebsite || '/home')
       }
+
       // Case 2: Already authenticated
       else if (isAuthenticated) {
         console.log('Already authenticated, redirecting to home')
         router.replace('/home')
       }
+
       // Case 3: Not authenticated, redirect to login
       else {
         console.log('Not authenticated, redirecting to login page')
@@ -129,28 +136,30 @@ const LoginOg = ({ mode }: { mode: SystemMode }) => {
   }
 
   // Check if current session is still valid
-  const checkCurrentSession = async () => {
-    const userInfo = getUserInfo()
+  // const checkCurrentSession = async () => {
+  //   const userInfo = getUserInfo()
 
-    if (userInfo?.id) {
-      try {
-        // const res = await getCheckAuth(userInfo.id)
-        // console.log('Session check result:', res.data)
+  //   if (userInfo?.id) {
+  //     try {
+  //       // const res = await getCheckAuth(userInfo.id)
+  //       // console.log('Session check result:', res.data)
 
-        // if (res?.data?.isLoggedIn === false) {
-        //   console.log('Session invalid, logging out')
-        //   await logout()
-        //   return false
-        // }
-        return true
-      } catch (error) {
-        console.error('Error checking session:', error)
-        await logout()
-        return false
-      }
-    }
-    return false
-  }
+  //       // if (res?.data?.isLoggedIn === false) {
+  //       //   console.log('Session invalid, logging out')
+  //       //   await logout()
+  //       //   return false
+  //       // }
+  //       return true
+  //     } catch (error) {
+  //       console.error('Error checking session:', error)
+  //       await logout()
+
+  //       return false
+  //     }
+  //   }
+
+  //   return false
+  // }
 
   useEffect(() => {
     checkAuthentication()

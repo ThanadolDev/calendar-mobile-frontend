@@ -5,11 +5,11 @@ import { useTheme } from '@mui/material/styles'
 import PerfectScrollbar from 'react-perfect-scrollbar'
 
 // Type Imports
-import MoreHorizIcon from '@mui/icons-material/MoreHoriz'
+// import MoreHorizIcon from '@mui/icons-material/MoreHoriz'
 
 import HomeIcon from '@mui/icons-material/Home'
 
-import AppsIcon from '@mui/icons-material/Apps'
+// import AppsIcon from '@mui/icons-material/Apps'
 
 import type { VerticalMenuContextProps } from '@menu/components/vertical-menu/Menu'
 

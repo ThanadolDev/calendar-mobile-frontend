@@ -147,14 +147,16 @@ declare module '@mui/material/styles' {
     darkerOpacity?: string
   }
 
+  interface TypeBackground {
+    default: string
+    paper: string
+    defaultChannel: string
+    paperChannel: string
+  }
+
   // Palette
   interface Palette {
-    background: {
-      default: string
-      paper: string
-      defaultChannel: string
-      paperChannel: string
-    }
+    background: TypeBackground
     customColors: {
       bodyBg: string
       chatBg: string
