@@ -25,9 +25,14 @@ import {
   Menu
 } from '@mui/material'
 import { alpha } from '@mui/material/styles'
-import { Search as SearchIcon, Add as AddIcon, NoteAdd } from '@mui/icons-material'
-import ConstructionIcon from '@mui/icons-material/Construction'
+import { Search as SearchIcon } from '@mui/icons-material'
+
+// import ConstructionIcon from '@mui/icons-material/Construction'
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined'
+
+import EventNoteIcon from '@mui/icons-material/EventNote'
+
+import OrderDateModal from '../OrderDateModal'
 
 import JobOrderModal from '../JobOrderModal'
 import type { IDiecut } from '../../types/types'
@@ -56,8 +61,9 @@ interface RequestTableProps {
 const RequestTable = ({
   data,
   loading,
-  handleItemSelect,
-  handleEditClick,
+
+  // handleItemSelect,
+  // handleEditClick,
   searchQuery,
   setSearchQuery,
   selectedType,
@@ -65,12 +71,15 @@ const RequestTable = ({
   typesLoading,
   handleTypeChange,
   setData,
-  handleOrderClick,
+
+  // handleOrderClick,
   handleTypeSearch
 }: RequestTableProps) => {
   const [columnFilters, setColumnFilters] = useState<MRT_ColumnFiltersState>([])
   const [jobOrderModalOpen, setJobOrderModalOpen] = useState(false)
   const [selectedDiecut, setSelectedDiecut] = useState<IDiecut | null>(null)
+  const [orderDateModalOpen, setOrderDateModalOpen] = useState(false)
+  const [selectedDiecutForOrderDate, setSelectedDiecutForOrderDate] = useState<IDiecut | null>(null)
 
   // Filter data based on search query
   const filteredData = useMemo(() => {
@@ -141,6 +150,76 @@ const RequestTable = ({
         return 'primary'
       default:
         return 'default'
+    }
+  }
+
+  const handleOpenOrderDateModal = (item: IDiecut, event: React.MouseEvent) => {
+    event.stopPropagation() // Prevent row selection
+    setSelectedDiecutForOrderDate(item)
+    setOrderDateModalOpen(true)
+  }
+
+  const handleOrderDateSelect = async (orderData: any) => {
+    if (!selectedDiecutForOrderDate) return
+
+    try {
+      // Calculate dueDate (orderDate - 3 days)
+      const orderDate = new Date(orderData.ORDER_DATE)
+      const dueDate = new Date(orderDate)
+
+      dueDate.setDate(dueDate.getDate() - 3)
+      console.log({
+        diecutId: selectedDiecutForOrderDate.DIECUT_ID,
+        diecutSn: selectedDiecutForOrderDate.DIECUT_SN,
+        orderDate: orderDate.toISOString(),
+        dueDate: dueDate.toISOString(),
+        jobId: orderData.JOB_ID,
+        prodId: orderData.PROD_ID,
+        prodDesc: orderData.PROD_DESC
+      })
+
+      // Call API to update the order date, due date, and job info
+      const result = await apiClient.post('/api/diecuts/updateorderinfo', {
+        diecutId: selectedDiecutForOrderDate.DIECUT_ID,
+        diecutSn: selectedDiecutForOrderDate.DIECUT_SN,
+        orderDate: orderDate.toISOString(),
+        dueDate: dueDate.toISOString(),
+        jobId: orderData.JOB_ID,
+        prodId: orderData.PROD_ID,
+        prodDesc: orderData.PROD_DESC
+      })
+
+      if ((result as { success: boolean }).success) {
+        // Update the local data with the new information
+        console.log(result)
+
+        if (setData && data) {
+          const updatedData = data.map(item => {
+            if (
+              item.DIECUT_ID === selectedDiecutForOrderDate.DIECUT_ID &&
+              item.DIECUT_SN === selectedDiecutForOrderDate.DIECUT_SN
+            ) {
+              return {
+                ...item,
+                ORDER_DATE: orderDate,
+                DUE_DATE: dueDate,
+                JOB_ID: orderData.JOB_ID,
+                PROD_ID: orderData.PROD_ID,
+                PROD_DESC: orderData.PROD_DESC,
+                JOB_DESC: orderData.PROD_DESC
+              }
+            }
+
+            return item
+          })
+
+          setData(updatedData)
+        }
+      } else {
+        console.error('Failed to update order information')
+      }
+    } catch (error) {
+      console.error('Error updating order information:', error)
     }
   }
 
@@ -413,6 +492,7 @@ const RequestTable = ({
         size: 120,
         Cell: ({ row, cell }) => {
           const value = cell.getValue() || '-'
+          const isNewAdd = row.original.NEW_ADD === true
 
           // Only show the button for statuses that allow editing
 
@@ -420,19 +500,22 @@ const RequestTable = ({
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
               <Typography sx={{ color: '#555555' }}>{String(value || '-')}</Typography>
               {/* {showButton && ( */}
-              <IconButton
-                size='small'
-                onClick={e => handleOpenJobOrderModal(row.original, e)}
-                sx={{
-                  ml: 'auto',
-                  color: '#98867B',
-                  '&:hover': {
-                    backgroundColor: 'rgba(152, 134, 123, 0.1)'
-                  }
-                }}
-              >
-                <SearchOutlinedIcon fontSize='small' />
-              </IconButton>
+              {!isNewAdd && (
+                <IconButton
+                  size='small'
+                  onClick={e => handleOpenJobOrderModal(row.original, e)}
+                  sx={{
+                    ml: 'auto',
+                    color: '#98867B',
+                    '&:hover': {
+                      backgroundColor: 'rgba(152, 134, 123, 0.1)'
+                    }
+                  }}
+                >
+                  <SearchOutlinedIcon fontSize='small' />
+                </IconButton>
+              )}
+
               {/* )} */}
             </Box>
           )
@@ -506,20 +589,24 @@ const RequestTable = ({
       // This part goes inside your useMemo for columns definition
       {
         accessorKey: 'DUE_DATE',
-        header: 'วันที่ใช้',
-        size: 150,
-        Cell: ({ row, cell }) => {
+        header: 'วันที่ต้องการใช้',
+        size: 170,
+        Cell: ({ cell }) => {
           const value = cell.getValue()
-          const status = row.original.STATUS
-          const diecutId = row.original.DIECUT_ID
-          const diecutSN = row.original.DIECUT_SN
+
+          // const status = row.original.STATUS
+          // const diecutId = row.original.DIECUT_ID
+          // const diecutSN = row.original.DIECUT_SN
+          // const isNewAdd = row.original.NEW_ADD === true
 
           // Only allow editing for certain statuses
-          const canEdit = status !== undefined && ['N', 'B', 'M', 'E'].includes(status) && !row.getIsGrouped()
+          // const canEdit =
+          //   status !== undefined && ['N', 'B', 'M', 'E'].includes(status) && !row.getIsGrouped() && !isNewAdd
 
           // Parse the date more carefully
           let date = null
-          let formattedDateValue = ''
+
+          // let formattedDateValue = ''
           let formattedDisplayDate = '-'
 
           if (value) {
@@ -535,346 +622,377 @@ const RequestTable = ({
                   .padStart(2, '0')}/${date.getFullYear()}`
 
                 // Format for input value (YYYY-MM-DD)
-                formattedDateValue = date.toISOString().split('T')[0]
+                // formattedDateValue = date.toISOString().split('T')[0]
               }
             } catch (error) {
               console.error('Error parsing date:', error)
             }
           }
 
-          const handleDateChange = async (e: any) => {
-            e.stopPropagation() // Prevent row selection
+          // const handleDateChange = async (e: any) => {
+          //   e.stopPropagation() // Prevent row selection
 
-            // Get the new date value from the input
-            const newDateStr = e.target.value
+          //   // Get the new date value from the input
+          //   const newDateStr = e.target.value
 
-            if (!newDateStr || !diecutId || !diecutSN) return
+          //   if (!newDateStr || !diecutId || !diecutSN) return
 
-            try {
-              const newDate = new Date(newDateStr)
+          //   try {
+          //     const newDate = new Date(newDateStr)
 
-              // Validate date
-              if (isNaN(newDate.getTime())) {
-                console.error('Invalid date')
+          //     // Validate date
+          //     if (isNaN(newDate.getTime())) {
+          //       console.error('Invalid date')
 
-                return
-              }
+          //       return
+          //     }
 
-              // Call API to update the due date
-              const result = await apiClient.post('/api/diecuts/updatedate', {
-                diecutId: diecutId,
-                diecutSn: diecutSN,
-                dueDate: newDate.toISOString()
-              })
+          //     // Call API to update the due date
+          //     const result = await apiClient.post('/api/diecuts/updatedate', {
+          //       diecutId: diecutId,
+          //       diecutSn: diecutSN,
+          //       dueDate: newDate.toISOString()
+          //     })
 
-              if ((result as { success: boolean }).success) {
-                // If the API call was successful, update the local data
-                if (setData && data) {
-                  const updatedData = data.map(item => {
-                    if (item.DIECUT_ID === diecutId && item.DIECUT_SN === diecutSN) {
-                      return {
-                        ...item,
-                        DUE_DATE: newDate
-                      }
-                    }
+          //     if ((result as { success: boolean }).success) {
+          //       // If the API call was successful, update the local data
+          //       if (setData && data) {
+          //         const updatedData = data.map(item => {
+          //           if (item.DIECUT_ID === diecutId && item.DIECUT_SN === diecutSN) {
+          //             return {
+          //               ...item,
+          //               DUE_DATE: newDate
+          //             }
+          //           }
 
-                    return item
-                  })
+          //           return item
+          //         })
 
-                  setData(updatedData)
-                }
-              } else {
-                console.error('Failed to update due date:')
-              }
-            } catch (error) {
-              console.error('Error updating due date:', error)
-            }
-          }
+          //         setData(updatedData)
+          //       }
+          //     } else {
+          //       console.error('Failed to update due date:')
+          //     }
+          //   } catch (error) {
+          //     console.error('Error updating due date:', error)
+          //   }
+          // }
 
           return (
             <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-              {canEdit ? (
-                <TextField
-                  size='small'
-                  type='date'
-                  value={formattedDateValue}
-                  onChange={handleDateChange}
-                  onClick={e => e.stopPropagation()} // Prevent row selection when clicking the input
-                  // Improved styling to match app design
-                  sx={{
-                    width: '100%',
-                    '.MuiInputBase-root': {
-                      height: '32px',
-                      fontSize: '0.875rem',
-                      backgroundColor: '#f5f5f5',
-                      borderRadius: '4px'
-                    },
-                    '.MuiOutlinedInput-input': {
-                      padding: '6px 8px',
-                      height: '20px'
-                    },
-                    '.MuiOutlinedInput-notchedOutline': {
-                      borderColor: '#D0C6BD'
-                    },
-                    '&:hover .MuiOutlinedInput-notchedOutline': {
-                      borderColor: '#98867B'
-                    },
-                    '.MuiInputBase-input': {
-                      color: '#5A4D40'
-                    }
-                  }}
-                  inputProps={{
-                    max: '2100-12-31'
-                  }}
-                />
-              ) : (
-                <Typography
-                  variant='body2'
-                  sx={{
-                    color: '#5A4D40',
-                    fontWeight: 400
-                  }}
-                >
-                  {formattedDisplayDate}
-                </Typography>
-              )}
+              <Typography
+                variant='body2'
+                sx={{
+                  color: '#5A4D40',
+                  fontWeight: 400
+                }}
+              >
+                {formattedDisplayDate}
+              </Typography>
             </Box>
           )
         }
       },
-
       {
-        accessorKey: 'actions',
-        header: 'การดำเนินการ',
+        accessorKey: 'ORDER_DATE',
+        header: 'วันที่สั่งทำ',
         size: 150,
-        enableSorting: false,
-        enableColumnFilter: false,
-
-        AggregatedCell: ({ row }) => {
-          const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null)
-
-          const handleMenuClick = (e: React.MouseEvent<HTMLElement>) => {
-            e.stopPropagation() // Prevent row selection when clicking the button
-            setMenuAnchor(e.currentTarget)
-          }
-
-          const handleClose = () => {
-            setMenuAnchor(null)
-          }
-
-          const handleCreateNewBladeInGroup = () => {
-            handleClose()
-
-            // Get the group's DIECUT_ID
-            const diecutId: string = row.getValue('DIECUT_ID')
-
-            // Find all existing blades with this DIECUT_ID
-            const existingBladesInGroup = data.filter(item => item.DIECUT_ID === diecutId)
-
-            // Extract sequence numbers from existing SNs
-            const sequenceNumbers = existingBladesInGroup.map(blade => {
-              // Parse SN to extract the sequence number at the end
-              const parts = blade.DIECUT_SN?.split('-') || []
-              const lastPart = parts[parts.length - 1]
-
-              // Try to convert the last part to a number
-              const num = parseInt(lastPart)
-
-              // Return the number if valid, otherwise 0
-              return isNaN(num) ? 0 : num
-            })
-
-            // Find the highest sequence number
-            const highestSequence = sequenceNumbers.length > 0 ? Math.max(...sequenceNumbers) : 0
-
-            // Generate the next sequence number
-            const nextSequence = highestSequence + 1
-
-            // Create new SN with incremented sequence
-            const newSN = `${diecutId}-${nextSequence}`
-
-            // Create a new item with this DIECUT_ID and sequential SN
-            const newItem: IDiecut = {
-              DIECUT_ID: diecutId,
-              DIECUT_SN: newSN,
-              STATUS: 'N', // Default status for new records
-              DIECUT_TYPE: selectedType[0] || 'DC',
-
-              // Add other required fields with default values
-              MODIFY_TYPE: 'N',
-              NEW_ADD: true
-            }
-
-            // Add the new item to the data array directly
-            if (typeof setData === 'function') {
-              setData([...data, newItem])
-            }
-
-            // Call the parent handlers to select and edit the new item
-            // handleItemSelect(newItem)
-            // handleEditClick(newItem)
-
-            // Expand the group to show the new item
-            if (!row.getIsExpanded()) {
-              row.toggleExpanded()
-            }
-          }
-
-          // const handleExpandGroup = () => {
-          //   handleClose()
-          //   row.toggleExpanded()
-          // }
-
-          return (
-            <>
-              {/* <Button
-                size='small'
-                variant='contained'
-                onClick={handleMenuClick}
-                sx={{
-                  backgroundColor: '#98867B',
-                  color: 'white',
-                  '&:hover': {
-                    backgroundColor: '#5A4D40'
-                  }
-                }}
-              >
-                <AddIcon />
-                <Typography>เพิ่ม COPY</Typography>
-              </Button> */}
-              <Button
-                size='small'
-                variant='contained'
-                onClick={handleMenuClick}
-                sx={{
-                  backgroundColor: '#98867B',
-                  color: 'white',
-                  '&:hover': {
-                    backgroundColor: '#5A4D40'
-                  },
-                  width: '150px'
-                }}
-                startIcon={<AddIcon fontSize='small' />}
-              >
-                เพิ่ม COPY
-              </Button>
-
-              <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={handleClose} sx={{ mt: 1 }}>
-                <MenuItem onClick={handleCreateNewBladeInGroup}>
-                  <AddIcon fontSize='small' sx={{ mr: 1 }} />
-                  เพิ่มใบมีดในกลุ่มนี้
-                </MenuItem>
-              </Menu>
-            </>
-          )
-        },
-
-        Cell: ({ row }) => {
+        Cell: ({ row, cell }) => {
+          const value = cell.getValue()
           const status = row.original.STATUS
-          const isNewRecord = row.original.DIECUT_SN?.includes('-NEW-')
 
-          // Define which statuses show the Process button
-          const showProcessButton = (status !== undefined && ['N', 'B', 'M', 'E'].includes(status)) || isNewRecord
+          // const diecutId = row.original.DIECUT_ID
+          // const diecutSN = row.original.DIECUT_SN
+          const isNewAdd = row.original.NEW_ADD === true
 
-          // Define which status shows the Order button
-          const showOrderButton = status === 'T'
+          // Parse the date more carefully
+          let formattedDisplayDate = '-'
 
-          // For status F, don't show any button
-          if (status === 'F') {
-            return null
-          }
+          if (value) {
+            try {
+              // Handle various date formats
+              const date = new Date(value as string)
 
-          const handleProcessButtonClick = (e: React.MouseEvent) => {
-            e.stopPropagation() // Prevent row selection when clicking the button
-
-            // First select the item
-            handleItemSelect(row.original)
-
-            // Then trigger the edit mode by calling handleEditBlade, similar to the detail page
-            if (row.original) {
-              // Convert the IDiecut to BladeItem for edit mode
-              // const bladeToEdit: BladeItem = {
-              //   DIECUT_ID: row.original.DIECUT_ID,
-              //   DIECUT_SN: row.original.DIECUT_SN,
-              //   BLADE_TYPE: row.original.BLADE_TYPE || '',
-              //   DIECUT_AGE: row.original.DIECUT_AGE || 0,
-              //   STATUS: row.original.STATUS || 'N',
-              //   bladeType: row.original.BLADE_TYPE || '',
-              //   bladeSize: '',
-              //   details: '',
-              //   TL_STATUS: 'GOOD',
-              //   PROB_DESC: row.original.PROB_DESC || '',
-              //   START_TIME: new Date(),
-              //   END_TIME: null,
-              //   PRODUCTION_ISSUE: '',
-              //   TOOLING_AGE: row.original.DIECUT_AGE || 0,
-              //   FIX_DETAILS: '',
-              //   BLADE_SIZE: '',
-              //   MULTI_BLADE_REASON: '',
-              //   MULTI_BLADE_REMARK: '',
-              //   isNewlyAdded: isNewRecord,
-              //   REMARK: row.original.REMARK || '',
-              //   MODIFY_TYPE: row.original.MODIFY_TYPE || 'N',
-              //   JOB_ORDER: row.original.JOB_ORDER || '',
-              //   PRODUCT_CODE: row.original.PRODUCT_CODE || '',
-              //   PRODUCT_NAME: row.original.PRODUCT_NAME || ''
-              // }
-
-              // Call handleEditClick which should trigger the edit mode in DetailPanel
-              handleEditClick(row.original)
+              // Check if date is valid
+              if (!isNaN(date.getTime())) {
+                // Format for display (DD/MM/YYYY)
+                formattedDisplayDate = `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1)
+                  .toString()
+                  .padStart(2, '0')}/${date.getFullYear()}`
+              }
+            } catch (error) {
+              console.error('Error parsing date:', error)
             }
           }
 
-          // Add a new handler for Order button
-          const handleOrderButtonClick = (e: React.MouseEvent) => {
-            e.stopPropagation() // Prevent row selection when clicking the button
-
-            if (handleOrderClick) {
-              handleOrderClick(row.original)
-            }
-          }
+          // Only allow editing for certain statuses
+          const canEdit =
+            status !== undefined && ['N', 'B', 'M', 'E'].includes(status) && !row.getIsGrouped() && !isNewAdd
 
           return (
-            <>
-              {showProcessButton && (
-                <Button
-                  size='small'
-                  variant='contained'
-                  onClick={handleProcessButtonClick}
-                  sx={{
-                    backgroundColor: isNewRecord ? '#5A9E6F' : '#98867B', // Different color for new records
-                    '&:hover': {
-                      backgroundColor: isNewRecord ? '#3F7F4F' : '#5A4D40'
-                    },
-                    width: '150px'
-                  }}
-                  startIcon={<ConstructionIcon fontSize='small' />}
-                >
-                  Process
-                </Button>
-              )}
+            <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+              <Typography
+                variant='body2'
+                sx={{
+                  color: '#5A4D40',
+                  fontWeight: 400
+                }}
+              >
+                {formattedDisplayDate}
+              </Typography>
 
-              {showOrderButton && (
-                <Button
+              {canEdit && (
+                <IconButton
                   size='small'
-                  variant='contained'
-                  onClick={handleOrderButtonClick} // Use the new order handler instead
+                  onClick={e => handleOpenOrderDateModal(row.original, e)}
                   sx={{
-                    backgroundColor: '#98867B',
+                    ml: 'auto',
+                    color: '#98867B',
                     '&:hover': {
-                      backgroundColor: '#5A4D40'
-                    },
-                    width: '150px'
+                      backgroundColor: 'rgba(152, 134, 123, 0.1)'
+                    }
                   }}
-                  startIcon={<NoteAdd />}
                 >
-                  สั่งทำ
-                </Button>
+                  <EventNoteIcon fontSize='small' />
+                </IconButton>
               )}
-            </>
+            </Box>
           )
         }
       }
+
+      // {
+      //   accessorKey: 'actions',
+      //   header: 'การดำเนินการ',
+      //   size: 150,
+      //   enableSorting: false,
+      //   enableColumnFilter: false,
+
+      //   AggregatedCell: ({ row }) => {
+      //     const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null)
+
+      //     const handleMenuClick = (e: React.MouseEvent<HTMLElement>) => {
+      //       e.stopPropagation() // Prevent row selection when clicking the button
+      //       setMenuAnchor(e.currentTarget)
+      //     }
+
+      //     const handleClose = () => {
+      //       setMenuAnchor(null)
+      //     }
+
+      //     const handleCreateNewBladeInGroup = () => {
+      //       handleClose()
+
+      //       // Get the group's DIECUT_ID
+      //       const diecutId: string = row.getValue('DIECUT_ID')
+
+      //       // Find all existing blades with this DIECUT_ID
+      //       const existingBladesInGroup = data.filter(item => item.DIECUT_ID === diecutId)
+
+      //       // Extract sequence numbers from existing SNs
+      //       const sequenceNumbers = existingBladesInGroup.map(blade => {
+      //         // Parse SN to extract the sequence number at the end
+      //         const parts = blade.DIECUT_SN?.split('-') || []
+      //         const lastPart = parts[parts.length - 1]
+
+      //         // Try to convert the last part to a number
+      //         const num = parseInt(lastPart)
+
+      //         // Return the number if valid, otherwise 0
+      //         return isNaN(num) ? 0 : num
+      //       })
+
+      //       // Find the highest sequence number
+      //       const highestSequence = sequenceNumbers.length > 0 ? Math.max(...sequenceNumbers) : 0
+
+      //       // Generate the next sequence number
+      //       const nextSequence = highestSequence + 1
+
+      //       // Create new SN with incremented sequence
+      //       const newSN = `${diecutId}-${nextSequence}`
+
+      //       // Create a new item with this DIECUT_ID and sequential SN
+      //       const newItem: IDiecut = {
+      //         DIECUT_ID: diecutId,
+      //         DIECUT_SN: newSN,
+      //         STATUS: 'N', // Default status for new records
+      //         DIECUT_TYPE: selectedType[0] || 'DC',
+
+      //         // Add other required fields with default values
+      //         MODIFY_TYPE: 'N',
+      //         NEW_ADD: true
+      //       }
+
+      //       // Add the new item to the data array directly
+      //       if (typeof setData === 'function') {
+      //         setData([...data, newItem])
+      //       }
+
+      //       // Call the parent handlers to select and edit the new item
+      //       // handleItemSelect(newItem)
+      //       // handleEditClick(newItem)
+
+      //       // Expand the group to show the new item
+      //       if (!row.getIsExpanded()) {
+      //         row.toggleExpanded()
+      //       }
+      //     }
+
+      //     // const handleExpandGroup = () => {
+      //     //   handleClose()
+      //     //   row.toggleExpanded()
+      //     // }
+
+      //     return (
+      //       <>
+      //         {/* <Button
+      //           size='small'
+      //           variant='contained'
+      //           onClick={handleMenuClick}
+      //           sx={{
+      //             backgroundColor: '#98867B',
+      //             color: 'white',
+      //             '&:hover': {
+      //               backgroundColor: '#5A4D40'
+      //             }
+      //           }}
+      //         >
+      //           <AddIcon />
+      //           <Typography>เพิ่ม COPY</Typography>
+      //         </Button> */}
+      //         <Button
+      //           size='small'
+      //           variant='contained'
+      //           onClick={handleMenuClick}
+      //           sx={{
+      //             backgroundColor: '#98867B',
+      //             color: 'white',
+      //             '&:hover': {
+      //               backgroundColor: '#5A4D40'
+      //             },
+      //             width: '150px'
+      //           }}
+      //           startIcon={<AddIcon fontSize='small' />}
+      //         >
+      //           เพิ่ม COPY
+      //         </Button>
+
+      //         <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={handleClose} sx={{ mt: 1 }}>
+      //           <MenuItem onClick={handleCreateNewBladeInGroup}>
+      //             <AddIcon fontSize='small' sx={{ mr: 1 }} />
+      //             เพิ่มใบมีดในกลุ่มนี้
+      //           </MenuItem>
+      //         </Menu>
+      //       </>
+      //     )
+      //   },
+
+      //   Cell: ({ row }) => {
+      //     const status = row.original.STATUS
+      //     const isNewRecord = row.original.DIECUT_SN?.includes('-NEW-')
+
+      //     // Define which statuses show the Process button
+      //     const showProcessButton = (status !== undefined && ['N', 'B', 'M', 'E'].includes(status)) || isNewRecord
+
+      //     // Define which status shows the Order button
+      //     const showOrderButton = status === 'T'
+
+      //     // For status F, don't show any button
+      //     if (status === 'F') {
+      //       return null
+      //     }
+
+      //     const handleProcessButtonClick = (e: React.MouseEvent) => {
+      //       e.stopPropagation() // Prevent row selection when clicking the button
+
+      //       // First select the item
+      //       handleItemSelect(row.original)
+
+      //       // Then trigger the edit mode by calling handleEditBlade, similar to the detail page
+      //       if (row.original) {
+      //         // Convert the IDiecut to BladeItem for edit mode
+      //         // const bladeToEdit: BladeItem = {
+      //         //   DIECUT_ID: row.original.DIECUT_ID,
+      //         //   DIECUT_SN: row.original.DIECUT_SN,
+      //         //   BLADE_TYPE: row.original.BLADE_TYPE || '',
+      //         //   DIECUT_AGE: row.original.DIECUT_AGE || 0,
+      //         //   STATUS: row.original.STATUS || 'N',
+      //         //   bladeType: row.original.BLADE_TYPE || '',
+      //         //   bladeSize: '',
+      //         //   details: '',
+      //         //   TL_STATUS: 'GOOD',
+      //         //   PROB_DESC: row.original.PROB_DESC || '',
+      //         //   START_TIME: new Date(),
+      //         //   END_TIME: null,
+      //         //   PRODUCTION_ISSUE: '',
+      //         //   TOOLING_AGE: row.original.DIECUT_AGE || 0,
+      //         //   FIX_DETAILS: '',
+      //         //   BLADE_SIZE: '',
+      //         //   MULTI_BLADE_REASON: '',
+      //         //   MULTI_BLADE_REMARK: '',
+      //         //   isNewlyAdded: isNewRecord,
+      //         //   REMARK: row.original.REMARK || '',
+      //         //   MODIFY_TYPE: row.original.MODIFY_TYPE || 'N',
+      //         //   JOB_ORDER: row.original.JOB_ORDER || '',
+      //         //   PRODUCT_CODE: row.original.PRODUCT_CODE || '',
+      //         //   PRODUCT_NAME: row.original.PRODUCT_NAME || ''
+      //         // }
+
+      //         // Call handleEditClick which should trigger the edit mode in DetailPanel
+      //         handleEditClick(row.original)
+      //       }
+      //     }
+
+      //     // Add a new handler for Order button
+      //     const handleOrderButtonClick = (e: React.MouseEvent) => {
+      //       e.stopPropagation() // Prevent row selection when clicking the button
+
+      //       if (handleOrderClick) {
+      //         handleOrderClick(row.original)
+      //       }
+      //     }
+
+      //     return (
+      //       <>
+      //         {showProcessButton && (
+      //           <Button
+      //             size='small'
+      //             variant='contained'
+      //             onClick={handleProcessButtonClick}
+      //             sx={{
+      //               backgroundColor: isNewRecord ? '#5A9E6F' : '#98867B', // Different color for new records
+      //               '&:hover': {
+      //                 backgroundColor: isNewRecord ? '#3F7F4F' : '#5A4D40'
+      //               },
+      //               width: '150px'
+      //             }}
+      //             startIcon={<ConstructionIcon fontSize='small' />}
+      //           >
+      //             Process
+      //           </Button>
+      //         )}
+
+      //         {showOrderButton && (
+      //           <Button
+      //             size='small'
+      //             variant='contained'
+      //             onClick={handleOrderButtonClick} // Use the new order handler instead
+      //             sx={{
+      //               backgroundColor: '#98867B',
+      //               '&:hover': {
+      //                 backgroundColor: '#5A4D40'
+      //               },
+      //               width: '150px'
+      //             }}
+      //             startIcon={<NoteAdd />}
+      //           >
+      //             สั่งทำ
+      //           </Button>
+      //         )}
+      //       </>
+      //     )
+      //   }
+      // }
     ],
     [diecutTypes, typesLoading, selectedType, handleTypeChange]
   )
@@ -1080,10 +1198,10 @@ const RequestTable = ({
             ) : null
           }
         >
-          <MenuItem value=''>
+          {/* <MenuItem value=''>
             <Checkbox checked={selectedType.includes('')} />
             <ListItemText primary='ทั้งหมด' />
-          </MenuItem>
+          </MenuItem> */}
 
           {diecutTypes.map(type => (
             <MenuItem key={type.PTC_TYPE} value={type.PTC_TYPE}>
@@ -1109,7 +1227,7 @@ const RequestTable = ({
           columnVisibility: {},
           columnFilters,
           columnPinning: {
-            left: ['DIECUT_ID', 'DIECUT_SN', 'DUE_DATE'],
+            left: ['DIECUT_ID', 'DIECUT_SN', 'DUE_DATE', 'ORDER_DATE'],
             right: ['REMAIN', 'STATUS', 'actions']
           }
         }}
@@ -1295,6 +1413,12 @@ const RequestTable = ({
         open={jobOrderModalOpen}
         onClose={() => setJobOrderModalOpen(false)}
         onSelect={handleJobOrderSelect}
+      />
+      <OrderDateModal
+        open={orderDateModalOpen}
+        onClose={() => setOrderDateModalOpen(false)}
+        onSelect={handleOrderDateSelect}
+        selectedDiecutForOrderDate={selectedDiecutForOrderDate}
       />
       <div className='flex gap-2 mt-1'>
         <Typography sx={{ color: 'red' }}>*สีแดงคือถึงอายึใช้งานแล้ว</Typography>

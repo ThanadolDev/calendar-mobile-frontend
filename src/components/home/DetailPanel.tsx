@@ -361,6 +361,11 @@ const DetailPanel = ({
 
       setDieCutSNList(updatedList)
 
+      if (onProcessComplete) {
+        console.log('Calling onProcessComplete to refresh parent data')
+        onProcessComplete()
+      }
+
       // Update original list reference
       originalListRef.current = JSON.parse(JSON.stringify(updatedList))
 
@@ -402,8 +407,10 @@ const DetailPanel = ({
 
     setShowBatchSaveDialog(false)
 
-    // Show success message
-    // alert(`บันทึกข้อมูลสำเร็จ ${successCount} รายการ${failCount > 0 ? `, ล้มเหลว ${failCount} รายการ` : ''}`)
+    // Call onProcessComplete to refresh the data in parent component
+    if (onProcessComplete) {
+      onProcessComplete()
+    }
 
     setEditingBladeSN(null)
     setBladeFormData(null)
@@ -702,11 +709,19 @@ const DetailPanel = ({
       }
 
       // If not a new blade or no related new SNs, just save this one
-      await saveSingleBlade(bladeFormData, false)
-      setEditingBladeSN(null)
-      setBladeFormData(null)
-      onClose?.()
-      originalBladeDataRef.current = null
+      const success = await saveSingleBlade(bladeFormData, false)
+
+      if (success) {
+        // Call onProcessComplete to refresh the data in parent component
+        if (onProcessComplete) {
+          onProcessComplete()
+        }
+
+        setEditingBladeSN(null)
+        setBladeFormData(null)
+        onClose?.()
+        originalBladeDataRef.current = null
+      }
     } catch (error) {
       console.error('Error in handleSaveBlade:', error)
     }
@@ -982,7 +997,7 @@ const DetailPanel = ({
         <DialogTitle>การอนุมัติเปลี่ยนสถานะ</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            กรุณาใส่ชื่อผู้ใช้และรหัสผ่านของผู้มีสิทธิ์อนุมัติเพื่อเปลี่ยนสถานะจาก B (เปลี่ยนใบมีด) เป็น M (สร้างทดแทน)
+            กรุณาใส่ชื่อผู้ใช้และรหัสผ่านของผู้มีสิทธิ์อนุมัติเพื่อเปลี่ยนสถานะจาก เปลี่ยนใบมีด เป็น สร้างทดแทน
           </DialogContentText>
           <TextField
             autoFocus
@@ -1140,6 +1155,10 @@ const DetailPanel = ({
 
               // Close dialog
               setShowTypeApprovalDialog(false)
+              
+              if (onProcessComplete) {
+                onProcessComplete();
+              }
             }, 1000)
           } else {
             setError('ไม่สามารถบันทึกการอนุมัติได้: ' + approvalResult.message)
@@ -1722,7 +1741,8 @@ const DetailPanel = ({
                     <Button
                       variant='outlined'
                       size='small'
-                      disabled={bladeFormData?.MODIFY_TYPE !== 'B'}
+
+                      // disabled={bladeFormData?.MODIFY_TYPE !== 'B'}
                       onClick={() =>
                         bladeFormData?.MODIFY_TYPE_APPV_FLAG === 'P' || bladeFormData?.MODIFY_TYPE_APPV_FLAG === 'N'
                           ? setShowTypeApprovalDialog(true)

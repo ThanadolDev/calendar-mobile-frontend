@@ -134,6 +134,11 @@ const HomeComponent = () => {
     fetchData()
   }
 
+  const handleDetailUpdate = () => {
+    // Refresh the data
+    fetchData()
+  }
+
   // Add this function to HomeComponent
   // const handleAddRecord = (type: string) => {
   //   // Generate a temporary ID for the new record
@@ -475,6 +480,7 @@ const HomeComponent = () => {
               canEdit={canEdit}
               onClose={handleDetailClose}
               data={data}
+              onProcessComplete={handleDetailUpdate}
             />
           </Box>
         )}
