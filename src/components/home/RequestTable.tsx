@@ -171,22 +171,24 @@ const RequestTable = ({
       console.log({
         diecutId: selectedDiecutForOrderDate.DIECUT_ID,
         diecutSn: selectedDiecutForOrderDate.DIECUT_SN,
-        orderDate: orderDate.toISOString(),
-        dueDate: dueDate.toISOString(),
+        orderDate: orderDate.toLocaleString('en-GB', { timeZone: 'Asia/Bangkok' }),
+        dueDate: dueDate.toLocaleString('en-GB', { timeZone: 'Asia/Bangkok' }),
         jobId: orderData.JOB_ID,
         prodId: orderData.PROD_ID,
-        prodDesc: orderData.PROD_DESC
+        prodDesc: orderData.PROD_DESC,
+        REVISION: orderData.REVISION
       })
 
       // Call API to update the order date, due date, and job info
       const result = await apiClient.post('/api/diecuts/updateorderinfo', {
         diecutId: selectedDiecutForOrderDate.DIECUT_ID,
         diecutSn: selectedDiecutForOrderDate.DIECUT_SN,
-        orderDate: orderDate.toISOString(),
-        dueDate: dueDate.toISOString(),
+        orderDate: orderDate.toLocaleString('en-GB', { timeZone: 'Asia/Bangkok' }),
+        dueDate: dueDate.toLocaleString('en-GB', { timeZone: 'Asia/Bangkok' }),
         jobId: orderData.JOB_ID,
         prodId: orderData.PROD_ID,
-        prodDesc: orderData.PROD_DESC
+        jobDesc: orderData.JOB_DESC,
+        REVISION: orderData.REVISION
       })
 
       if ((result as { success: boolean }).success) {
@@ -206,7 +208,8 @@ const RequestTable = ({
                 JOB_ID: orderData.JOB_ID,
                 PROD_ID: orderData.PROD_ID,
                 PROD_DESC: orderData.PROD_DESC,
-                JOB_DESC: orderData.PROD_DESC
+                JOB_DESC: orderData.JOB_DESC,
+                REVISION: orderData.REVISION
               }
             }
 
@@ -241,7 +244,7 @@ const RequestTable = ({
         jobId: jobOrderData.JOB_ID,
         prodId: jobOrderData.PROD_ID,
         revision: jobOrderData.REVISION,
-        prodDesc: jobOrderData.PROD_DESC
+        jobDesc: jobOrderData.JOB_DESC
       })
 
       if ((result as { success: boolean }).success) {
@@ -251,9 +254,10 @@ const RequestTable = ({
             if (item.DIECUT_ID === selectedDiecut.DIECUT_ID && item.DIECUT_SN === selectedDiecut.DIECUT_SN) {
               return {
                 ...item,
-                JOB_ORDER: jobOrderData.JOB_ID,
-                PRODUCT_CODE: jobOrderData.PROD_ID,
-                PRODUCT_DESC: jobOrderData.PROD_DESC
+                JOB_ID: jobOrderData.JOB_ID,
+                PROD_ID: jobOrderData.PROD_ID,
+                JOB_DESC: jobOrderData.JOB_DESC,
+                REVISION: jobOrderData.REVISION
               }
             }
 
@@ -684,7 +688,8 @@ const RequestTable = ({
                 variant='body2'
                 sx={{
                   color: '#5A4D40',
-                  fontWeight: 400
+                  fontWeight: 400,
+                  fontSize: '0.95rem'
                 }}
               >
                 {formattedDisplayDate}
@@ -735,7 +740,8 @@ const RequestTable = ({
                 variant='body2'
                 sx={{
                   color: '#5A4D40',
-                  fontWeight: 400
+                  fontWeight: 400,
+                  fontSize: '0.95rem'
                 }}
               >
                 {formattedDisplayDate}

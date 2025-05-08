@@ -24,19 +24,19 @@ import {
 import SearchIcon from '@mui/icons-material/Search'
 
 import apiClient from '../services/apiClient'
+import type { IDiecut } from '../types/types'
 
 interface OrderDateModalProps {
   open: boolean
   onClose: () => void
   onSelect: (orderData: any) => void
-  selectedDiecutForOrderDate: string
+  selectedDiecutForOrderDate: IDiecut | null
 }
 
 const OrderDateModal = ({ open, onClose, onSelect, selectedDiecutForOrderDate }: OrderDateModalProps) => {
   const [loading, setLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [orderData, setOrderData] = useState<any[]>([])
-  const [orderJobData, setOrderJobData] = useState<any[]>([])
   const [selectedRow, setSelectedRow] = useState<any | null>(null)
 
   // Fetch data when modal opens
@@ -60,8 +60,7 @@ const OrderDateModal = ({ open, onClose, onSelect, selectedDiecutForOrderDate }:
 
       if (result.success) {
         console.log(result)
-        setOrderData(result.data.jobList.rows || [])
-        setOrderJobData(result.data.jobres.rows || [])
+        setOrderData(result.data.jobList || [])
       } else {
         console.error('Failed to fetch job orders:', result.message)
         setOrderData([])
@@ -202,13 +201,16 @@ const OrderDateModal = ({ open, onClose, onSelect, selectedDiecutForOrderDate }:
                     }}
                   >
                     <TableCell>{formatDate(row.ORDER_DATE)}</TableCell>
-                    {orderJobData.map(row => (
-                      <>
-                        <TableCell>{row.JOB_ID || '-'}</TableCell>
-                        <TableCell>{row.PROD_ID || '-'}</TableCell>
-                        <TableCell>{row.PROD_DESC || '-'}</TableCell>
-                      </>
-                    ))}{' '}
+
+                    <TableCell>{row.JOB_ID || '-'}</TableCell>
+                    <TableCell>
+                      {row.PROD_ID
+                        ? row.REVISION
+                          ? `${row.PROD_ID.replace(/^0+/, '')}-${row.REVISION}`
+                          : row.PROD_ID.replace(/^0+/, '')
+                        : '-'}
+                    </TableCell>
+                    <TableCell>{row.JOB_DESC || '-'}</TableCell>
                     <TableCell>{row.SRC == 'LSD' ? 'L.S.D ปั๊ม' : 'Job Scheduling'}</TableCell>
                   </TableRow>
                 ))
