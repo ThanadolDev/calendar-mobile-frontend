@@ -36,52 +36,82 @@ interface OrderDateModalProps {
 const OrderDateModal = ({ open, onClose, onSelect, selectedDiecutForOrderDate }: OrderDateModalProps) => {
   const [loading, setLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [orderData, setOrderData] = useState<any[]>([])
+  const [allOrderData, setAllOrderData] = useState<any[]>([]) // Store all data
+  const [orderData, setOrderData] = useState<any[]>([]) // Store filtered data
   const [selectedRow, setSelectedRow] = useState<any | null>(null)
 
   // Fetch data when modal opens
   useEffect(() => {
     if (open) {
       fetchOrderData()
+      console.log(selectedDiecutForOrderDate)
     } else {
       // Clear selection when modal closes
       setSelectedRow(null)
+      setSearchQuery('')
     }
   }, [open])
 
-  // Fetch order data from API
+  // Fetch order data from API - only called once when modal opens
   const fetchOrderData = async () => {
     setLoading(true)
 
     try {
+      console.log(selectedDiecutForOrderDate)
+
       const result: any = await apiClient.post('/api/diecuts/getjoborderlist', {
-        diecutId: selectedDiecutForOrderDate?.DIECUT_ID
+        diecutId: selectedDiecutForOrderDate?.DIECUT_ID,
+        DIECUT_TYPE: selectedDiecutForOrderDate?.DIECUT_TYPE
       })
 
       if (result.success) {
         console.log(result)
-        setOrderData(result.data.jobList || [])
+        const data = result.data.jobList || []
+
+        setAllOrderData(data) // Store all data
+        setOrderData(data) // Initial display all data
       } else {
         console.error('Failed to fetch job orders:', result.message)
+        setAllOrderData([])
         setOrderData([])
       }
     } catch (error) {
       console.error('Error fetching job orders:', error)
+      setAllOrderData([])
       setOrderData([])
     } finally {
       setLoading(false)
     }
   }
 
-  // Handle search
+  // Handle search - now filters local data instead of API call
   const handleSearch = () => {
-    fetchOrderData()
+    if (!searchQuery.trim()) {
+      // If search query is empty, show all data
+      setOrderData(allOrderData)
+
+      return
+    }
+
+    // Filter the data based on search query
+    const filteredData = allOrderData.filter(row => {
+      const query = searchQuery.toLowerCase()
+
+      // Search in JOB_ID, PROD_ID, and JOB_DESC fields
+      return (
+        (row.JOB_ID && row.JOB_ID.toLowerCase().includes(query)) ||
+        (row.PROD_ID && row.PROD_ID.toLowerCase().includes(query)) ||
+        (row.JOB_DESC && row.JOB_DESC.toLowerCase().includes(query))
+      )
+    })
+
+    setOrderData(filteredData)
   }
 
   // Handle search input keypress (search on Enter)
   const handleKeyPress = (event: React.KeyboardEvent) => {
     if (event.key === 'Enter') {
-      fetchOrderData()
+      handleSearch()
     }
   }
 
@@ -101,8 +131,7 @@ const OrderDateModal = ({ open, onClose, onSelect, selectedDiecutForOrderDate }:
 
       // Add the calculated due date to the selected data
       const enrichedData = {
-        ...selectedRow,
-        DUE_DATE: dueDate
+        ...selectedRow
       }
 
       onSelect(enrichedData)
@@ -163,6 +192,7 @@ const OrderDateModal = ({ open, onClose, onSelect, selectedDiecutForOrderDate }:
           <Table stickyHeader size='small'>
             <TableHead>
               <TableRow>
+                <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#E6E1DC' }}>วันที่ต้องการใช้</TableCell>
                 <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#E6E1DC' }}>วันที่สั่งทำ</TableCell>
                 <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#E6E1DC' }}>JOB</TableCell>
                 <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#E6E1DC' }}>รหัสสินค้า</TableCell>
@@ -200,8 +230,8 @@ const OrderDateModal = ({ open, onClose, onSelect, selectedDiecutForOrderDate }:
                       }
                     }}
                   >
+                    <TableCell>{formatDate(row.DATE_USING)}</TableCell>
                     <TableCell>{formatDate(row.ORDER_DATE)}</TableCell>
-
                     <TableCell>{row.JOB_ID || '-'}</TableCell>
                     <TableCell>
                       {row.PROD_ID

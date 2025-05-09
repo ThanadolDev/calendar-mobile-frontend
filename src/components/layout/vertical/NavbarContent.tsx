@@ -59,7 +59,8 @@ const NavbarContent = () => {
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
-            maxWidth: '180px', // Slightly increased to accommodate the icon
+
+            // maxWidth: '180px', // Slightly increased to accommodate the icon
             fontSize: '1.2rem',
             lineHeight: '1.5'
           }}
@@ -84,7 +85,7 @@ const NavbarContent = () => {
               />
             </IconButton>
           </Tooltip>
-          Tooling
+          Tooling Management
         </Box>
       </div>
       <div className='flex items-center gap-4'>

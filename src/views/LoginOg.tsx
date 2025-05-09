@@ -23,7 +23,7 @@ const LoginOg = ({}: { mode: SystemMode }) => {
   const [isProcessing, setIsProcessing] = useState(true)
 
   // Use auth context for authentication state and functions
-  const { isAuthenticated, refreshTokens, logout } = useAuth()
+  const { refreshTokens, logout } = useAuth()
 
   interface Profile {
     ORG_ID: string
@@ -45,13 +45,14 @@ const LoginOg = ({}: { mode: SystemMode }) => {
     const parts = token.split('.')
     const payload = parts[1]
 
-    // Decode payload from base64
-    const decodedPayload = decodeURIComponent(escape(atob(payload)))
+    // Convert base64url to base64
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/')
+    const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=')
 
-    // Parse the decoded payload to JSON
+    // Decode base64
+    const decodedPayload = decodeURIComponent(escape(atob(padded)))
     const parsedPayload: DecodedJWT = JSON.parse(decodedPayload)
 
-    // If profile is an array with a single object, convert it to a single object
     if (Array.isArray(parsedPayload.profile) && parsedPayload.profile.length === 1) {
       parsedPayload.profile = parsedPayload.profile[0]
     }
@@ -76,16 +77,15 @@ const LoginOg = ({}: { mode: SystemMode }) => {
   const checkAuthentication = async () => {
     try {
       setIsProcessing(true)
-
       const params = new URLSearchParams(window.location.search)
       const urlToken = params.get('accessToken')
       const urlTokenRe = params.get('refreshToken')
       const sessionId = params.get('SESSION_ID')
-      const redirectWebsite = params.get('redirectWebsite')
-      const currentUrl = window.location.origin + '/tooling/login-og'
 
-      // Check current user session
-      // await checkCurrentSession()
+      // const redirectWebsite = params.get('redirectWebsite')
+      const currentUrl = window.location.origin + '/toolingmanage/login-og'
+
+      console.log(urlToken && urlTokenRe && sessionId)
 
       // Case 1: New login with tokens in URL
       if (urlToken && urlTokenRe && sessionId) {
@@ -111,55 +111,41 @@ const LoginOg = ({}: { mode: SystemMode }) => {
         await refreshTokens()
 
         // Redirect to the specified page or home
-        router.replace(redirectWebsite || '/home')
+        router.replace('/home')
       }
 
-      // Case 2: Already authenticated
-      else if (isAuthenticated) {
+      // Case 2: Already authenticated, attempt to refresh token
+      else if (localStorage.getItem('accessToken')) {
         console.log('Already authenticated, redirecting to home')
+
+        // await refreshTokens()
         router.replace('/home')
       }
 
       // Case 3: Not authenticated, redirect to login
       else {
         console.log('Not authenticated, redirecting to login page')
+
         router.replace(
-          `${process.env.REACT_APP_URLMAIN_LOGIN}/login?ogwebsite=${encodeURIComponent(currentUrl)}&redirectWebsite=${redirectWebsite || window.location.href}`
+          `${process.env.REACT_APP_URLMAIN_LOGIN}/login?ogwebsite=${encodeURIComponent(currentUrl)}&redirectWebsite=${process.env.NEXT_PUBLIC_HOME_BASE_URL || window.location.href}`
         )
       }
     } catch (error) {
       console.error('Authentication error:', error)
       await logout()
+
+      // const params = new URLSearchParams(window.location.search)
+
+      // const redirectWebsite = params.get('redirectWebsite')
+      const currentUrl = window.location.origin + '/toolingmanage/login-og'
+
+      router.replace(
+        `${process.env.REACT_APP_URLMAIN_LOGIN}/logout?ogwebsite=${currentUrl}&redirectWebsite=${process.env.NEXT_PUBLIC_HOME_BASE_URL}`
+      )
     } finally {
       setIsProcessing(false)
     }
   }
-
-  // Check if current session is still valid
-  // const checkCurrentSession = async () => {
-  //   const userInfo = getUserInfo()
-
-  //   if (userInfo?.id) {
-  //     try {
-  //       // const res = await getCheckAuth(userInfo.id)
-  //       // console.log('Session check result:', res.data)
-
-  //       // if (res?.data?.isLoggedIn === false) {
-  //       //   console.log('Session invalid, logging out')
-  //       //   await logout()
-  //       //   return false
-  //       // }
-  //       return true
-  //     } catch (error) {
-  //       console.error('Error checking session:', error)
-  //       await logout()
-
-  //       return false
-  //     }
-  //   }
-
-  //   return false
-  // }
 
   useEffect(() => {
     checkAuthentication()
@@ -167,9 +153,13 @@ const LoginOg = ({}: { mode: SystemMode }) => {
   }, [])
 
   return (
-    <div className='flex flex-col text-center justify-center items-center h-full'>
-      <CircularProgress />
-      {isProcessing && <p className='mt-4 text-gray-600'>Authenticating...</p>}
+    <div className='flex justify-center items-center h-screen'>
+      {isProcessing && (
+        <div className='flex flex-col items-center'>
+          <CircularProgress />
+          <p className='mt-4'>Authenticating...</p>
+        </div>
+      )}
     </div>
   )
 }

@@ -195,7 +195,7 @@ const PurchaseRequestApproval = () => {
 
         {purchaseRequests.length === 0 && (
           <div className='flex flex-col text-center justify-center items-center h-full gap-4 my-6'>
-            <Image src={'/tooling/images/undraw_no_data_re_kwbl.svg'} height={300} width={300} alt='Image' />
+            <Image src={'/toolingmanage/images/undraw_no_data_re_kwbl.svg'} height={300} width={300} alt='Image' />
 
             <h3>No PR left to be approved</h3>
           </div>

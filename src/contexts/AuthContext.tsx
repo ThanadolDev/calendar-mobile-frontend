@@ -53,7 +53,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const router = useRouter()
   const pathname = usePathname()
 
-  const currentUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/tooling/login-og`
+  const currentUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/toolingmanage/login-og`
   const redirectUrl = typeof window !== 'undefined' ? window.location.href : ''
 
   const logout = async () => {
@@ -72,8 +72,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const refreshTokens = async (): Promise<boolean> => {
     const userInfo = getUserInfo()
 
+    console.log('inlogout1')
+
     if (!userInfo?.sessionId || !userInfo?.accessToken) {
       await logout()
+      console.log('inlogout')
 
       return false
     }
@@ -81,6 +84,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       // First try to verify with current token
       const verifyResult = await getVerifyToken(userInfo.accessToken)
+
+      console.log('verify')
 
       if (typeof verifyResult !== 'number') {
         // Token is still valid

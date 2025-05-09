@@ -21,11 +21,11 @@ const sarabun = Noto_Sans_Thai({
   variable: '--font-noto-sans-thai' // ตั้งชื่อ CSS Variable สำหรับเรียกใช้ใน CSS
 })
 
-const modeTitle = process.env.MODE_TITLE
+// const modeTitle = process.env.MODE_TITLE
 
 export const metadata = {
-  title: `Tooling${modeTitle === 'development' ? ' Dev' : ''}`,
-  description: 'Tooling WEB'
+  title: `Tooling Management`,
+  description: 'Tooling Management WEB'
 }
 
 const RootLayout = ({ children }: ChildrenType) => {

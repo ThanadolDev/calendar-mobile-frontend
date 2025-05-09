@@ -53,7 +53,7 @@ export type Config = {
 }
 
 const themeConfig: Config = {
-  templateName: 'Tooling',
+  templateName: 'Tooling Management',
   homePageUrl: '/home',
   settingsCookieName: 'Tooling-next',
   mode: 'light', // 'system', 'light', 'dark'

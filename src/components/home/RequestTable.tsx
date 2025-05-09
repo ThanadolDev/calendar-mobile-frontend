@@ -118,7 +118,7 @@ const RequestTable = ({
       case 'M':
         return 'สร้างทดแทน'
       case 'E':
-        return 'ซ่อม'
+        return 'แก้ไข'
       case 'T':
         return 'พร้อมใช้งาน'
       case 'F':
@@ -165,9 +165,8 @@ const RequestTable = ({
     try {
       // Calculate dueDate (orderDate - 3 days)
       const orderDate = new Date(orderData.ORDER_DATE)
-      const dueDate = new Date(orderDate)
+      const dueDate = new Date(orderData.DATE_USING)
 
-      dueDate.setDate(dueDate.getDate() - 3)
       console.log({
         diecutId: selectedDiecutForOrderDate.DIECUT_ID,
         diecutSn: selectedDiecutForOrderDate.DIECUT_SN,
@@ -290,19 +289,25 @@ const RequestTable = ({
     const isNearingExpiration = (item?.USED ?? 0) >= (item?.DIECUT_NEAR_EXP ?? Infinity)
 
     if (isExpired) {
-      if (item.STATUS !== 'T') {
-        // return { backgroundColor: 'rgba(200, 200, 200, 0.7)' } // Gray
+      if (item.STATUS !== 'T' && item.STATUS !== 'F') {
+        return { backgroundColor: 'rgba(200, 200, 200, 0.7)' } // Gray
       }
 
-      return { backgroundColor: 'rgba(255, 200, 200, 0.7)' } // Red tint
+      if (item.STATUS == 'F') {
+        return { backgroundColor: 'rgba(255, 200, 200, 0.7)' }
+      } // Red tint
     }
 
     if (isNearingExpiration) {
-      if (item.STATUS !== 'T') {
-        // return { backgroundColor: 'rgba(200, 200, 200, 0.7)' } // Gray
+      if (item.STATUS !== 'T' && item.STATUS !== 'F') {
+        return { backgroundColor: 'rgba(200, 200, 200, 0.7)' } // Gray
       }
 
-      return { backgroundColor: 'rgba(255, 171, 2, 0.7)' } // Orange tint
+      if (item.STATUS == 'T') {
+        return { backgroundColor: 'rgba(255, 171, 2, 0.7)' }
+      }
+
+      // Orange tint
     }
 
     return {}
@@ -365,7 +370,7 @@ const RequestTable = ({
           { text: 'สร้างใหม่', value: 'N' },
           { text: 'เปลี่ยนใบมีด', value: 'B' },
           { text: 'สร้างทดแทน', value: 'M' },
-          { text: 'ซ่อม', value: 'E' },
+          { text: 'แก้ไข', value: 'E' },
           { text: 'พร้อมใช้งาน', value: 'T' },
           { text: 'ยกเลิก', value: 'F' },
           { text: 'ทำลายแล้ว', value: 'D' }
@@ -418,7 +423,7 @@ const RequestTable = ({
                   สร้างทดแทน
                 </MenuItem>
                 <MenuItem value='E' dense>
-                  ซ่อม
+                  แก้ไข
                 </MenuItem>
                 <MenuItem value='T' dense>
                   พร้อมใช้งาน
@@ -1078,7 +1083,7 @@ const RequestTable = ({
         }}
       >
         <TextField
-          placeholder='Search (ID, SN, Type, Status...)'
+          placeholder='ค้นหา.... (เลขที่, รหัส)'
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
           size='small'
@@ -1102,7 +1107,7 @@ const RequestTable = ({
             // )
           }}
           sx={{
-            width: '300px',
+            width: '700px',
             '& .MuiOutlinedInput-root': {
               backgroundColor: '#f5f5f5'
             }
@@ -1427,9 +1432,9 @@ const RequestTable = ({
         selectedDiecutForOrderDate={selectedDiecutForOrderDate}
       />
       <div className='flex gap-2 mt-1'>
-        <Typography sx={{ color: 'red' }}>*สีแดงคือถึงอายึใช้งานแล้ว</Typography>
+        <Typography sx={{ color: 'red' }}>*สีแดงคือถึงอายุใช้งานแล้ว</Typography>
         <Typography sx={{ color: 'orange' }}>*สีส้มคือเกือบถึงอายุใช้งานแล้ว</Typography>
-        <Typography sx={{ color: 'gray' }}>*สีเทาคือไดคัทเข้าสู่รายการ Tooling รอสร้างใหม่/แก้ไขแล้ว</Typography>
+        <Typography sx={{ color: 'gray' }}>*สีเทาคือ Tooling เข้าสู่รายการ รอสร้างใหม่/แก้ไขแล้ว</Typography>
       </div>
     </>
   )
