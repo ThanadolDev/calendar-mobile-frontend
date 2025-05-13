@@ -4,6 +4,7 @@ import type { Dispatch, SetStateAction, ChangeEvent } from 'react'
 import { useMemo, useState } from 'react'
 
 import type { MRT_ColumnDef, MRT_ColumnFiltersState } from 'material-react-table'
+
 import { MaterialReactTable } from 'material-react-table'
 import {
   Box,
@@ -344,7 +345,7 @@ const RequestTable = ({
       {
         accessorKey: 'DIECUT_ID',
         header: 'เลขที่',
-        size: 125,
+        size: 150,
         enableGrouping: true,
         AggregatedCell: ({ row }) => (
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -365,37 +366,57 @@ const RequestTable = ({
       {
         accessorKey: 'STATUS',
         header: 'สถานะ',
-        size: 130,
-        filterVariant: 'select',
-        filterSelectOptions: [
-          { text: 'สร้างใหม่', value: 'N' },
-          { text: 'เปลี่ยนใบมีด', value: 'B' },
-          { text: 'สร้างทดแทน', value: 'M' },
-          { text: 'แก้ไข', value: 'E' },
-          { text: 'พร้อมใช้งาน', value: 'T' },
-          { text: 'ยกเลิก', value: 'F' },
-          { text: 'ทำลายแล้ว', value: 'D' }
-        ] as any,
+        size: 110,
+        filterFn: (row, id, filterValues) => {
+          // If no filter values are selected, show all rows
+          if (!filterValues || !Array.isArray(filterValues) || filterValues.length === 0) {
+            return true
+          }
+
+          // Get the status value from the row
+          const status = row.getValue(id)
+
+          // Check if the status is included in the selected filter values
+          return filterValues.includes(status)
+        },
         Cell: ({ cell }) => {
           const status = cell.getValue<string | null | undefined>()
 
           return status ? <Chip label={getStatusText(status)} size='small' color={getStatusColor(status)} /> : null
         },
-
-        // Add this custom Filter component to override the default behavior
         Filter: ({ header }) => {
           const { column } = header
-          const filterValue = column.getFilterValue() as string
+          const filterValue = (column.getFilterValue() as string[]) || []
+
+          // console.log(filterValue)
+
+          // Handler for select/unselect
+          const handleSelectChange = (event: any) => {
+            const values = event.target.value
+
+            // Make sure we're setting either an array or undefined (not an empty array)
+            column.setFilterValue(values.length > 0 ? values : undefined)
+
+            // console.log(column)
+          }
 
           return (
             <FormControl size='small' variant='outlined'>
               <Select
-                value={filterValue || ''}
-                onChange={e => column.setFilterValue(e.target.value)}
+                multiple
+                value={filterValue || []}
+                onChange={handleSelectChange}
                 displayEmpty
+                renderValue={selected => {
+                  if (!selected || (selected as string[]).length === 0) {
+                    return <em>ทั้งหมด</em>
+                  }
+
+                  return (selected as string[]).map(value => getStatusText(value)).join(', ')
+                }}
                 sx={{
                   minWidth: '100px',
-                  maxWidth: '120px',
+                  maxWidth: '100px',
                   height: '32px',
                   backgroundColor: '#f5f5f5',
                   '& .MuiSelect-select': {
@@ -406,34 +427,41 @@ const RequestTable = ({
                 MenuProps={{
                   PaperProps: {
                     style: {
-                      maxHeight: 200
+                      maxHeight: 300
                     }
                   }
                 }}
               >
-                <MenuItem value=''>
+                {/* <MenuItem value='' disabled>
                   <em>ทั้งหมด</em>
+                </MenuItem> */}
+                <MenuItem value='N'>
+                  <Checkbox checked={filterValue?.includes('N') || false} />
+                  <ListItemText primary='สร้างใหม่' />
                 </MenuItem>
-                <MenuItem value='N' dense>
-                  สร้างใหม่
+                <MenuItem value='B'>
+                  <Checkbox checked={filterValue?.includes('B') || false} />
+                  <ListItemText primary='เปลี่ยนใบมีด' />
                 </MenuItem>
-                <MenuItem value='B' dense>
-                  เปลี่ยนใบมีด
+                <MenuItem value='M'>
+                  <Checkbox checked={filterValue?.includes('M') || false} />
+                  <ListItemText primary='สร้างทดแทน' />
                 </MenuItem>
-                <MenuItem value='M' dense>
-                  สร้างทดแทน
+                <MenuItem value='E'>
+                  <Checkbox checked={filterValue?.includes('E') || false} />
+                  <ListItemText primary='แก้ไข' />
                 </MenuItem>
-                <MenuItem value='E' dense>
-                  แก้ไข
+                <MenuItem value='T'>
+                  <Checkbox checked={filterValue?.includes('T') || false} />
+                  <ListItemText primary='พร้อมใช้งาน' />
                 </MenuItem>
-                <MenuItem value='T' dense>
-                  พร้อมใช้งาน
+                <MenuItem value='F'>
+                  <Checkbox checked={filterValue?.includes('F') || false} />
+                  <ListItemText primary='ยกเลิก' />
                 </MenuItem>
-                <MenuItem value='F' dense>
-                  ยกเลิก
-                </MenuItem>
-                <MenuItem value='D' dense>
-                  ทำลายแล้ว
+                <MenuItem value='D'>
+                  <Checkbox checked={filterValue?.includes('D') || false} />
+                  <ListItemText primary='ทำลายแล้ว' />
                 </MenuItem>
               </Select>
             </FormControl>
@@ -445,7 +473,7 @@ const RequestTable = ({
       {
         accessorKey: 'DIECUT_SN',
         header: 'รหัส',
-        size: 125
+        size: 150
       },
 
       // {
@@ -499,7 +527,7 @@ const RequestTable = ({
       {
         accessorKey: 'JOB_ID',
         header: 'JOB',
-        size: 120,
+        size: 115,
         Cell: ({ row, cell }) => {
           const value = cell.getValue() || '-'
           const isNewAdd = row.original.NEW_ADD === true
@@ -535,7 +563,7 @@ const RequestTable = ({
       {
         accessorKey: 'PROD_ID',
         header: 'รหัสสินค้า',
-        size: 150,
+        size: 130,
         Cell: ({ row, cell }) => {
           const value = cell.getValue()
           const revision = row.original.REVISION // Try to get REVISION from the data
@@ -563,7 +591,7 @@ const RequestTable = ({
       {
         accessorKey: 'BLANK_SIZE_X',
         header: 'กว้าง',
-        size: 150,
+        size: 100,
         Cell: ({ cell }) => {
           const value = formatNumber(cell.getValue() as string | number)
 
@@ -573,7 +601,7 @@ const RequestTable = ({
       {
         accessorKey: 'BLANK_SIZE_Y',
         header: 'ยาว',
-        size: 150,
+        size: 100,
         Cell: ({ cell }) => {
           const value = formatNumber(cell.getValue() as string | number)
 
@@ -585,7 +613,7 @@ const RequestTable = ({
         accessorKey: 'REMAIN',
         header: 'อายุคงเหลือ',
         enableColumnOrdering: false,
-        size: 165,
+        size: 143,
         Cell: ({ cell }) => {
           const value = formatNumber(cell.getValue() as string | number)
 
@@ -600,7 +628,7 @@ const RequestTable = ({
       {
         accessorKey: 'DUE_DATE',
         header: 'วันที่ต้องการใช้',
-        size: 170,
+        size: 160,
         Cell: ({ cell }) => {
           const value = cell.getValue()
 
@@ -707,7 +735,7 @@ const RequestTable = ({
       {
         accessorKey: 'ORDER_DATE',
         header: 'วันที่สั่งทำ',
-        size: 150,
+        size: 130,
         Cell: ({ row, cell }) => {
           const value = cell.getValue()
           const status = row.original.STATUS
@@ -1231,6 +1259,10 @@ const RequestTable = ({
         data={filteredData}
         enableGrouping
         enableExpanding
+        enableStickyHeader
+        enableColumnDragging={false} // Add this to disable column dragging
+        enableRowDragging={false} // Add this to disable row dragging
+        enableColumnActions={true} // Add this to remove the column menu button
         initialState={{
           pagination: { pageSize: 50, pageIndex: 0 },
           density: 'compact',
@@ -1241,7 +1273,8 @@ const RequestTable = ({
           columnPinning: {
             left: ['DIECUT_ID', 'DIECUT_SN', 'DUE_DATE', 'ORDER_DATE'],
             right: ['REMAIN', 'STATUS', 'actions']
-          }
+          },
+          showColumnFilters: true
         }}
         state={{
           isLoading: loading,
@@ -1252,6 +1285,7 @@ const RequestTable = ({
         enableGlobalFilter={false}
         enableColumnResizing={true}
         enableColumnPinning={true}
+        enableSorting={true}
         renderTopToolbar={RenderTopToolbar}
         paginationDisplayMode='pages'
         muiTableContainerProps={{

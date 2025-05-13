@@ -192,24 +192,34 @@ const OrderDateModal = ({ open, onClose, onSelect, selectedDiecutForOrderDate }:
           <Table stickyHeader size='small'>
             <TableHead>
               <TableRow>
-                <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#E6E1DC' }}>วันที่ต้องการใช้</TableCell>
-                <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#E6E1DC' }}>วันที่สั่งทำ</TableCell>
-                <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#E6E1DC' }}>JOB</TableCell>
-                <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#E6E1DC' }}>รหัสสินค้า</TableCell>
-                <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#E6E1DC' }}>ชื่องาน</TableCell>
-                <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#E6E1DC' }}>ประเภท</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#E6E1DC', whiteSpace: 'nowrap' }}>
+                  วันที่ต้องการใช้
+                </TableCell>
+                <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#E6E1DC', whiteSpace: 'nowrap' }}>
+                  วันที่สั่งทำ
+                </TableCell>
+                <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#E6E1DC', whiteSpace: 'nowrap' }}>JOB</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#E6E1DC', whiteSpace: 'nowrap' }}>
+                  รหัสสินค้า
+                </TableCell>
+                <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#E6E1DC', minWidth: '300px' }}>
+                  ชื่องาน
+                </TableCell>
+                <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#E6E1DC', whiteSpace: 'nowrap' }}>
+                  ประเภท
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={5} align='center' sx={{ height: '300px' }}>
+                  <TableCell colSpan={6} align='center' sx={{ height: '300px' }}>
                     <CircularProgress size={40} sx={{ color: '#98867B' }} />
                   </TableCell>
                 </TableRow>
               ) : orderData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} align='center' sx={{ height: '300px' }}>
+                  <TableCell colSpan={6} align='center' sx={{ height: '300px' }}>
                     <Typography variant='body1'>ไม่พบข้อมูล</Typography>
                   </TableCell>
                 </TableRow>
@@ -230,18 +240,22 @@ const OrderDateModal = ({ open, onClose, onSelect, selectedDiecutForOrderDate }:
                       }
                     }}
                   >
-                    <TableCell>{formatDate(row.DATE_USING)}</TableCell>
-                    <TableCell>{formatDate(row.ORDER_DATE)}</TableCell>
-                    <TableCell>{row.JOB_ID || '-'}</TableCell>
-                    <TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatDate(row.DATE_USING)}</TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatDate(row.ORDER_DATE)}</TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{row.JOB_ID || '-'}</TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>
                       {row.PROD_ID
                         ? row.REVISION
                           ? `${row.PROD_ID.replace(/^0+/, '')}-${row.REVISION}`
                           : row.PROD_ID.replace(/^0+/, '')
                         : '-'}
                     </TableCell>
-                    <TableCell>{row.JOB_DESC || '-'}</TableCell>
-                    <TableCell>{row.SRC == 'LSD' ? 'L.S.D ปั๊ม' : 'Job Scheduling'}</TableCell>
+                    <TableCell sx={{ minWidth: '300px', whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                      {row.JOB_DESC || '-'}
+                    </TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                      {row.SRC == 'LSD' ? 'L.S.D ปั๊ม' : 'Job Scheduling'}
+                    </TableCell>
                   </TableRow>
                 ))
               )}
