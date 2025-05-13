@@ -11,6 +11,10 @@ import HomeIcon from '@mui/icons-material/Home'
 
 // import AppsIcon from '@mui/icons-material/Apps'
 
+import { Divider } from '@mui/material'
+
+import { IconLogout2 } from '@tabler/icons-react'
+
 import type { VerticalMenuContextProps } from '@menu/components/vertical-menu/Menu'
 
 // Component Imports
@@ -45,6 +49,7 @@ const VerticalMenu = ({ scrollMenu }: Props) => {
   // Hooks
   const theme = useTheme()
   const verticalNavOptions = useVerticalNav()
+  const smyleURL = process.env.NEXT_PUBLIC_SMYLE_URL
 
   // Vars
   const { isBreakpointReached, transitionDuration } = verticalNavOptions
@@ -52,8 +57,6 @@ const VerticalMenu = ({ scrollMenu }: Props) => {
   const ScrollWrapper = isBreakpointReached ? 'div' : PerfectScrollbar
 
   return (
-    // eslint-disable-next-line lines-around-comment
-    /* Custom scrollbar instead of browser scroll, remove if you want browser scroll only */
     <ScrollWrapper
       {...(isBreakpointReached
         ? {
@@ -65,34 +68,40 @@ const VerticalMenu = ({ scrollMenu }: Props) => {
             onScrollY: container => scrollMenu(container, true)
           })}
     >
-      {/* Incase you also want to scroll NavHeader to scroll with Vertical Menu, remove NavHeader from above and paste it below this comment */}
-      {/* Vertical Menu */}
-      <Menu
-        popoutMenuOffset={{ mainAxis: 23 }}
-        menuItemStyles={menuItemStyles(verticalNavOptions, theme)}
-        renderExpandIcon={({ open }) => <RenderExpandIcon open={open} transitionDuration={transitionDuration} />}
-        renderExpandedMenuItemIcon={{ icon: <i className='tabler-circle text-xs' /> }}
-        menuSectionStyles={menuSectionStyles(verticalNavOptions, theme)}
-      >
-        <MenuItem href='/home' icon={<HomeIcon />}>
-          หน้าหลัก
-        </MenuItem>
-        {/* <MenuItem href='/apps' icon={<AppsIcon />}>
-          โปรแกรม
-        </MenuItem>
-        <MenuItem href='/more' icon={<MoreHorizIcon />}>
-          อื่นๆ
-        </MenuItem> */}
-      </Menu>
-      {/* <Menu
-        popoutMenuOffset={{ mainAxis: 23 }}
-        menuItemStyles={menuItemStyles(verticalNavOptions, theme)}
-        renderExpandIcon={({ open }) => <RenderExpandIcon open={open} transitionDuration={transitionDuration} />}
-        renderExpandedMenuItemIcon={{ icon: <i className='tabler-circle text-xs' /> }}
-        menuSectionStyles={menuSectionStyles(verticalNavOptions, theme)}
-      >
-        <GenerateVerticalMenu menuData={menuData(dictionary)} />
-      </Menu> */}
+      {/* Add this wrapper div with flex classes */}
+      <div className='flex flex-col h-full'>
+        {/* Main Menu */}
+        <Menu
+          popoutMenuOffset={{ mainAxis: 23 }}
+          menuItemStyles={menuItemStyles(verticalNavOptions, theme)}
+          renderExpandIcon={({ open }) => <RenderExpandIcon open={open} transitionDuration={transitionDuration} />}
+          renderExpandedMenuItemIcon={{ icon: <i className='tabler-circle text-xs' /> }}
+          menuSectionStyles={menuSectionStyles(verticalNavOptions, theme)}
+        >
+          <MenuItem href='/home' icon={<HomeIcon />}>
+            หน้าหลัก
+          </MenuItem>
+        </Menu>
+
+        <div className='mt-auto'>
+          <Divider />
+          <Menu
+            popoutMenuOffset={{ mainAxis: 23 }}
+            menuItemStyles={menuItemStyles(verticalNavOptions, theme)}
+            renderExpandIcon={({ open }) => <RenderExpandIcon open={open} transitionDuration={transitionDuration} />}
+            renderExpandedMenuItemIcon={{ icon: <i className='tabler-circle text-xs' /> }}
+            menuSectionStyles={menuSectionStyles(verticalNavOptions, theme)}
+          >
+            <MenuItem
+              icon={<IconLogout2 size={20} />}
+              onClick={() => smyleURL && (window.location.href = smyleURL)}
+              className='py-3'
+            >
+              BACK
+            </MenuItem>
+          </Menu>
+        </div>
+      </div>
     </ScrollWrapper>
   )
 }

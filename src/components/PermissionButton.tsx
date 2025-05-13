@@ -36,7 +36,7 @@ export const PermissionButton: React.FC<PermissionButtonProps> = ({
   let hasPermission = true
 
   if (requiredPermission) {
-    hasPermission = userPermissions[requiredPermission]
+    hasPermission = Boolean(userPermissions[requiredPermission])
   } else if (permissions.length > 0) {
     hasPermission = permissions.some(permission => userPermissions[permission])
   }
@@ -95,7 +95,7 @@ export const PermissionIconButton: React.FC<PermissionIconButtonProps> = ({
   let hasPermission = true
 
   if (requiredPermission) {
-    hasPermission = userPermissions[requiredPermission]
+    hasPermission = Boolean(userPermissions[requiredPermission])
   } else if (permissions.length > 0) {
     hasPermission = permissions.some(permission => userPermissions[permission])
   }

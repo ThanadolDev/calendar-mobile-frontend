@@ -7,6 +7,8 @@ import { useRouter } from 'next/navigation'
 
 import { CircularProgress } from '@mui/material'
 
+import axios from 'axios'
+
 import type { SystemMode } from '@core/types'
 
 // Auth Context
@@ -94,9 +96,24 @@ const LoginOg = ({}: { mode: SystemMode }) => {
 
         const positionId = decoded.profile.POS_ID
 
+        const roleResponse = await axios.post(process.env.NEXT_PUBLIC_API_URL + '/api/diecuts/getUserRole', {
+          posId: decoded.profile.POS_ID,
+          empId: decoded.profile.EMP_ID
+        })
+
+        if (!roleResponse.data?.data?.roles?.[0]?.ROLE) {
+          throw new Error('Invalid role response structure')
+        }
+
+        console.log(roleResponse)
+
+        // Get role from backend response
+        const userRole = roleResponse.data.data.roles[0].ROLE
+
         // Get role from position ID using the shared permission function
-        const permissions = getPermissionsByPositionId(positionId)
-        const userRole = permissions.userRole
+        const permissions = getPermissionsByPositionId(userRole)
+
+        // const userRole = permissions.userRole
 
         console.log('Token decoded:', decoded)
 
@@ -110,11 +127,13 @@ const LoginOg = ({}: { mode: SystemMode }) => {
           accessToken: urlToken,
           refreshToken: urlTokenRe,
           sessionId: sessionId,
-          role: userRole,
+          role: permissions.userRole,
           positionId: positionId
         }
 
         // Set user info and refresh auth context
+        // console.log(newData)
+
         setUserInfo(newData)
         await refreshTokens()
 
