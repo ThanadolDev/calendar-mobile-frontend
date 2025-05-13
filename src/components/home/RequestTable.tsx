@@ -288,29 +288,30 @@ const RequestTable = ({
     const isExpired = (item?.USED ?? 0) >= (item?.AGES ?? Infinity)
     const isNearingExpiration = (item?.USED ?? 0) >= (item?.DIECUT_NEAR_EXP ?? Infinity)
 
-    if (isExpired) {
-      if (item.STATUS !== 'T' && item.STATUS !== 'F') {
-        return { backgroundColor: 'rgba(200, 200, 200, 0.7)' } // Gray
-      }
+    // Initialize style object with default text color (black)
+    const style: { color: string; backgroundColor?: string } = { color: 'black' }
 
-      if (item.STATUS == 'F') {
-        return { backgroundColor: 'rgba(255, 200, 200, 0.7)' }
-      } // Red tint
+    // Set text color based on STATUS
+    if (item.STATUS === 'F' || item.STATUS === 'D') {
+      style.color = 'red'
     }
 
-    if (isNearingExpiration) {
-      if (item.STATUS !== 'T' && item.STATUS !== 'F') {
-        return { backgroundColor: 'rgba(200, 200, 200, 0.7)' } // Gray
+    // Set background color based on STATUS and expiration
+    if (item.STATUS !== 'T' && item.STATUS !== 'F' && item.STATUS !== 'D') {
+      // สั่งทำแล้ว - Items that have been ordered (not T, F, or D)
+      style.backgroundColor = 'rgba(200, 200, 200, 0.7)' // Gray
+    } else if (item.STATUS === 'T') {
+      // ไม่ได้สั่งทำ with STATUS = 'T'
+      if (isExpired) {
+        style.backgroundColor = 'rgba(255, 0, 0, 0.7)' // Red for expired
+      } else if (isNearingExpiration) {
+        style.backgroundColor = 'rgba(255, 171, 2, 0.7)' // Orange for nearing expiration
       }
-
-      if (item.STATUS == 'T') {
-        return { backgroundColor: 'rgba(255, 171, 2, 0.7)' }
-      }
-
-      // Orange tint
     }
 
-    return {}
+    // For STATUS 'F' or 'D', background remains white (default)
+
+    return style
   }
 
   // Function to check if Process button should be active
@@ -1434,7 +1435,9 @@ const RequestTable = ({
       <div className='flex gap-2 mt-1'>
         <Typography sx={{ color: 'red' }}>*สีแดงคือถึงอายุใช้งานแล้ว</Typography>
         <Typography sx={{ color: 'orange' }}>*สีส้มคือเกือบถึงอายุใช้งานแล้ว</Typography>
-        <Typography sx={{ color: 'gray' }}>*สีเทาคือ Tooling เข้าสู่รายการ รอสร้างใหม่/แก้ไขแล้ว</Typography>
+        <Typography sx={{ color: 'gray' }}>
+          *สีเทาคือ Tooling เข้าสู่รายการ สร้างใหม่/เปลี่ยนใบมีด/สร้างทดแทน/แก้ไข
+        </Typography>
       </div>
     </>
   )

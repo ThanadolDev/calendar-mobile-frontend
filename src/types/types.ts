@@ -7,6 +7,7 @@ export interface IUserInfo {
   token?: string
   accessToken: string
   refreshToken: string
+  positionId: string
 }
 
 export interface IDiecut {

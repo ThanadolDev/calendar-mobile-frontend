@@ -11,12 +11,16 @@ export const setUserInfo = (userInfo: AuthResponse) => {
   localStorage.setItem('refreshToken', userInfo.refreshToken)
   localStorage.setItem('SESSION_ID', userInfo.sessionId)
   localStorage.setItem('role', userInfo.role)
+
+  if (userInfo.positionId) {
+    localStorage.setItem('positionId', userInfo.positionId)
+  }
 }
 
 // Function to get user information from localStorage
 export const getUserInfo = (): AuthResponse | null => {
   if (typeof window === 'undefined' || !window.localStorage) {
-    return null // Return null if localStorage is not available
+    return null
   }
 
   const id = localStorage.getItem('id')
@@ -28,6 +32,7 @@ export const getUserInfo = (): AuthResponse | null => {
   const refreshToken = localStorage.getItem('refreshToken')
   const sessionId = localStorage.getItem('SESSION_ID')
   const role = localStorage.getItem('role')
+  const positionId = localStorage.getItem('positionId') || undefined
 
   if (!id || !name || !email || !image_id || !ORG_ID || !accessToken || !refreshToken || !sessionId || !role) {
     return null // Return null if any of the user information is missing
@@ -42,7 +47,8 @@ export const getUserInfo = (): AuthResponse | null => {
     accessToken,
     refreshToken,
     sessionId,
-    role
+    role,
+    positionId
   }
 }
 
@@ -56,4 +62,6 @@ export const clearUserInfo = () => {
   localStorage.removeItem('accessToken')
   localStorage.removeItem('refreshToken')
   localStorage.removeItem('SESSION_ID')
+  localStorage.removeItem('role')
+  localStorage.removeItem('positionId')
 }

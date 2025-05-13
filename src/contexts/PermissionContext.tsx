@@ -2,28 +2,20 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import React, { createContext, useContext } from 'react'
+import React, { createContext, useContext, useMemo } from 'react'
 
 import { getUserInfo } from '@/utils/userInfo'
+import { getPermissionsByPositionId, type PermissionSet } from '@/utils/permissionMapping'
 import useRoleAccess from '../hooks/useRoleAccess'
 import type { IUserInfo, UserRole } from '../types/types'
 
-// Define the structure of our permission context
-export interface PermissionContextType {
-  isManager: boolean
-  canModify: boolean
-  canApprove: boolean
-  canEditDates: boolean
-  canRecordDetails: boolean
-  canRequestChanges: boolean
-  canCreateNew: boolean
-  canSelect: boolean
-  canView: boolean
-  userRole: UserRole | null
+// Extend PermissionSet to include position ID
+export interface PermissionContextType extends PermissionSet {
+  positionId: string | null
 }
 
-// Create the context with default values
-const PermissionContext = createContext<PermissionContextType>({
+// Default permissions with positionId
+const defaultPermissions: PermissionContextType = {
   isManager: false,
   canModify: false,
   canApprove: false,
@@ -33,39 +25,48 @@ const PermissionContext = createContext<PermissionContextType>({
   canCreateNew: false,
   canSelect: false,
   canView: true,
-  userRole: null
-})
+  userRole: 'View',
+  positionId: null
+}
 
-// Provider component that wraps our app and makes permission values available
+// Create the context
+const PermissionContext = createContext<PermissionContextType>(defaultPermissions)
+
+// Provider component
 export const PermissionProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const userInfo = getUserInfo() as IUserInfo | null
-  const userRole = userInfo?.role || null
-  const permissions = useRoleAccess(userRole)
+  const userRole = (userInfo?.role as UserRole) || null
+  const positionId = userInfo?.positionId || null
 
-  // isManager is determined by canApprove permission
-  const isManager = 'canApprove' in permissions ? permissions.canApprove : false
+  // Get role-based permissions (fallback)
+  const rolePermissions = useRoleAccess(userRole)
 
-  const value: PermissionContextType = {
-    ...{
-      canModify: false,
-      canApprove: false,
-      canEditDates: false,
-      canRecordDetails: false,
-      canRequestChanges: false,
-      canCreateNew: false,
-      canSelect: false,
-      canView: false,
-      isLoading: true
-    },
-    ...permissions,
-    isManager,
-    userRole
-  }
+  // Compute final permissions
+  const value = useMemo(() => {
+    // If position ID exists, use position-based permissions
+    if (positionId) {
+      const positionPermissions = getPermissionsByPositionId(positionId)
+
+      return {
+        ...positionPermissions,
+        positionId
+      }
+    }
+
+    // Fallback to role-based permissions
+    return {
+      ...defaultPermissions,
+      ...rolePermissions,
+      isManager: rolePermissions.canApprove || false,
+      userRole: userRole || 'View',
+      positionId
+    }
+  }, [positionId, rolePermissions, userRole])
 
   return <PermissionContext.Provider value={value}>{children}</PermissionContext.Provider>
 }
 
-// Custom hook to use the permission context
+// Custom hook
 export const usePermission = () => useContext(PermissionContext)
 
 export default PermissionContext

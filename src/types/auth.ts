@@ -8,6 +8,7 @@ interface AuthResponse {
   refreshToken: string
   sessionId: string
   role: string
+  positionId?: string
 
   // authorizeSale: boolean;
   // authorizeAccountManager: boolean;

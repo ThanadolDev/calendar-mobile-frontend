@@ -84,6 +84,8 @@ class ApiClient {
     return ApiClient._instance
   }
 
+
+
   // Token management methods
   private getToken(): string | null {
     if (typeof window !== 'undefined') {
@@ -176,5 +178,7 @@ class ApiClient {
     return response.data
   }
 }
+
+
 
 export default ApiClient.getInstance()

@@ -105,7 +105,7 @@ const useRoleAccess = (role: UserRole | null) => {
       }
 
       // Handle the case where the role doesn't exist
-      return { isLoading: false }
+      return { ...defaultPermissions, isLoading: false }
     }
 
     // If loading or no valid role, return default permissions with loading state

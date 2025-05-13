@@ -15,6 +15,7 @@ import { useAuth } from '@/contexts/AuthContext' // Update this path
 // Hook Imports
 import { setUserInfo } from '@/utils/userInfo'
 import type { AuthResponse } from '@/types/auth'
+import { getPermissionsByPositionId } from '@/utils/permissionMapping'
 
 // import { getCheckAuth } from '@/services/apiService'
 
@@ -61,18 +62,18 @@ const LoginOg = ({}: { mode: SystemMode }) => {
   }
 
   // Function to map role ID to role name
-  const mapRoleFromId = (roleId: number): 'Manager' | 'User' | 'Mod' | 'View' => {
-    switch (roleId) {
-      case 1:
-        return 'Manager'
-      case 2:
-        return 'User'
-      case 3:
-        return 'Mod'
-      default:
-        return 'View'
-    }
-  }
+  // const mapRoleFromId = (roleId: number): 'Manager' | 'User' | 'Mod' | 'View' => {
+  //   switch (roleId) {
+  //     case 1:
+  //       return 'Manager'
+  //     case 2:
+  //       return 'User'
+  //     case 3:
+  //       return 'Mod'
+  //     default:
+  //       return 'View'
+  //   }
+  // }
 
   const checkAuthentication = async () => {
     try {
@@ -91,6 +92,12 @@ const LoginOg = ({}: { mode: SystemMode }) => {
       if (urlToken && urlTokenRe && sessionId) {
         const decoded = decodeJWT(urlToken)
 
+        const positionId = decoded.profile.POS_ID
+
+        // Get role from position ID using the shared permission function
+        const permissions = getPermissionsByPositionId(positionId)
+        const userRole = permissions.userRole
+
         console.log('Token decoded:', decoded)
 
         // Create user data object from token
@@ -103,7 +110,8 @@ const LoginOg = ({}: { mode: SystemMode }) => {
           accessToken: urlToken,
           refreshToken: urlTokenRe,
           sessionId: sessionId,
-          role: mapRoleFromId(decoded.profile.ROLE_ID) // Add role mapping
+          role: userRole,
+          positionId: positionId
         }
 
         // Set user info and refresh auth context
