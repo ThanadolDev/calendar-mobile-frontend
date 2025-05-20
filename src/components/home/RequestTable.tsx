@@ -26,7 +26,7 @@ import {
   Menu
 } from '@mui/material'
 import { alpha } from '@mui/material/styles'
-import { Search as SearchIcon } from '@mui/icons-material'
+import { Search as SearchIcon, Add as AddIcon, Construction as ConstructionIcon, NoteAdd } from '@mui/icons-material'
 
 // import ConstructionIcon from '@mui/icons-material/Construction'
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined'
@@ -39,6 +39,8 @@ import JobOrderModal from '../JobOrderModal'
 import type { IDiecut } from '../../types/types'
 import { formatNumber } from '../../utils/formatters'
 import apiClient from '../../services/apiClient'
+import PermissionGate from '../PermissionGate'
+import { usePermission } from '../../contexts/PermissionContext'
 
 interface RequestTableProps {
   data: IDiecut[]
@@ -63,8 +65,8 @@ const RequestTable = ({
   data,
   loading,
 
-  // handleItemSelect,
-  // handleEditClick,
+  handleItemSelect,
+  handleEditClick,
   searchQuery,
   setSearchQuery,
   selectedType,
@@ -72,11 +74,18 @@ const RequestTable = ({
   typesLoading,
   handleTypeChange,
   setData,
-
-  // handleOrderClick,
+  handleOrderClick,
   handleTypeSearch
 }: RequestTableProps) => {
-  const [columnFilters, setColumnFilters] = useState<MRT_ColumnFiltersState>([])
+  const { canRecordDetails, canCreateNew } = usePermission()
+
+  const [columnFilters, setColumnFilters] = useState<MRT_ColumnFiltersState>([
+    {
+      id: 'STATUS',
+      value: ['N', 'B', 'M', 'E', 'T', 'F', 'D']
+    }
+  ])
+
   const [jobOrderModalOpen, setJobOrderModalOpen] = useState(false)
   const [selectedDiecut, setSelectedDiecut] = useState<IDiecut | null>(null)
   const [orderDateModalOpen, setOrderDateModalOpen] = useState(false)
@@ -339,8 +348,9 @@ const RequestTable = ({
   // }
 
   // Define columns for the table
-  const columns = useMemo<MRT_ColumnDef<IDiecut>[]>(
-    () => [
+  const columns = useMemo<MRT_ColumnDef<IDiecut>[]>(() => {
+    // สร้าง array ของคอลัมน์พื้นฐานที่จะแสดงเสมอ
+    const baseColumns: MRT_ColumnDef<IDiecut>[] = [
       // DIECUT_ID column (used for grouping)
       {
         accessorKey: 'DIECUT_ID',
@@ -388,16 +398,12 @@ const RequestTable = ({
           const { column } = header
           const filterValue = (column.getFilterValue() as string[]) || []
 
-          // console.log(filterValue)
-
           // Handler for select/unselect
           const handleSelectChange = (event: any) => {
             const values = event.target.value
 
             // Make sure we're setting either an array or undefined (not an empty array)
             column.setFilterValue(values.length > 0 ? values : undefined)
-
-            // console.log(column)
           }
 
           return (
@@ -432,9 +438,6 @@ const RequestTable = ({
                   }
                 }}
               >
-                {/* <MenuItem value='' disabled>
-                  <em>ทั้งหมด</em>
-                </MenuItem> */}
                 <MenuItem value='N'>
                   <Checkbox checked={filterValue?.includes('N') || false} />
                   <ListItemText primary='สร้างใหม่' />
@@ -476,54 +479,6 @@ const RequestTable = ({
         size: 150
       },
 
-      // {
-      //   accessorKey: 'PRIORITY',
-      //   header: 'PRIORITY',
-      //   size: 150
-      // },
-
-      //Type column with dropdown filter
-      // {
-      //   accessorKey: 'DIECUT_TYPE',
-      //   header: 'ประเภทงาน',
-      //   size: 130,
-      //   filterFn: diecutTypeFilterFn,
-      //   filterSelectOptions: diecutTypes.map(type => ({ text: type, value: type })),
-      //   filterVariant: 'select',
-      //   Filter: ({ header }) => (
-      //     <Box sx={{ minWidth: 200, display: 'flex', gap: 1, alignItems: 'center' }}>
-      //       <Typography variant='body2' fontWeight='bold'>
-      //         ประเภทงาน:
-      //       </Typography>
-      //       {typesLoading ? (
-      //         <CircularProgress size={20} sx={{ color: '#98867B' }} />
-      //       ) : (
-      //         <select
-      //           value={selectedType}
-      //           onChange={e => {
-      //             handleTypeChange(e.target.value)
-      //             header.column.setFilterValue(e.target.value)
-      //           }}
-      //           style={{
-      //             padding: '6px 8px',
-      //             borderRadius: '4px',
-      //             border: '1px solid #D0C6BD',
-      //             backgroundColor: '#f5f5f5',
-      //             minWidth: 120
-      //           }}
-      //         >
-      //           <option value=''>ทั้งหมด</option>
-      //           {diecutTypes.map(type => (
-      //             <option key={type} value={type}>
-      //               {type}
-      //             </option>
-      //           ))}
-      //         </select>
-      //       )}
-      //     </Box>
-      //   )
-      // },
-
       {
         accessorKey: 'JOB_ID',
         header: 'JOB',
@@ -532,29 +487,26 @@ const RequestTable = ({
           const value = cell.getValue() || '-'
           const isNewAdd = row.original.NEW_ADD === true
 
-          // Only show the button for statuses that allow editing
-
           return (
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
               <Typography sx={{ color: '#555555' }}>{String(value || '-')}</Typography>
-              {/* {showButton && ( */}
-              {!isNewAdd && (
-                <IconButton
-                  size='small'
-                  onClick={e => handleOpenJobOrderModal(row.original, e)}
-                  sx={{
-                    ml: 'auto',
-                    color: '#98867B',
-                    '&:hover': {
-                      backgroundColor: 'rgba(152, 134, 123, 0.1)'
-                    }
-                  }}
-                >
-                  <SearchOutlinedIcon fontSize='small' />
-                </IconButton>
-              )}
-
-              {/* )} */}
+              <PermissionGate requiredPermission='canModify'>
+                {!isNewAdd && (
+                  <IconButton
+                    size='small'
+                    onClick={e => handleOpenJobOrderModal(row.original, e)}
+                    sx={{
+                      ml: 'auto',
+                      color: '#98867B',
+                      '&:hover': {
+                        backgroundColor: 'rgba(152, 134, 123, 0.1)'
+                      }
+                    }}
+                  >
+                    <SearchOutlinedIcon fontSize='small' />
+                  </IconButton>
+                )}
+              </PermissionGate>
             </Box>
           )
         }
@@ -566,7 +518,7 @@ const RequestTable = ({
         size: 130,
         Cell: ({ row, cell }) => {
           const value = cell.getValue()
-          const revision = row.original.REVISION // Try to get REVISION from the data
+          const revision = row.original.REVISION
 
           if (!value) return '-'
 
@@ -621,36 +573,18 @@ const RequestTable = ({
         }
       },
 
-      // Add these changes to the RequestTable component
-
-      // 1. Update the columns definition to include the DUE_DATE handling
-      // This part goes inside your useMemo for columns definition
       {
         accessorKey: 'DUE_DATE',
         header: 'วันที่ต้องการใช้',
         size: 160,
         Cell: ({ cell }) => {
           const value = cell.getValue()
-
-          // const status = row.original.STATUS
-          // const diecutId = row.original.DIECUT_ID
-          // const diecutSN = row.original.DIECUT_SN
-          // const isNewAdd = row.original.NEW_ADD === true
-
-          // Only allow editing for certain statuses
-          // const canEdit =
-          //   status !== undefined && ['N', 'B', 'M', 'E'].includes(status) && !row.getIsGrouped() && !isNewAdd
-
-          // Parse the date more carefully
-          let date = null
-
-          // let formattedDateValue = ''
           let formattedDisplayDate = '-'
 
           if (value) {
             try {
               // Handle various date formats
-              date = new Date(value as string)
+              const date = new Date(value as string)
 
               // Check if date is valid
               if (!isNaN(date.getTime())) {
@@ -658,63 +592,11 @@ const RequestTable = ({
                 formattedDisplayDate = `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1)
                   .toString()
                   .padStart(2, '0')}/${date.getFullYear()}`
-
-                // Format for input value (YYYY-MM-DD)
-                // formattedDateValue = date.toISOString().split('T')[0]
               }
             } catch (error) {
               console.error('Error parsing date:', error)
             }
           }
-
-          // const handleDateChange = async (e: any) => {
-          //   e.stopPropagation() // Prevent row selection
-
-          //   // Get the new date value from the input
-          //   const newDateStr = e.target.value
-
-          //   if (!newDateStr || !diecutId || !diecutSN) return
-
-          //   try {
-          //     const newDate = new Date(newDateStr)
-
-          //     // Validate date
-          //     if (isNaN(newDate.getTime())) {
-          //       console.error('Invalid date')
-
-          //       return
-          //     }
-
-          //     // Call API to update the due date
-          //     const result = await apiClient.post('/api/diecuts/updatedate', {
-          //       diecutId: diecutId,
-          //       diecutSn: diecutSN,
-          //       dueDate: newDate.toISOString()
-          //     })
-
-          //     if ((result as { success: boolean }).success) {
-          //       // If the API call was successful, update the local data
-          //       if (setData && data) {
-          //         const updatedData = data.map(item => {
-          //           if (item.DIECUT_ID === diecutId && item.DIECUT_SN === diecutSN) {
-          //             return {
-          //               ...item,
-          //               DUE_DATE: newDate
-          //             }
-          //           }
-
-          //           return item
-          //         })
-
-          //         setData(updatedData)
-          //       }
-          //     } else {
-          //       console.error('Failed to update due date:')
-          //     }
-          //   } catch (error) {
-          //     console.error('Error updating due date:', error)
-          //   }
-          // }
 
           return (
             <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
@@ -739,9 +621,6 @@ const RequestTable = ({
         Cell: ({ row, cell }) => {
           const value = cell.getValue()
           const status = row.original.STATUS
-
-          // const diecutId = row.original.DIECUT_ID
-          // const diecutSN = row.original.DIECUT_SN
           const isNewAdd = row.original.NEW_ADD === true
 
           // Parse the date more carefully
@@ -780,262 +659,233 @@ const RequestTable = ({
               >
                 {formattedDisplayDate}
               </Typography>
-
-              {canEdit && (
-                <IconButton
-                  size='small'
-                  onClick={e => handleOpenOrderDateModal(row.original, e)}
-                  sx={{
-                    ml: 'auto',
-                    color: '#98867B',
-                    '&:hover': {
-                      backgroundColor: 'rgba(152, 134, 123, 0.1)'
-                    }
-                  }}
-                >
-                  <EventNoteIcon fontSize='small' />
-                </IconButton>
-              )}
+              <PermissionGate requiredPermission='canModify'>
+                {canEdit && (
+                  <IconButton
+                    size='small'
+                    onClick={e => handleOpenOrderDateModal(row.original, e)}
+                    sx={{
+                      ml: 'auto',
+                      color: '#98867B',
+                      '&:hover': {
+                        backgroundColor: 'rgba(152, 134, 123, 0.1)'
+                      }
+                    }}
+                  >
+                    <EventNoteIcon fontSize='small' />
+                  </IconButton>
+                )}
+              </PermissionGate>
             </Box>
           )
         }
       }
+    ]
 
-      // {
-      //   accessorKey: 'actions',
-      //   header: 'การดำเนินการ',
-      //   size: 150,
-      //   enableSorting: false,
-      //   enableColumnFilter: false,
+    // เพิ่มคอลัมน์ 'actions' เฉพาะเมื่อมีสิทธิ์ canRecordDetails
+    if (canRecordDetails) {
+      baseColumns.push({
+        accessorKey: 'actions',
+        header: 'การดำเนินการ',
+        size: 150,
+        enableSorting: false,
+        enableColumnFilter: false,
+        AggregatedCell: ({ row }) => {
+          const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null)
 
-      //   AggregatedCell: ({ row }) => {
-      //     const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null)
+          const handleMenuClick = (e: React.MouseEvent<HTMLElement>) => {
+            e.stopPropagation() // Prevent row selection when clicking the button
+            setMenuAnchor(e.currentTarget)
+          }
 
-      //     const handleMenuClick = (e: React.MouseEvent<HTMLElement>) => {
-      //       e.stopPropagation() // Prevent row selection when clicking the button
-      //       setMenuAnchor(e.currentTarget)
-      //     }
+          const handleClose = () => {
+            setMenuAnchor(null)
+          }
 
-      //     const handleClose = () => {
-      //       setMenuAnchor(null)
-      //     }
+          const handleCreateNewBladeInGroup = () => {
+            handleClose()
 
-      //     const handleCreateNewBladeInGroup = () => {
-      //       handleClose()
+            // Get the group's DIECUT_ID
+            const diecutId: string = row.getValue('DIECUT_ID')
 
-      //       // Get the group's DIECUT_ID
-      //       const diecutId: string = row.getValue('DIECUT_ID')
+            // Find all existing blades with this DIECUT_ID
+            const existingBladesInGroup = data.filter(item => item.DIECUT_ID === diecutId)
 
-      //       // Find all existing blades with this DIECUT_ID
-      //       const existingBladesInGroup = data.filter(item => item.DIECUT_ID === diecutId)
+            // Extract sequence numbers from existing SNs
+            const sequenceNumbers = existingBladesInGroup.map(blade => {
+              // Parse SN to extract the sequence number at the end
+              const parts = blade.DIECUT_SN?.split('-') || []
+              const lastPart = parts[parts.length - 1]
 
-      //       // Extract sequence numbers from existing SNs
-      //       const sequenceNumbers = existingBladesInGroup.map(blade => {
-      //         // Parse SN to extract the sequence number at the end
-      //         const parts = blade.DIECUT_SN?.split('-') || []
-      //         const lastPart = parts[parts.length - 1]
+              // Try to convert the last part to a number
+              const num = parseInt(lastPart)
 
-      //         // Try to convert the last part to a number
-      //         const num = parseInt(lastPart)
+              // Return the number if valid, otherwise 0
+              return isNaN(num) ? 0 : num
+            })
 
-      //         // Return the number if valid, otherwise 0
-      //         return isNaN(num) ? 0 : num
-      //       })
+            // Find the highest sequence number
+            const highestSequence = sequenceNumbers.length > 0 ? Math.max(...sequenceNumbers) : 0
 
-      //       // Find the highest sequence number
-      //       const highestSequence = sequenceNumbers.length > 0 ? Math.max(...sequenceNumbers) : 0
+            // Generate the next sequence number
+            const nextSequence = highestSequence + 1
 
-      //       // Generate the next sequence number
-      //       const nextSequence = highestSequence + 1
+            // Create new SN with incremented sequence
+            const newSN = `${diecutId}-${nextSequence}`
 
-      //       // Create new SN with incremented sequence
-      //       const newSN = `${diecutId}-${nextSequence}`
+            // Create a new item with this DIECUT_ID and sequential SN
+            const newItem: IDiecut = {
+              DIECUT_ID: diecutId,
+              DIECUT_SN: newSN,
+              STATUS: 'N', // Default status for new records
+              DIECUT_TYPE: selectedType[0] || 'DC',
 
-      //       // Create a new item with this DIECUT_ID and sequential SN
-      //       const newItem: IDiecut = {
-      //         DIECUT_ID: diecutId,
-      //         DIECUT_SN: newSN,
-      //         STATUS: 'N', // Default status for new records
-      //         DIECUT_TYPE: selectedType[0] || 'DC',
+              // Add other required fields with default values
+              MODIFY_TYPE: 'N',
+              NEW_ADD: true
+            }
 
-      //         // Add other required fields with default values
-      //         MODIFY_TYPE: 'N',
-      //         NEW_ADD: true
-      //       }
+            // Add the new item to the data array directly
+            if (typeof setData === 'function') {
+              setData([...data, newItem])
+            }
 
-      //       // Add the new item to the data array directly
-      //       if (typeof setData === 'function') {
-      //         setData([...data, newItem])
-      //       }
+            // Call the parent handlers to select and edit the new item
+            handleItemSelect(newItem)
+            handleEditClick(newItem)
 
-      //       // Call the parent handlers to select and edit the new item
-      //       // handleItemSelect(newItem)
-      //       // handleEditClick(newItem)
+            // Expand the group to show the new item
+            if (!row.getIsExpanded()) {
+              row.toggleExpanded()
+            }
+          }
 
-      //       // Expand the group to show the new item
-      //       if (!row.getIsExpanded()) {
-      //         row.toggleExpanded()
-      //       }
-      //     }
+          return (
+            <PermissionGate requiredPermission='canCreateNew'>
+              <>
+                <Button
+                  size='small'
+                  variant='contained'
+                  onClick={handleMenuClick}
+                  sx={{
+                    backgroundColor: '#98867B',
+                    color: 'white',
+                    '&:hover': {
+                      backgroundColor: '#5A4D40'
+                    },
+                    width: '150px'
+                  }}
+                  startIcon={<AddIcon fontSize='small' />}
+                >
+                  เพิ่ม COPY
+                </Button>
 
-      //     // const handleExpandGroup = () => {
-      //     //   handleClose()
-      //     //   row.toggleExpanded()
-      //     // }
+                <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={handleClose} sx={{ mt: 1 }}>
+                  <MenuItem onClick={handleCreateNewBladeInGroup}>
+                    <AddIcon fontSize='small' sx={{ mr: 1 }} />
+                    เพิ่มใบมีดในกลุ่มนี้
+                  </MenuItem>
+                </Menu>
+              </>
+            </PermissionGate>
+          )
+        },
 
-      //     return (
-      //       <>
-      //         {/* <Button
-      //           size='small'
-      //           variant='contained'
-      //           onClick={handleMenuClick}
-      //           sx={{
-      //             backgroundColor: '#98867B',
-      //             color: 'white',
-      //             '&:hover': {
-      //               backgroundColor: '#5A4D40'
-      //             }
-      //           }}
-      //         >
-      //           <AddIcon />
-      //           <Typography>เพิ่ม COPY</Typography>
-      //         </Button> */}
-      //         <Button
-      //           size='small'
-      //           variant='contained'
-      //           onClick={handleMenuClick}
-      //           sx={{
-      //             backgroundColor: '#98867B',
-      //             color: 'white',
-      //             '&:hover': {
-      //               backgroundColor: '#5A4D40'
-      //             },
-      //             width: '150px'
-      //           }}
-      //           startIcon={<AddIcon fontSize='small' />}
-      //         >
-      //           เพิ่ม COPY
-      //         </Button>
+        Cell: ({ row }) => {
+          const status = row.original.STATUS
+          const isNewRecord = row.original.DIECUT_SN?.includes('-NEW-')
 
-      //         <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={handleClose} sx={{ mt: 1 }}>
-      //           <MenuItem onClick={handleCreateNewBladeInGroup}>
-      //             <AddIcon fontSize='small' sx={{ mr: 1 }} />
-      //             เพิ่มใบมีดในกลุ่มนี้
-      //           </MenuItem>
-      //         </Menu>
-      //       </>
-      //     )
-      //   },
+          // Define which statuses show the Process button
+          const showProcessButton = (status !== undefined && ['N', 'B', 'M', 'E'].includes(status)) || isNewRecord
 
-      //   Cell: ({ row }) => {
-      //     const status = row.original.STATUS
-      //     const isNewRecord = row.original.DIECUT_SN?.includes('-NEW-')
+          // Define which status shows the Order button
+          const showOrderButton = status === 'T'
 
-      //     // Define which statuses show the Process button
-      //     const showProcessButton = (status !== undefined && ['N', 'B', 'M', 'E'].includes(status)) || isNewRecord
+          // For status F, don't show any button
+          if (status === 'F') {
+            return null
+          }
 
-      //     // Define which status shows the Order button
-      //     const showOrderButton = status === 'T'
+          const handleProcessButtonClick = (e: React.MouseEvent) => {
+            e.stopPropagation() // Prevent row selection when clicking the button
 
-      //     // For status F, don't show any button
-      //     if (status === 'F') {
-      //       return null
-      //     }
+            // First select the item
+            handleItemSelect(row.original)
 
-      //     const handleProcessButtonClick = (e: React.MouseEvent) => {
-      //       e.stopPropagation() // Prevent row selection when clicking the button
+            // Then trigger the edit mode by calling handleEditClick
+            if (row.original) {
+              handleEditClick(row.original)
+            }
+          }
 
-      //       // First select the item
-      //       handleItemSelect(row.original)
+          // Add a new handler for Order button
+          const handleOrderButtonClick = (e: React.MouseEvent) => {
+            e.stopPropagation() // Prevent row selection when clicking the button
 
-      //       // Then trigger the edit mode by calling handleEditBlade, similar to the detail page
-      //       if (row.original) {
-      //         // Convert the IDiecut to BladeItem for edit mode
-      //         // const bladeToEdit: BladeItem = {
-      //         //   DIECUT_ID: row.original.DIECUT_ID,
-      //         //   DIECUT_SN: row.original.DIECUT_SN,
-      //         //   BLADE_TYPE: row.original.BLADE_TYPE || '',
-      //         //   DIECUT_AGE: row.original.DIECUT_AGE || 0,
-      //         //   STATUS: row.original.STATUS || 'N',
-      //         //   bladeType: row.original.BLADE_TYPE || '',
-      //         //   bladeSize: '',
-      //         //   details: '',
-      //         //   TL_STATUS: 'GOOD',
-      //         //   PROB_DESC: row.original.PROB_DESC || '',
-      //         //   START_TIME: new Date(),
-      //         //   END_TIME: null,
-      //         //   PRODUCTION_ISSUE: '',
-      //         //   TOOLING_AGE: row.original.DIECUT_AGE || 0,
-      //         //   FIX_DETAILS: '',
-      //         //   BLADE_SIZE: '',
-      //         //   MULTI_BLADE_REASON: '',
-      //         //   MULTI_BLADE_REMARK: '',
-      //         //   isNewlyAdded: isNewRecord,
-      //         //   REMARK: row.original.REMARK || '',
-      //         //   MODIFY_TYPE: row.original.MODIFY_TYPE || 'N',
-      //         //   JOB_ORDER: row.original.JOB_ORDER || '',
-      //         //   PRODUCT_CODE: row.original.PRODUCT_CODE || '',
-      //         //   PRODUCT_NAME: row.original.PRODUCT_NAME || ''
-      //         // }
+            if (handleOrderClick) {
+              handleOrderClick(row.original)
+            }
+          }
 
-      //         // Call handleEditClick which should trigger the edit mode in DetailPanel
-      //         handleEditClick(row.original)
-      //       }
-      //     }
+          return (
+            <>
+              {showProcessButton && (
+                <Button
+                  size='small'
+                  variant='contained'
+                  onClick={handleProcessButtonClick}
+                  sx={{
+                    backgroundColor: isNewRecord ? '#5A9E6F' : '#98867B', // Different color for new records
+                    '&:hover': {
+                      backgroundColor: isNewRecord ? '#3F7F4F' : '#5A4D40'
+                    },
+                    width: '150px'
+                  }}
+                  startIcon={<ConstructionIcon fontSize='small' />}
+                >
+                  Process
+                </Button>
+              )}
 
-      //     // Add a new handler for Order button
-      //     const handleOrderButtonClick = (e: React.MouseEvent) => {
-      //       e.stopPropagation() // Prevent row selection when clicking the button
+              {showOrderButton && (
+                <PermissionGate requiredPermission='canCreateNew'>
+                  <Button
+                    size='small'
+                    variant='contained'
+                    onClick={handleOrderButtonClick}
+                    sx={{
+                      backgroundColor: '#98867B',
+                      '&:hover': {
+                        backgroundColor: '#5A4D40'
+                      },
+                      width: '150px'
+                    }}
+                    startIcon={<NoteAdd />}
+                  >
+                    สั่งทำ
+                  </Button>
+                </PermissionGate>
+              )}
+            </>
+          )
+        }
+      })
+    }
 
-      //       if (handleOrderClick) {
-      //         handleOrderClick(row.original)
-      //       }
-      //     }
-
-      //     return (
-      //       <>
-      //         {showProcessButton && (
-      //           <Button
-      //             size='small'
-      //             variant='contained'
-      //             onClick={handleProcessButtonClick}
-      //             sx={{
-      //               backgroundColor: isNewRecord ? '#5A9E6F' : '#98867B', // Different color for new records
-      //               '&:hover': {
-      //                 backgroundColor: isNewRecord ? '#3F7F4F' : '#5A4D40'
-      //               },
-      //               width: '150px'
-      //             }}
-      //             startIcon={<ConstructionIcon fontSize='small' />}
-      //           >
-      //             Process
-      //           </Button>
-      //         )}
-
-      //         {showOrderButton && (
-      //           <Button
-      //             size='small'
-      //             variant='contained'
-      //             onClick={handleOrderButtonClick} // Use the new order handler instead
-      //             sx={{
-      //               backgroundColor: '#98867B',
-      //               '&:hover': {
-      //                 backgroundColor: '#5A4D40'
-      //               },
-      //               width: '150px'
-      //             }}
-      //             startIcon={<NoteAdd />}
-      //           >
-      //             สั่งทำ
-      //           </Button>
-      //         )}
-      //       </>
-      //     )
-      //   }
-      // }
-    ],
-    [diecutTypes, typesLoading, selectedType, handleTypeChange]
-  )
+    return baseColumns
+  }, [
+    diecutTypes,
+    typesLoading,
+    selectedType,
+    handleTypeChange,
+    canRecordDetails,
+    canCreateNew,
+    data,
+    setData,
+    handleItemSelect,
+    handleEditClick,
+    handleOrderClick
+  ])
 
   // Clear all filters
   // const handleClearFilters = () => {
@@ -1274,6 +1124,7 @@ const RequestTable = ({
             left: ['DIECUT_ID', 'DIECUT_SN', 'DUE_DATE', 'ORDER_DATE'],
             right: ['REMAIN', 'STATUS', 'actions']
           },
+          sorting: [{ id: 'DIECUT_SN', desc: false }],
           showColumnFilters: true
         }}
         state={{
@@ -1335,6 +1186,21 @@ const RequestTable = ({
               backgroundColor: '#E6E1DC',
               color: '#000000',
               fontWeight: 'bold'
+            },
+            '& .Mui-TableHeadCell-Content-Actions': {
+              // Add & to scope it properly MuiTableSortLabel-root
+              display: 'none'
+            },
+            '& .MuiTableCell-head:hover .Mui-TableHeadCell-Content-Actions': {
+              display: 'flex' // or "inline-flex"
+            },
+            '& .MuiTableSortLabel-root': {
+              // Add & to scope it properly MuiTableSortLabel-root
+              display: 'none'
+            },
+            '& .MuiTableCell-head:hover .MuiTableSortLabel-root': {
+              display: 'flex', // or "inline-flex"
+              marginLeft: 'auto'
             }
           }
         }}
@@ -1353,6 +1219,8 @@ const RequestTable = ({
           // },
           sx: {
             cursor: 'pointer',
+            height: '30px', // Reduce this from the default height
+            maxHeight: '30px',
 
             // Style for grouped rows
             ...(row.getIsGrouped() &&

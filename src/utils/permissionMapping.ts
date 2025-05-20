@@ -71,10 +71,10 @@ export function getPermissionsByPositionId(posId: string | null): PermissionSet 
         isManager: false,
         canModify: true,
         canApprove: false,
-        canEditDates: true,
+        canEditDates: false,
         canRecordDetails: false,
         canRequestChanges: false,
-        canCreateNew: true,
+        canCreateNew: false,
         canSelect: true,
         canView: true,
         userRole: 'Mod'

@@ -25,7 +25,8 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Alert
+  Alert,
+  FormHelperText
 } from '@mui/material'
 
 import { isEqual } from 'lodash'
@@ -71,8 +72,10 @@ interface BladeItem {
   MODIFY_TYPE_APPV_BY?: string
   MODIFY_TYPE_APPV_BY_NAME?: string
   MODIFY_TYPE_APPV_DATE?: Date
+  MODIFY_TYPE_REQ_TO?: string
   DIECUT_TYPE?: string
   NEW_ADD?: boolean
+  CHANGE_REASON?: string // Added field for change reason
 }
 
 interface DetailPanelProps {
@@ -90,6 +93,14 @@ interface DetailPanelProps {
   onClose?: () => void
   data?: IDiecut[]
 }
+
+// Define the available modify types
+const MODIFY_TYPES = [
+  { value: 'N', label: 'สร้างใหม่' },
+  { value: 'B', label: 'เปลี่ยนใบมีด' },
+  { value: 'M', label: 'สร้างทดแทน' },
+  { value: 'E', label: 'แก้ไข' }
+]
 
 const DetailPanel = ({
   selectedItem,
@@ -119,6 +130,8 @@ const DetailPanel = ({
   const [showBatchSaveDialog, setShowBatchSaveDialog] = useState(false)
   const [relatedSNs, setRelatedSNs] = useState<BladeItem[]>([])
   const [relatedNewSNs, setRelatedNewSNs] = useState<BladeItem[]>([])
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
+  const [newModifyType, setNewModifyType] = useState<string>('')
 
   // Keep original data references to compare for changes
   const originalBladeDataRef = useRef<BladeItem | null>(null)
@@ -173,7 +186,8 @@ const DetailPanel = ({
         PRODUCT_CODE,
         PRODUCT_NAME,
         PCS_PER_SHEET,
-        REQUIRED_DATE
+        REQUIRED_DATE,
+        CHANGE_REASON
       } = data
 
       // Format dates consistently for comparison
@@ -196,7 +210,8 @@ const DetailPanel = ({
         PCS_PER_SHEET: PCS_PER_SHEET ?? '',
         REQUIRED_DATE: formatDate(REQUIRED_DATE),
         START_TIME: formatDate(data.START_TIME),
-        END_TIME: formatDate(data.END_TIME)
+        END_TIME: formatDate(data.END_TIME),
+        CHANGE_REASON: CHANGE_REASON ?? ''
       }
     }
 
@@ -222,10 +237,91 @@ const DetailPanel = ({
     [data]
   )
 
+  // Function to format date as DD/MM/YYYY
+  const formatDateDisplay = (date: Date | string | null): string => {
+    if (!date) return '-'
+
+    try {
+      const dateObj = typeof date === 'string' ? new Date(date) : date
+
+      if (isNaN(dateObj.getTime())) return '-'
+
+      return `${dateObj.getDate().toString().padStart(2, '0')}/${(dateObj.getMonth() + 1).toString().padStart(2, '0')}/${dateObj.getFullYear()}`
+    } catch (error) {
+      console.error('Error formatting date:', error)
+
+      return '-'
+    }
+  }
+
+  // Validate the form before saving
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {}
+    const now = new Date()
+
+    // Check if start date is in the future
+    if (bladeFormData?.START_TIME && new Date(bladeFormData.START_TIME) > now) {
+      errors.START_TIME = 'วันที่เริ่มงานต้องไม่มากกว่าวันที่ปัจจุบัน'
+    }
+
+    // Check if end date is in the future
+    if (bladeFormData?.END_TIME && new Date(bladeFormData.END_TIME) > now) {
+      errors.END_TIME = 'วันที่สิ้นสุดต้องไม่มากกว่าวันที่ปัจจุบัน'
+    }
+
+    // Check if start date is after end date
+    if (
+      bladeFormData?.START_TIME &&
+      bladeFormData?.END_TIME &&
+      new Date(bladeFormData.START_TIME) > new Date(bladeFormData.END_TIME)
+    ) {
+      errors.END_TIME = 'วันที่สิ้นสุดต้องไม่น้อยกว่าวันที่เริ่มต้น'
+    }
+
+    // Check tooling age range when end date is set
+    if (bladeFormData?.END_TIME) {
+      if (
+        typeof bladeFormData.DIECUT_AGE !== 'number' ||
+        bladeFormData.DIECUT_AGE < 1 ||
+        bladeFormData.DIECUT_AGE > 250000
+      ) {
+        errors.DIECUT_AGE = 'อายุ tooling ต้องอยู่ระหว่าง 1 ถึง 250,000'
+      }
+    } else {
+      // When no end date, just check that age isn't negative or too large
+      if (
+        bladeFormData?.DIECUT_AGE !== undefined &&
+        (bladeFormData.DIECUT_AGE < 0 || bladeFormData.DIECUT_AGE > 250000)
+      ) {
+        errors.DIECUT_AGE = 'อายุ tooling ต้องอยู่ระหว่าง 0 ถึง 250,000'
+      }
+    }
+
+    // Check for change reason when changing type
+    if (showTypeChangeDialog && (!newModifyType || !bladeFormData?.CHANGE_REASON)) {
+      errors.CHANGE_REASON = 'ต้องระบุเหตุผลในการเปลี่ยนประเภท'
+    }
+
+    setValidationErrors(errors)
+
+    return Object.keys(errors).length === 0
+  }
+
   const handleBladeChange = (field: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value
 
     if (!bladeFormData) return
+
+    // Clear validation error when field is edited
+    if (validationErrors[field]) {
+      setValidationErrors(prev => {
+        const updated = { ...prev }
+
+        delete updated[field]
+
+        return updated
+      })
+    }
 
     // Special handling for datetime-local inputs
     if (field === 'START_TIME' || field === 'END_TIME') {
@@ -235,9 +331,29 @@ const DetailPanel = ({
       // Validate date before setting
       const isValidDate = dateValue && !isNaN(dateValue.getTime())
 
+      if (field === 'END_TIME' && isValidDate) {
+        // When setting end date, update status to T
+        setBladeFormData(prev => ({
+          ...prev!,
+          [field]: isValidDate ? dateValue : null,
+          STATUS: 'T' // Update status to T when end date is set
+        }))
+      } else {
+        setBladeFormData(prev => ({
+          ...prev!,
+          [field]: isValidDate ? dateValue : null
+        }))
+      }
+    } else if (field === 'DIECUT_AGE') {
+      // For tooling age, convert to number and limit range
+      const numValue = parseInt(value, 10)
+
+      // Allow empty value (will be caught by validation later if needed)
+      if (isNaN(numValue) && value !== '') return
+
       setBladeFormData(prev => ({
         ...prev!,
-        [field]: isValidDate ? dateValue : null
+        [field]: value === '' ? '' : Math.min(Math.max(numValue, 0), 250000)
       }))
     } else {
       setBladeFormData(prev => ({
@@ -290,6 +406,11 @@ const DetailPanel = ({
 
   const saveSingleBlade = async (formData: BladeItem, basicDataOnly: boolean = false) => {
     try {
+      // Validate form data first
+      if (!basicDataOnly && !validateForm()) {
+        return false
+      }
+
       // Check if this is a newly added blade
       const isNewBlade = formData.isNewlyAdded || formData.NEW_ADD
 
@@ -335,7 +456,9 @@ const DetailPanel = ({
           productCode: formData.PRODUCT_CODE,
           productName: formData.PRODUCT_NAME,
           pcsPerSheet: formData.PCS_PER_SHEET,
-          requiredDate: formData.REQUIRED_DATE
+          requiredDate: formData.REQUIRED_DATE,
+          changeReason: formData.CHANGE_REASON,
+          status: formData.END_TIME ? 'T' : formData.STATUS // Set status to T if end date is set
         }
 
         console.log('Saving blade details:', payload)
@@ -353,7 +476,10 @@ const DetailPanel = ({
       const updatedBlade = {
         ...formData,
         isNewlyAdded: false,
-        NEW_ADD: false
+        NEW_ADD: false,
+
+        // If end date is set, update STATUS to T
+        STATUS: formData.END_TIME ? 'T' : formData.STATUS
       }
 
       // Update the list with the new data
@@ -455,10 +581,10 @@ const DetailPanel = ({
   const CancelOrderDialog = () => {
     return (
       <Dialog open={showCancelOrderDialog} onClose={() => setShowCancelOrderDialog(false)}>
-        <DialogTitle>ยืนยันการยกเลิกคำสั่ง</DialogTitle>
+        <DialogTitle>ยืนยันการยกเลิก tooling</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            คุณต้องการยกเลิกคำสั่งนี้ใช่หรือไม่? การดำเนินการนี้ไม่สามารถย้อนกลับได้
+            คุณต้องการยกเลิก tooling นี้ใช่หรือไม่? การดำเนินการนี้ไม่สามารถย้อนกลับได้
           </DialogContentText>
         </DialogContent>
         <DialogActions>
@@ -503,31 +629,13 @@ const DetailPanel = ({
     [selectedItem?.DIECUT_ID, selectedItem?.DIECUT_SN]
   )
 
-  // Load allowed change types
-  // useEffect(() => {
-  //   const loadAllowedChangeTypes = async () => {
-  //     try {
-  //       const result = await apiClient.get('/api/profile/getsetting?key=DIECUT_CHG_MOD_TYPE_LIST')
-
-  //       if (result.success && result.data.value) {
-  //         // Parse the comma-separated list into an array
-  //         setAllowedChangeTypes(result.data.value.split(',').map((type: string) => type.trim()))
-  //       }
-  //     } catch (error) {
-  //       console.error('Error loading allowed change types:', error)
-  //     }
-  //   }
-
-  //   loadAllowedChangeTypes()
-  // }, [])
-
   // The useEffect hook to load data when a die cut is selected
-
   useEffect(() => {
     // Clear editing state when selected item changes
     setEditingBladeSN(null)
     setBladeFormData(null)
     originalBladeDataRef.current = null
+    setValidationErrors({})
 
     if (selectedItem) {
       console.log('Selected item:', selectedItem)
@@ -558,7 +666,8 @@ const DetailPanel = ({
           MULTI_BLADE_REMARK: '',
           isNewlyAdded: true,
           REMARK: '',
-          MODIFY_TYPE: 'N'
+          MODIFY_TYPE: 'N',
+          CHANGE_REASON: ''
         }
 
         console.log('pass1')
@@ -645,6 +754,7 @@ const DetailPanel = ({
   const handleEditBlade = (blade: BladeItem) => {
     console.log(blade)
     setEditingBladeSN(blade.DIECUT_SN)
+    setValidationErrors({}) // Clear validation errors
 
     // Create a proper copy of the blade data with appropriate date conversions
     const bladeDataWithDates = {
@@ -653,7 +763,8 @@ const DetailPanel = ({
       // Convert string dates to Date objects if they exist
       START_TIME: blade.START_TIME ? new Date(blade.START_TIME) : new Date(),
       END_TIME: blade.END_TIME ? new Date(blade.END_TIME) : null,
-      REQUIRED_DATE: blade.REQUIRED_DATE ? new Date(blade.REQUIRED_DATE) : null
+      REQUIRED_DATE: blade.REQUIRED_DATE ? new Date(blade.REQUIRED_DATE) : null,
+      CHANGE_REASON: blade.CHANGE_REASON || ''
     }
 
     // Store original data for comparison
@@ -662,7 +773,12 @@ const DetailPanel = ({
   }
 
   const handleSaveBlade = async () => {
-    if (!bladeFormData || !hasFormChanged()) return
+    if (!bladeFormData) return
+
+    // Validate form before saving
+    if (!validateForm()) {
+      return
+    }
 
     try {
       // Check if this is a newly added blade
@@ -698,7 +814,8 @@ const DetailPanel = ({
             MODIFY_TYPE: item.MODIFY_TYPE || 'N',
             JOB_ORDER: item.JOB_ID || '',
             PRODUCT_CODE: item.PROD_ID || '',
-            PRODUCT_NAME: item.PROD_DESC || ''
+            PRODUCT_NAME: item.PROD_DESC || '',
+            CHANGE_REASON: ''
           }))
 
           setRelatedNewSNs(convertedItems)
@@ -727,46 +844,6 @@ const DetailPanel = ({
     }
   }
 
-  // const saveBatchBlades = async () => {
-  //   // Save current blade
-  //   const currentSuccess = await saveSingleBlade(bladeFormData)
-
-  //   if (!currentSuccess) {
-  //     alert('ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่อีกครั้ง')
-  //     setShowBatchSaveDialog(false)
-
-  //     return
-  //   }
-
-  //   let successCount = 1
-  //   let failCount = 0
-
-  //   // Save related blades
-  //   for (const sn of relatedSNs) {
-  //     const relatedFormData = {
-  //       ...bladeFormData,
-  //       DIECUT_SN: sn.DIECUT_SN,
-  //       DIECUT_ID: sn.DIECUT_ID
-  //     }
-
-  //     const success = await saveSingleBlade(relatedFormData)
-
-  //     if (success) {
-  //       successCount++
-  //     } else {
-  //       failCount++
-  //     }
-  //   }
-
-  //   setShowBatchSaveDialog(false)
-  //   alert(`บันทึกข้อมูลสำเร็จ ${successCount} รายการ${failCount > 0 ? `, ล้มเหลว ${failCount} รายการ` : ''}`)
-
-  //   setEditingBladeSN(null)
-  //   setBladeFormData(null)
-  //   onClose?.()
-  //   originalBladeDataRef.current = null
-  // }
-
   const BatchSaveDialog = () => {
     return (
       <Dialog open={showBatchSaveDialog} onClose={() => setShowBatchSaveDialog(false)}>
@@ -791,32 +868,6 @@ const DetailPanel = ({
           </Box>
         </DialogContent>
         <DialogActions>
-          {/* <Button
-            onClick={() => {
-              setShowBatchSaveDialog(false)
-
-              if (bladeFormData) {
-                saveSingleBlade(bladeFormData, false).then(() => {
-                  setEditingBladeSN(null)
-                  setBladeFormData(null)
-                  onClose?.()
-                  originalBladeDataRef.current = null
-                })
-              } else {
-                // Handle null case
-                setEditingBladeSN(null)
-                setBladeFormData(null)
-                onClose?.()
-                originalBladeDataRef.current = null
-              }
-            }}
-            sx={{
-              borderColor: '#98867B',
-              color: '#98867B'
-            }}
-          >
-            บันทึกเฉพาะรายการปัจจุบัน
-          </Button> */}
           <Button
             onClick={saveBatchNewSNs}
             variant='contained'
@@ -839,6 +890,7 @@ const DetailPanel = ({
     setEditingBladeSN(null)
     setBladeFormData(null)
     originalBladeDataRef.current = null
+    setValidationErrors({})
   }
 
   // Directly add a new blank blade item without modal
@@ -876,6 +928,7 @@ const DetailPanel = ({
         PROB_DESC: '',
         START_TIME: new Date(),
         MODIFY_TYPE: 'N',
+        CHANGE_REASON: '',
 
         // Add this flag to mark as newly added
         isNewlyAdded: true
@@ -1041,18 +1094,36 @@ const DetailPanel = ({
 
   // Dialog for work type change
   const TypeChangeDialog = () => {
-    const [newType, setNewType] = useState('')
     const [loading, setLoading] = useState(false)
+    const [localChangeReason, setLocalChangeReason] = useState(bladeFormData?.CHANGE_REASON || '')
+    const [localError, setLocalError] = useState('')
 
     const handleTypeChange = async () => {
-      // if (!bladeFormData || !newType) return
+      if (!newModifyType || !localChangeReason) {
+        setLocalError('กรุณาเลือกประเภทและระบุเหตุผลในการเปลี่ยนก่อนดำเนินการต่อ')
+
+        return
+      }
 
       setLoading(true)
+      setLocalError('')
 
       try {
+        // Update bladeFormData with change reason
+        setBladeFormData(prev => {
+          if (!prev) return null
+
+          return {
+            ...prev,
+            CHANGE_REASON: localChangeReason
+          }
+        })
+
         const payload = {
           diecutId: bladeFormData?.DIECUT_ID,
           diecutSN: bladeFormData?.DIECUT_SN,
+          modifyType: newModifyType,
+          changeReason: localChangeReason,
           modifyTypeAppvFlag: 'P'
         }
 
@@ -1062,7 +1133,9 @@ const DetailPanel = ({
           // Update local state
           setBladeFormData(prev => ({
             ...prev!,
-            MODIFY_TYPE_APPV_FLAG: 'P'
+            MODIFY_TYPE_APPV_FLAG: 'P',
+            MODIFY_TYPE: newModifyType,
+            CHANGE_REASON: localChangeReason
           }))
 
           // Close dialog
@@ -1071,51 +1144,136 @@ const DetailPanel = ({
           // Open approval dialog immediately
           setShowTypeApprovalDialog(true)
         } else {
-          console.error('Failed to request type change:', result.message)
+          setLocalError('ไม่สามารถเปลี่ยนประเภทได้: ' + (result.message || 'เกิดข้อผิดพลาด'))
         }
       } catch (error) {
         console.error('Error requesting type change:', error)
+        setLocalError('เกิดข้อผิดพลาดในการส่งคำขอ กรุณาลองใหม่อีกครั้ง')
       } finally {
         setLoading(false)
       }
     }
 
     return (
-      <Dialog open={showTypeChangeDialog} onClose={() => setShowTypeChangeDialog(false)}>
+      <Dialog open={showTypeChangeDialog} onClose={() => setShowTypeChangeDialog(false)} fullWidth maxWidth='sm'>
         <DialogTitle>เปลี่ยนประเภทงาน</DialogTitle>
         <DialogContent>
-          <DialogContentText>
+          <DialogContentText sx={{ mb: 2 }}>
             เลือกประเภทงานใหม่ โดยการเปลี่ยนประเภทงานจะต้องได้รับการอนุมัติจากหัวหน้า
           </DialogContentText>
-          <FormControl fullWidth margin='dense'>
-            {/* <InputLabel>ประเภทงานใหม่</InputLabel> */}
-            {/* <Select value={newType} onChange={e => setNewType(e.target.value)} label='ประเภทงานใหม่'>
-              {allowedChangeTypes.map(type => (
-                <MenuItem key={type} value={type}>
-                  {type}
+          <FormControl fullWidth margin='dense' error={!!localError}>
+            <InputLabel>ประเภทงานใหม่</InputLabel>
+            <Select value={newModifyType} onChange={e => setNewModifyType(e.target.value)} label='ประเภทงานใหม่'>
+              {MODIFY_TYPES.map(type => (
+                <MenuItem key={type.value} value={type.value}>
+                  {type.label}
                 </MenuItem>
               ))}
-            </Select> */}
+            </Select>
           </FormControl>
+          <TextField
+            margin='dense'
+            label='เหตุผลในการเปลี่ยน'
+            multiline
+            rows={3}
+            fullWidth
+            value={localChangeReason}
+            onChange={e => setLocalChangeReason(e.target.value)}
+            error={!!localError && !localChangeReason}
+            sx={{ mt: 2 }}
+          />
+          {localError && (
+            <FormHelperText error sx={{ mt: 1 }}>
+              {localError}
+            </FormHelperText>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setShowTypeChangeDialog(false)}>ยกเลิก</Button>
-          <Button onClick={handleTypeChange}>{loading ? <CircularProgress size={24} /> : 'ยืนยัน'}</Button>
+          <Button onClick={handleTypeChange} disabled={loading || !newModifyType || !localChangeReason}>
+            {loading ? <CircularProgress size={24} /> : 'ยืนยัน'}
+          </Button>
         </DialogActions>
       </Dialog>
     )
   }
 
   // Dialog for work type change approval
+  // Dialog for work type change approval
   const TypeApprovalDialog = () => {
-    const [username, setUsername] = useState('')
-    const [password, setPassword] = useState('')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
     const [loadingStep, setLoadingStep] = useState(0) // 0=not started, 1=checking auth, 2=saving, 3=complete
 
-    const handleApprove = async () => {
+    // ฟังก์ชันทำการอนุมัติโดยตรงสำหรับ manager
+    const handleDirectApprove = async (e: React.FormEvent) => {
+      e.preventDefault()
+
       if (!bladeFormData) return
+
+      setLoading(true)
+      setLoadingStep(2) // ข้ามขั้นตอนการตรวจสอบ auth ไปยังขั้นตอนการบันทึก
+
+      try {
+        // บันทึกข้อมูลการอนุมัติโดยใช้ข้อมูลผู้ใช้ปัจจุบัน
+        const approvalResult: any = await apiClient.post('/api/diecuts/approvetypechange', {
+          diecutId: bladeFormData.DIECUT_ID,
+          diecutSN: bladeFormData.DIECUT_SN,
+          modifyType: newModifyType || bladeFormData.MODIFY_TYPE_REQ_TO
+
+          // ไม่ต้องส่ง approverId และ approverName จะใช้ข้อมูลจาก session
+        })
+
+        if (approvalResult.success) {
+          setLoadingStep(3) // Complete
+
+          // Short delay to show completion state
+          setTimeout(() => {
+            // Update local state
+            setBladeFormData(prev => ({
+              ...prev!,
+              MODIFY_TYPE_APPV_FLAG: 'A',
+              MODIFY_TYPE: newModifyType || bladeFormData.MODIFY_TYPE_REQ_TO
+            }))
+
+            // Close dialog
+            setShowTypeApprovalDialog(false)
+
+            if (onProcessComplete) {
+              onProcessComplete()
+            }
+          }, 1000)
+        } else {
+          setError('ไม่สามารถบันทึกการอนุมัติได้: ' + approvalResult.message)
+          setLoadingStep(0)
+        }
+      } catch (error) {
+        console.error('Error approving type change:', error)
+        setError('เกิดข้อผิดพลาดในการอนุมัติ กรุณาลองใหม่อีกครั้ง')
+        setLoadingStep(0)
+      } finally {
+        if (loadingStep !== 3) {
+          setLoading(false)
+        }
+      }
+    }
+
+    // ฟังก์ชันสำหรับทำการอนุมัติที่ต้องกรอก username/password
+    const handleApprove = async (e: React.FormEvent) => {
+      e.preventDefault()
+
+      if (!bladeFormData) return
+
+      // ดึงข้อมูลจากฟอร์ม
+      const formData = new FormData(e.target as HTMLFormElement)
+      const username = formData.get('username') as string
+      const password = formData.get('password') as string
+
+      if (!username || !password) {
+        setError('กรุณากรอกชื่อผู้ใช้และรหัสผ่าน')
+
+        return
+      }
 
       setLoading(true)
       setError('')
@@ -1136,7 +1294,7 @@ const DetailPanel = ({
           const approvalResult: any = await apiClient.post('/api/diecuts/approvetypechange', {
             diecutId: bladeFormData.DIECUT_ID,
             diecutSN: bladeFormData.DIECUT_SN,
-            modifyType: 'M',
+            modifyType: newModifyType || bladeFormData.MODIFY_TYPE_REQ_TO,
             approverId: authResult.data.employeeId,
             approverName: authResult.data.employeeName
           })
@@ -1150,14 +1308,14 @@ const DetailPanel = ({
               setBladeFormData(prev => ({
                 ...prev!,
                 MODIFY_TYPE_APPV_FLAG: 'A',
-                MODIFY_TYPE: 'M'
+                MODIFY_TYPE: newModifyType || bladeFormData.MODIFY_TYPE_REQ_TO
               }))
 
               // Close dialog
               setShowTypeApprovalDialog(false)
-              
+
               if (onProcessComplete) {
-                onProcessComplete();
+                onProcessComplete()
               }
             }, 1000)
           } else {
@@ -1224,37 +1382,57 @@ const DetailPanel = ({
     return (
       <Dialog open={showTypeApprovalDialog} onClose={() => !loading && setShowTypeApprovalDialog(false)}>
         <DialogTitle>อนุมัติการเปลี่ยนประเภทงาน</DialogTitle>
-        <DialogContent>
-          {loadingStep === 0 ? (
-            <>
-              <DialogContentText>
-                กรุณาใส่ชื่อผู้ใช้และรหัสผ่านของหัวหน้าที่มีสิทธิ์อนุมัติการเปลี่ยนประเภทงานจาก
-                {bladeFormData?.MODIFY_TYPE_ORIGINAL || '-'} เป็น {bladeFormData?.MODIFY_TYPE || '-'}
-              </DialogContentText>
-              <TextField
-                autoFocus
-                margin='dense'
-                label='ชื่อผู้ใช้'
-                type='text'
-                fullWidth
-                value={username}
-                onChange={e => setUsername(e.target.value)}
-              />
-              <TextField
-                margin='dense'
-                label='รหัสผ่าน'
-                type='password'
-                fullWidth
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-              />
-              {error && (
-                <Alert severity='error' sx={{ mt: 2 }}>
-                  {error}
-                </Alert>
-              )}
-            </>
+
+        {loadingStep === 0 ? (
+          isManager ? (
+            <form onSubmit={handleDirectApprove}>
+              <DialogContent>
+                <DialogContentText>
+                  คุณต้องการอนุมัติการเปลี่ยนประเภทงานจาก
+                  {bladeFormData?.MODIFY_TYPE_ORIGINAL || '-'} เป็น {bladeFormData?.MODIFY_TYPE || '-'} หรือไม่?
+                </DialogContentText>
+                {error && (
+                  <Alert severity='error' sx={{ mt: 2 }}>
+                    {error}
+                  </Alert>
+                )}
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={handleCancel} color='error' disabled={loading}>
+                  ยกเลิก
+                </Button>
+                <Button type='submit' disabled={loading}>
+                  ตกลง
+                </Button>
+              </DialogActions>
+            </form>
           ) : (
+            <form onSubmit={handleApprove}>
+              <DialogContent>
+                <DialogContentText>
+                  กรุณาใส่ชื่อผู้ใช้และรหัสผ่านของหัวหน้าที่มีสิทธิ์อนุมัติการเปลี่ยนประเภทงานจาก
+                  {bladeFormData?.MODIFY_TYPE_ORIGINAL || '-'} เป็น {bladeFormData?.MODIFY_TYPE || '-'}
+                </DialogContentText>
+                <TextField autoFocus margin='dense' name='username' label='ชื่อผู้ใช้' type='text' fullWidth required />
+                <TextField margin='dense' name='password' label='รหัสผ่าน' type='password' fullWidth required />
+                {error && (
+                  <Alert severity='error' sx={{ mt: 2 }}>
+                    {error}
+                  </Alert>
+                )}
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={handleCancel} color='error' disabled={loading}>
+                  ยกเลิก
+                </Button>
+                <Button type='submit' disabled={loading}>
+                  อนุมัติ
+                </Button>
+              </DialogActions>
+            </form>
+          )
+        ) : (
+          <DialogContent>
             <Box sx={{ textAlign: 'center', py: 2 }}>
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
                 <Box sx={{ position: 'relative', display: 'inline-flex' }}>
@@ -1283,84 +1461,11 @@ const DetailPanel = ({
                   {loadingStep === 2 && 'กำลังบันทึกข้อมูล...'}
                   {loadingStep === 3 && 'ดำเนินการเสร็จสิ้น'}
                 </Typography>
-                <Box sx={{ width: '100%', mt: 1 }}>
-                  <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', mb: 1 }}>
-                    <Box
-                      sx={{
-                        width: 20,
-                        height: 20,
-                        borderRadius: '50%',
-                        bgcolor: loadingStep >= 1 ? 'success.main' : '#eee',
-                        mr: 1,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'white'
-                      }}
-                    >
-                      {loadingStep > 1 ? '✓' : '1'}
-                    </Box>
-                    <Typography variant='body2' color={loadingStep >= 1 ? 'text.primary' : 'text.disabled'}>
-                      ตรวจสอบสิทธิ์การอนุมัติ
-                    </Typography>
-                  </Box>
-                  <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', mb: 1 }}>
-                    <Box
-                      sx={{
-                        width: 20,
-                        height: 20,
-                        borderRadius: '50%',
-                        bgcolor: loadingStep >= 2 ? 'success.main' : '#eee',
-                        mr: 1,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'white'
-                      }}
-                    >
-                      {loadingStep > 2 ? '✓' : '2'}
-                    </Box>
-                    <Typography variant='body2' color={loadingStep >= 2 ? 'text.primary' : 'text.disabled'}>
-                      บันทึกการเปลี่ยนประเภทงาน
-                    </Typography>
-                  </Box>
-                  <Box sx={{ width: '100%', display: 'flex', alignItems: 'center' }}>
-                    <Box
-                      sx={{
-                        width: 20,
-                        height: 20,
-                        borderRadius: '50%',
-                        bgcolor: loadingStep >= 3 ? 'success.main' : '#eee',
-                        mr: 1,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'white'
-                      }}
-                    >
-                      {loadingStep > 3 ? '✓' : '3'}
-                    </Box>
-                    <Typography variant='body2' color={loadingStep >= 3 ? 'text.primary' : 'text.disabled'}>
-                      ดำเนินการเสร็จสมบูรณ์
-                    </Typography>
-                  </Box>
-                </Box>
+                <Box sx={{ width: '100%', mt: 1 }}>{/* โค้ดแสดงขั้นตอนการทำงานเดิม */}</Box>
               </Box>
             </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          {loadingStep === 0 && (
-            <>
-              <Button onClick={handleCancel} color='error' disabled={loading}>
-                ยกเลิกการเปลี่ยน
-              </Button>
-              <Button onClick={handleApprove} disabled={loading || !username || !password}>
-                อนุมัติ
-              </Button>
-            </>
-          )}
-        </DialogActions>
+          </DialogContent>
+        )}
       </Dialog>
     )
   }
@@ -1512,23 +1617,6 @@ const DetailPanel = ({
                       {formatNumber(selectedItem.AGES) || 'ไม่ระบุ'}
                     </Typography>
                   </Box>
-
-                  {/* Commented-out priority section - preserved for reference */}
-                  {/* <Box sx={{ width: 'calc(50% - 4px)' }}>
-        <Typography variant='subtitle2'>ความเร่งด่วน</Typography>
-        <Chip
-          label={selectedItem.PRIORITY || 'ไม่ระบุ'}
-          color={
-            selectedItem.PRIORITY === 'High'
-              ? 'error'
-              : selectedItem.PRIORITY === 'Medium'
-                ? 'primary'
-                : 'default'
-          }
-          size='small'
-          sx={{ mb: 1 }}
-        />
-      </Box> */}
                 </Box>
                 {/* Middle 60% - Blade Card List */}
                 <Box sx={{ height: '50vh', overflow: 'auto', mb: 2 }}>
@@ -1663,6 +1751,16 @@ const DetailPanel = ({
                               <Typography variant='body2'>{blade.PROB_DESC}</Typography>
                             </Box>
                           )}
+
+                          {/* Show change reason if it exists */}
+                          {blade.CHANGE_REASON && (
+                            <Box sx={{ width: '100%' }}>
+                              <Typography variant='caption' color='text.secondary'>
+                                เหตุผลในการเปลี่ยน
+                              </Typography>
+                              <Typography variant='body2'>{blade.CHANGE_REASON}</Typography>
+                            </Box>
+                          )}
                         </Box>
                       </Paper>
                     ))
@@ -1707,20 +1805,13 @@ const DetailPanel = ({
             {/* Blade Editing Form */}
             {editingBladeSN !== null && bladeFormData && (
               <Box sx={{ p: 2 }}>
-                {/* <Typography variant='subtitle1' gutterBottom>
-                  Process ใบมีด: {bladeFormData.DIECUT_SN}
-                </Typography> */}
-
                 {/* Work Type Change Buttons */}
                 <Box
                   sx={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: 2,
-
                     mb: 2,
-
-                    // p: 2,
                     borderRadius: 1
                   }}
                 >
@@ -1738,33 +1829,54 @@ const DetailPanel = ({
                   </Box>
 
                   <Box sx={{ ml: 'auto' }}>
-                    <Button
-                      variant='outlined'
-                      size='small'
-
-                      // disabled={bladeFormData?.MODIFY_TYPE !== 'B'}
-                      onClick={() =>
-                        bladeFormData?.MODIFY_TYPE_APPV_FLAG === 'P' || bladeFormData?.MODIFY_TYPE_APPV_FLAG === 'N'
-                          ? setShowTypeApprovalDialog(true)
-                          : setShowTypeChangeDialog(true)
-                      }
-                      sx={{
-                        borderColor: '#98867B',
-                        color: '#98867B',
-                        '&:hover': {
-                          borderColor: '#5A4D40',
-                          backgroundColor: 'rgba(152, 134, 123, 0.04)'
-                        },
-
-                        // Add styling for disabled state
-                        '&.Mui-disabled': {
-                          borderColor: 'rgba(0, 0, 0, 0.12)',
-                          color: 'rgba(0, 0, 0, 0.26)'
-                        }
-                      }}
-                    >
-                      {bladeFormData?.MODIFY_TYPE_APPV_FLAG === 'P' ? 'อนุมัติ' : 'เปลี่ยน'}
-                    </Button>
+                    {/* แก้ไขที่ Box ที่มีปุ่มให้มีเงื่อนไขแสดงผล */}
+                    <Box sx={{ ml: 'auto' }}>
+                      {bladeFormData?.MODIFY_TYPE_APPV_FLAG === 'P' ? (
+                        isManager && (
+                          <PermissionGate requiredPermission='isManager'>
+                            <Button
+                              variant='outlined'
+                              size='small'
+                              onClick={() => setShowTypeApprovalDialog(true)}
+                              sx={{
+                                borderColor: '#98867B',
+                                color: '#98867B',
+                                '&:hover': {
+                                  borderColor: '#5A4D40',
+                                  backgroundColor: 'rgba(152, 134, 123, 0.04)'
+                                },
+                                '&.Mui-disabled': {
+                                  borderColor: 'rgba(0, 0, 0, 0.12)',
+                                  color: 'rgba(0, 0, 0, 0.26)'
+                                }
+                              }}
+                            >
+                              อนุมัติ
+                            </Button>
+                          </PermissionGate>
+                        )
+                      ) : (
+                        <Button
+                          variant='outlined'
+                          size='small'
+                          onClick={() => setShowTypeChangeDialog(true)}
+                          sx={{
+                            borderColor: '#98867B',
+                            color: '#98867B',
+                            '&:hover': {
+                              borderColor: '#5A4D40',
+                              backgroundColor: 'rgba(152, 134, 123, 0.04)'
+                            },
+                            '&.Mui-disabled': {
+                              borderColor: 'rgba(0, 0, 0, 0.12)',
+                              color: 'rgba(0, 0, 0, 0.26)'
+                            }
+                          }}
+                        >
+                          เปลี่ยน
+                        </Button>
+                      )}
+                    </Box>
                   </Box>
                 </Box>
 
@@ -1810,6 +1922,12 @@ const DetailPanel = ({
                         onChange={handleBladeChange('START_TIME')}
                         InputLabelProps={{ shrink: true }}
                         margin='normal'
+                        error={!!validationErrors.START_TIME}
+                        helperText={validationErrors.START_TIME}
+                        inputProps={{
+                          max: new Date().toISOString().substring(0, 16) // Restrict to current date/time
+                        }}
+                        disabled={bladeFormData?.MODIFY_TYPE_APPV_FLAG === 'P'}
                       />
                     </Box>
 
@@ -1861,58 +1979,13 @@ const DetailPanel = ({
 
                               return ''
                             }
-                          })()
+                          })(),
+
+                          max: new Date().toISOString().substring(0, 16) // Restrict to current date/time
                         }}
-                        error={(() => {
-                          if (!bladeFormData.END_TIME || !bladeFormData.START_TIME) return false
-
-                          try {
-                            const endDate =
-                              typeof bladeFormData.END_TIME === 'string'
-                                ? new Date(bladeFormData.END_TIME)
-                                : bladeFormData.END_TIME
-
-                            const startDate =
-                              typeof bladeFormData.START_TIME === 'string'
-                                ? new Date(bladeFormData.START_TIME)
-                                : bladeFormData.START_TIME
-
-                            // Check if both dates are valid
-                            if (isNaN(endDate.getTime()) || isNaN(startDate.getTime())) return false
-
-                            // Return true if end date is before start date
-                            return endDate < startDate
-                          } catch (e) {
-                            console.error('Error comparing dates:', e)
-
-                            return false
-                          }
-                        })()}
-                        helperText={(() => {
-                          if (!bladeFormData.END_TIME || !bladeFormData.START_TIME) return ''
-
-                          try {
-                            const endDate =
-                              typeof bladeFormData.END_TIME === 'string'
-                                ? new Date(bladeFormData.END_TIME)
-                                : bladeFormData.END_TIME
-
-                            const startDate =
-                              typeof bladeFormData.START_TIME === 'string'
-                                ? new Date(bladeFormData.START_TIME)
-                                : bladeFormData.START_TIME
-
-                            // Check if both dates are valid
-                            if (isNaN(endDate.getTime()) || isNaN(startDate.getTime())) return ''
-
-                            // Show error message if end date is before start date
-                            return endDate < startDate ? 'วันที่สิ้นสุดต้องไม่น้อยกว่าวันที่เริ่มต้น' : ''
-                          } catch (e) {
-                            console.error('Error generating error message:', e)
-
-                            return ''
-                          }
-                        })()}
+                        error={!!validationErrors.END_TIME}
+                        helperText={validationErrors.END_TIME}
+                        disabled={bladeFormData?.MODIFY_TYPE_APPV_FLAG === 'P'}
                       />
                     </Box>
 
@@ -1927,13 +2000,20 @@ const DetailPanel = ({
                         value={bladeFormData.DIECUT_AGE || ''}
                         onChange={handleBladeChange('DIECUT_AGE')}
                         margin='normal'
+                        error={!!validationErrors.DIECUT_AGE}
+                        helperText={validationErrors.DIECUT_AGE}
                         InputProps={{
+                          inputProps: {
+                            min: bladeFormData.END_TIME ? 1 : 0,
+                            max: 250000
+                          },
                           sx: {
                             '& input': {
                               textAlign: 'right'
                             }
                           }
                         }}
+                        disabled={bladeFormData?.MODIFY_TYPE_APPV_FLAG === 'P'}
                       />
                     </Box>
 
@@ -1963,6 +2043,24 @@ const DetailPanel = ({
                         value={bladeFormData.REMARK || ''}
                         onChange={handleBladeChange('REMARK')}
                         margin='normal'
+                        disabled={bladeFormData?.MODIFY_TYPE_APPV_FLAG === 'P'}
+                      />
+                    </Box>
+
+                    {/* Change reason if requesting change */}
+                    <Box sx={{ width: '100%' }}>
+                      <Typography variant='subtitle2'>เหตุผลในการเปลี่ยน</Typography>
+                      <TextField
+                        fullWidth
+                        size='small'
+                        multiline
+                        rows={3}
+                        value={bladeFormData.CHANGE_REASON || ''}
+                        onChange={handleBladeChange('CHANGE_REASON')}
+                        margin='normal'
+                        error={!!validationErrors.CHANGE_REASON}
+                        helperText={validationErrors.CHANGE_REASON}
+                        disabled
                       />
                     </Box>
 
@@ -2008,112 +2106,22 @@ const DetailPanel = ({
                         margin='normal'
                       />
                     </Box>
-
-                    {/* Commented out fields preserved in case they're needed later */}
-                    {/* Required Date
-        <Box sx={{ width: '100%' }}>
-          <Typography variant='subtitle2'>วันที่ต้องการ</Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <TextField
-              fullWidth
-              size='small'
-              type='date'
-              value={
-                bladeFormData.REQUIRED_DATE
-                  ? typeof bladeFormData.REQUIRED_DATE === 'string'
-                    ? bladeFormData.REQUIRED_DATE.split('T')[0]
-                    : new Date(bladeFormData.REQUIRED_DATE).toISOString().split('T')[0]
-                  : ''
-              }
-              onChange={handleBladeChange('REQUIRED_DATE')}
-              InputLabelProps={{ shrink: true }}
-              margin='normal'
-            />
-            <Button
-              variant='outlined'
-              onClick={handleAutoDate}
-              disabled
-              sx={{
-                borderColor: '#98867B',
-                color: '#98867B',
-                mt: 2
-              }}
-            >
-              Auto
-            </Button>
-          </Box>
-        </Box> */}
-
-                    {/* JOB Order and Product Code
-        <Box sx={{ width: 'calc(50% - 8px)' }}>
-          <Typography variant='subtitle2'>JOB Order</Typography>
-          <TextField
-            fullWidth
-            size='small'
-            value={bladeFormData.JOB_ORDER || ''}
-            onChange={handleBladeChange('JOB_ORDER')}
-            margin='normal'
-          />
-        </Box>
-
-        <Box sx={{ width: 'calc(50% - 8px)' }}>
-          <Typography variant='subtitle2'>รหัสสินค้า</Typography>
-          <TextField
-            fullWidth
-            size='small'
-            value={bladeFormData.PRODUCT_CODE || ''}
-            onChange={handleBladeChange('PRODUCT_CODE')}
-            margin='normal'
-          />
-        </Box> */}
-
-                    {/* Product Name
-        <Box sx={{ width: '100%' }}>
-          <Typography variant='subtitle2'>ชื่องาน</Typography>
-          <TextField
-            fullWidth
-            size='small'
-            value={bladeFormData.PRODUCT_NAME || ''}
-            onChange={handleBladeChange('PRODUCT_NAME')}
-            margin='normal'
-          />
-        </Box> */}
-
-                    {/* Pieces per sheet
-        <Box sx={{ width: 'calc(50% - 8px)' }}>
-          <Typography variant='subtitle2'>ตัว/แผ่น</Typography>
-          <TextField
-            fullWidth
-            size='small'
-            type='number'
-            value={bladeFormData.PCS_PER_SHEET || ''}
-            onChange={handleBladeChange('PCS_PER_SHEET')}
-            margin='normal'
-            InputProps={{
-              sx: {
-                '& input': {
-                  textAlign: 'right'
-                }
-              }
-            }}
-          />
-        </Box> */}
                   </Box>
                 </div>
                 <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-                  {/* <PermissionGate requiredPermission='isManager'> */}
-                  <Button
-                    variant='outlined'
-                    color='error'
-                    onClick={() => setShowCancelOrderDialog(true)}
-                    sx={{
-                      borderColor: '#d32f2f',
-                      color: '#d32f2f'
-                    }}
-                  >
-                    ยกเลิกคำสั่ง
-                  </Button>
-                  {/* </PermissionGate> */}
+                  <PermissionGate requiredPermission='isManager'>
+                    <Button
+                      variant='outlined'
+                      color='error'
+                      onClick={() => setShowCancelOrderDialog(true)}
+                      sx={{
+                        borderColor: '#d32f2f',
+                        color: '#d32f2f'
+                      }}
+                    >
+                      ยกเลิก tooling
+                    </Button>
+                  </PermissionGate>
                   <Button
                     variant='outlined'
                     onClick={onClose}
@@ -2122,14 +2130,13 @@ const DetailPanel = ({
                       color: '#98867B'
                     }}
                   >
-                    ยกเลิก
+                    ปิด
                   </Button>
 
-                  {/* <PermissionGate requiredPermission='canModify'> */}
                   <Button
                     variant='contained'
                     onClick={handleSaveBlade}
-                    disabled={!hasFormChanged()}
+                    disabled={!hasFormChanged() || bladeFormData?.MODIFY_TYPE_APPV_FLAG === 'P'}
                     sx={{
                       backgroundColor: '#98867B',
                       '&:hover': {
@@ -2143,10 +2150,9 @@ const DetailPanel = ({
                   >
                     บันทึก
                   </Button>
-                  {/* </PermissionGate> */}
                 </Box>
                 <Typography sx={{ color: 'red', mt: 4 }}>
-                  หมายเหตุ อายุ Tooling สามารถคีย์ได้ เมื่อระบุ สิ้นสุดวันที่ สร้างใหม่/สร้างทดแทน
+                  หมายเหตุ: เมื่อใส่วันที่สิ้นสุด และบันทึก สถานะจะเปลี่ยนเป็น พร้อมใช้งาน โดยอัตโนมัติ และอายุ Tooling
                 </Typography>
               </Box>
             )}

@@ -1,46 +1,48 @@
-// components/PermissionGate.tsx
+'use client'
+
 import type { ReactNode } from 'react'
 import React from 'react'
 
 import { usePermission } from '../contexts/PermissionContext'
 
+type Permission =
+  | 'isManager'
+  | 'canModify'
+  | 'canApprove'
+  | 'canEditDates'
+  | 'canRecordDetails'
+  | 'canRequestChanges'
+  | 'canCreateNew'
+  | 'canSelect'
+  | 'canView'
+
 interface PermissionGateProps {
   children: ReactNode
-  permissions?: Array<keyof Omit<ReturnType<typeof usePermission>, 'userRole'>>
-  requiredPermission?: keyof Omit<ReturnType<typeof usePermission>, 'userRole'>
+  requiredPermission: Permission | Permission[]
   fallback?: ReactNode
 }
 
 /**
- * Component that conditionally renders children based on user permissions
+ * PermissionGate - A component to conditionally render content based on user permissions
  *
- * @param children Content to render if user has permission
- * @param permissions Array of permissions, at least one of which is required (OR logic)
- * @param requiredPermission Single permission that is required
- * @param fallback Optional content to render if user lacks permission
+ * @param children - Content to render if user has permission
+ * @param requiredPermission - Permission or array of permissions required to view the content
+ * @param fallback - Optional content to render if user doesn't have permission
  */
-const PermissionGate: React.FC<PermissionGateProps> = ({
-  children,
-  permissions = [],
-  requiredPermission,
-  fallback = null
-}) => {
-  const userPermissions = usePermission()
+const PermissionGate: React.FC<PermissionGateProps> = ({ children, requiredPermission, fallback = null }) => {
+  const permissions = usePermission()
 
-  // If a single required permission is specified
-  if (requiredPermission) {
-    return userPermissions[requiredPermission] ? <>{children}</> : <>{fallback}</>
+  // Check if user has all required permissions
+  const hasPermission = () => {
+    if (Array.isArray(requiredPermission)) {
+      return requiredPermission.every(perm => permissions[perm] === true)
+    }
+
+    return permissions[requiredPermission] === true
   }
 
-  // If array of permissions is specified (OR logic)
-  if (permissions.length > 0) {
-    const hasPermission = permissions.some(permission => userPermissions[permission])
-
-    return hasPermission ? <>{children}</> : <>{fallback}</>
-  }
-
-  // Default to rendering children if no specific permissions are required
-  return <>{children}</>
+  // If the user has permission, render the children, otherwise render fallback or null
+  return hasPermission() ? <>{children}</> : <>{fallback}</>
 }
 
 export default PermissionGate

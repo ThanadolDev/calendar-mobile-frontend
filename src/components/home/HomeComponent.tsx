@@ -10,6 +10,7 @@ import OrderModal from '../OrderModal'
 import type { IDiecut } from '../../types/types'
 import RequestTable from './RequestTable'
 import DetailPanel from './DetailPanel'
+import RoleSwitcher from './RoleSwitcher'
 
 // import useRoleAccess from '../../hooks/useRoleAccess'
 // import appConfig from '../../configs/appConfig'
@@ -401,7 +402,7 @@ const HomeComponent = () => {
           {/* Development mode chips removed for brevity */}
         </Box>
       )}
-
+      <RoleSwitcher />
       <Box
         sx={{
           display: 'grid',

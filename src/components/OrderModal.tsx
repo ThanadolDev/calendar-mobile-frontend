@@ -128,7 +128,7 @@ const OrderModal = ({ open, onClose, selectedItem, onComplete }: OrderModalProps
   }
 
   // Determine if M option should be disabled
-  const isMOptionDisabled = bladeChangeCount < 2
+  // const isMOptionDisabled = bladeChangeCount < 2
 
   return (
     <>
@@ -169,7 +169,7 @@ const OrderModal = ({ open, onClose, selectedItem, onComplete }: OrderModalProps
               <FormLabel component='legend'>ประเภทงาน:</FormLabel>
               <RadioGroup name='modifyType' value={modifyType} onChange={handleModifyTypeChange}>
                 <FormControlLabel value='B' control={<Radio />} label='เปลี่ยนใบมีด' />
-                <FormControlLabel value='M' control={<Radio />} label='สร้างทดแทน' disabled={isMOptionDisabled} />
+                <FormControlLabel value='M' control={<Radio />} label='สร้างทดแทน' />
                 <FormControlLabel value='E' control={<Radio />} label='แก้ไข' />
               </RadioGroup>
             </FormControl>
@@ -217,7 +217,7 @@ const OrderModal = ({ open, onClose, selectedItem, onComplete }: OrderModalProps
               }
             }}
           >
-            Cancel
+            ยกเลิก
           </Button>
           <Button
             variant='contained'
@@ -230,7 +230,7 @@ const OrderModal = ({ open, onClose, selectedItem, onComplete }: OrderModalProps
               }
             }}
           >
-            Accept
+            ตกลง
           </Button>
         </DialogActions>
       </Dialog>
@@ -259,10 +259,10 @@ const OrderModal = ({ open, onClose, selectedItem, onComplete }: OrderModalProps
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCancelConfirm} disabled={isLoading} sx={{ color: 'text.secondary' }}>
-            No
+            ยกเลิก
           </Button>
           <Button onClick={handleConfirm} disabled={isLoading} variant='contained' color='primary'>
-            Yes
+            ตกลง
           </Button>
         </DialogActions>
       </Dialog>

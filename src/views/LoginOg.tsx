@@ -88,30 +88,46 @@ const LoginOg = ({}: { mode: SystemMode }) => {
       // const redirectWebsite = params.get('redirectWebsite')
       const currentUrl = window.location.origin + '/toolingmanage/login-og'
 
-      console.log(urlToken && urlTokenRe && sessionId)
+      // console.log(urlToken && urlTokenRe && sessionId)
+      // window.alert(urlToken)
 
       // Case 1: New login with tokens in URL
       if (urlToken && urlTokenRe && sessionId) {
+        // window.alert(true)
         const decoded = decodeJWT(urlToken)
 
         const positionId = decoded.profile.POS_ID
 
-        const roleResponse = await axios.post(process.env.NEXT_PUBLIC_API_URL + '/api/diecuts/getUserRole', {
+        const roleResponse = await axios.post(process.env.NEXT_PUBLIC_API_URL + '/api/auth/getUserRole', {
           posId: decoded.profile.POS_ID,
           empId: decoded.profile.EMP_ID
         })
 
-        if (!roleResponse.data?.data?.roles?.[0]?.ROLE) {
-          throw new Error('Invalid role response structure')
+        // window.alert(JSON.stringify(roleResponse.data))
+
+        // if (!roleResponse.data?.data?.roles?.[0]?.ROLE) {
+        //   window.alert('Yes!' + JSON.stringify(roleResponse.data))
+        //   throw new Error('Invalid role response structure')
+        // }
+        let data
+
+        if (!roleResponse.data || Object.keys(roleResponse.data).length === 0) {
+          data = null
+        } else {
+          try {
+            data = roleResponse.data.data.roles[0].ROLE
+          } catch (error) {
+            data = 1100
+          }
         }
 
-        console.log(roleResponse)
-
         // Get role from backend response
-        const userRole = roleResponse.data.data.roles[0].ROLE
+        // const userRole = roleResponse.data.data.roles[0].ROLE
 
         // Get role from position ID using the shared permission function
-        const permissions = getPermissionsByPositionId(userRole)
+        const permissions = getPermissionsByPositionId(data)
+
+        // window.alert(permissions + ' 1')
 
         // const userRole = permissions.userRole
 

@@ -1,21 +1,23 @@
-// contexts/PermissionContext.tsx
 'use client'
 
 import type { ReactNode } from 'react'
-import React, { createContext, useContext, useMemo } from 'react'
+import { createContext, useContext, useState, useEffect } from 'react'
 
-import { getUserInfo } from '@/utils/userInfo'
-import { getPermissionsByPositionId, type PermissionSet } from '@/utils/permissionMapping'
-import useRoleAccess from '../hooks/useRoleAccess'
-import type { IUserInfo, UserRole } from '../types/types'
+import { getPermissionsByPositionId, type PermissionSet } from '../utils/permissionMapping'
+import { getUserInfo } from '../utils/userInfo'
+import type { UserRole } from '../types/types'
 
-// Extend PermissionSet to include position ID
-export interface PermissionContextType extends PermissionSet {
-  positionId: string | null
+interface PermissionContextType extends PermissionSet {
+  overrideRole: string | null
+  setOverrideRole: (role: string | null) => void
+  isRoleOverrideActive: boolean
+  setRoleOverrideActive: (mode: boolean) => void
+  resetPermissions: () => void
+  actualRole: UserRole
+  actualPermissions: PermissionSet
 }
 
-// Default permissions with positionId
-const defaultPermissions: PermissionContextType = {
+const PermissionContext = createContext<PermissionContextType>({
   isManager: false,
   canModify: false,
   canApprove: false,
@@ -26,47 +28,71 @@ const defaultPermissions: PermissionContextType = {
   canSelect: false,
   canView: true,
   userRole: 'View',
-  positionId: null
+  overrideRole: null,
+  setOverrideRole: () => {},
+  isRoleOverrideActive: false,
+  setRoleOverrideActive: () => {},
+  resetPermissions: () => {},
+  actualRole: 'View',
+  actualPermissions: {
+    isManager: false,
+    canModify: false,
+    canApprove: false,
+    canEditDates: false,
+    canRecordDetails: false,
+    canRequestChanges: false,
+    canCreateNew: false,
+    canSelect: false,
+    canView: true,
+    userRole: 'View'
+  }
+})
+
+export const PermissionProvider = ({ children }: { children: ReactNode }) => {
+  const [isRoleOverrideActive, setRoleOverrideActive] = useState(false)
+  const [overrideRole, setOverrideRole] = useState<string | null>(null)
+
+  const getUserPermissions = (): PermissionSet => {
+    const userInfo = getUserInfo()
+
+    return getPermissionsByPositionId(userInfo?.positionId || null)
+  }
+
+  const actualPermissions = getUserPermissions()
+  const actualRole = actualPermissions.userRole
+
+  const effectivePermissions: PermissionSet =
+    isRoleOverrideActive && overrideRole !== null ? getPermissionsByPositionId(overrideRole) : actualPermissions
+
+  useEffect(() => {
+    const savedRoleOverride = localStorage.getItem('roleOverrideActive') === 'true'
+    const savedRole = localStorage.getItem('overrideRole')
+
+    if (savedRoleOverride && savedRole) {
+      setRoleOverrideActive(true)
+      setOverrideRole(savedRole)
+    }
+  }, [])
+
+  const resetPermissions = () => {
+    setRoleOverrideActive(false)
+    setOverrideRole(null)
+    localStorage.removeItem('roleOverrideActive')
+    localStorage.removeItem('overrideRole')
+  }
+
+  const contextValue: PermissionContextType = {
+    ...effectivePermissions,
+    overrideRole,
+    setOverrideRole,
+    isRoleOverrideActive,
+    setRoleOverrideActive,
+    resetPermissions,
+    actualRole,
+    actualPermissions
+  }
+
+  return <PermissionContext.Provider value={contextValue}>{children}</PermissionContext.Provider>
 }
 
-// Create the context
-const PermissionContext = createContext<PermissionContextType>(defaultPermissions)
-
-// Provider component
-export const PermissionProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const userInfo = getUserInfo() as IUserInfo | null
-  const userRole = (userInfo?.role as UserRole) || null
-  const positionId = userInfo?.positionId || null
-
-  // Get role-based permissions (fallback)
-  const rolePermissions = useRoleAccess(userRole)
-
-  // Compute final permissions
-  const value = useMemo(() => {
-    // If position ID exists, use position-based permissions
-    if (positionId) {
-      const positionPermissions = getPermissionsByPositionId(positionId)
-
-      return {
-        ...positionPermissions,
-        positionId
-      }
-    }
-
-    // Fallback to role-based permissions
-    return {
-      ...defaultPermissions,
-      ...rolePermissions,
-      isManager: rolePermissions.canApprove || false,
-      userRole: userRole || 'View',
-      positionId
-    }
-  }, [positionId, rolePermissions, userRole])
-
-  return <PermissionContext.Provider value={value}>{children}</PermissionContext.Provider>
-}
-
-// Custom hook
 export const usePermission = () => useContext(PermissionContext)
-
-export default PermissionContext
