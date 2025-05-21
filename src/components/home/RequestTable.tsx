@@ -33,6 +33,8 @@ import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined'
 
 import EventNoteIcon from '@mui/icons-material/EventNote'
 
+import ExportToCsvButton from './ExportToExcelButton'
+
 import OrderDateModal from '../OrderDateModal'
 
 import JobOrderModal from '../JobOrderModal'
@@ -702,8 +704,9 @@ const RequestTable = ({
             setMenuAnchor(null)
           }
 
-          const handleCreateNewBladeInGroup = () => {
+          const handleCreateNewBladeInGroup = (e: any) => {
             handleClose()
+            if (e) e.stopPropagation()
 
             // Get the group's DIECUT_ID
             const diecutId: string = row.getValue('DIECUT_ID')
@@ -751,8 +754,9 @@ const RequestTable = ({
             }
 
             // Call the parent handlers to select and edit the new item
-            handleItemSelect(newItem)
-            handleEditClick(newItem)
+            // handleItemSelect(newItem)
+
+            // handleEditClick(newItem)
 
             // Expand the group to show the new item
             if (!row.getIsExpanded()) {
@@ -1051,59 +1055,65 @@ const RequestTable = ({
             <Chip size='small' color={'default'} label={`ROLE : ${appConfig.defaultRole}`} />
           </Box>
         )} */}
-      </Box>
-      <FormControl size='small' sx={{ minWidth: 150, mb: 2 }}>
-        <InputLabel id='diecut-type-filter-label'>เลือกประเภท Diecut</InputLabel>
-        <Select
-          labelId='diecut-type-filter-label'
-          id='diecut-type-filter'
-          value={selectedType}
-          label='เลือกประเภท Diecut'
-          multiple
-          onChange={event => {
-            // Convert the event here
-            const compatibleEvent = {
-              target: {
-                name: event.target.name,
-                value: event.target.value
+        <div>
+          <FormControl size='small' sx={{ minWidth: 150, mb: 2 }}>
+            <InputLabel id='diecut-type-filter-label'>เลือกประเภท Diecut</InputLabel>
+            <Select
+              labelId='diecut-type-filter-label'
+              id='diecut-type-filter'
+              value={selectedType}
+              label='เลือกประเภท Diecut'
+              multiple
+              onChange={event => {
+                // Convert the event here
+                const compatibleEvent = {
+                  target: {
+                    name: event.target.name,
+                    value: event.target.value
+                  }
+                } as ChangeEvent<{ name?: string; value: unknown }>
+
+                handleTypeChange(compatibleEvent)
+              }}
+              renderValue={selected => {
+                if (selected.includes('')) return 'ทั้งหมด'
+
+                // Map the selected PTC_TYPE values to their corresponding PTC_DESC values
+                return selected
+                  .map(value => diecutTypes.find(type => type.PTC_TYPE === value)?.PTC_DESC || value)
+                  .join(', ')
+              }}
+              disabled={typesLoading}
+              startAdornment={
+                typesLoading ? (
+                  <InputAdornment position='start'>
+                    <CircularProgress size={20} sx={{ color: '#98867B' }} />
+                  </InputAdornment>
+                ) : null
               }
-            } as ChangeEvent<{ name?: string; value: unknown }>
-
-            handleTypeChange(compatibleEvent)
-          }}
-          renderValue={selected => {
-            if (selected.includes('')) return 'ทั้งหมด'
-
-            // Map the selected PTC_TYPE values to their corresponding PTC_DESC values
-            return selected
-              .map(value => diecutTypes.find(type => type.PTC_TYPE === value)?.PTC_DESC || value)
-              .join(', ')
-          }}
-          disabled={typesLoading}
-          startAdornment={
-            typesLoading ? (
-              <InputAdornment position='start'>
-                <CircularProgress size={20} sx={{ color: '#98867B' }} />
-              </InputAdornment>
-            ) : null
-          }
-        >
-          {/* <MenuItem value=''>
+            >
+              {/* <MenuItem value=''>
             <Checkbox checked={selectedType.includes('')} />
             <ListItemText primary='ทั้งหมด' />
           </MenuItem> */}
 
-          {diecutTypes.map(type => (
-            <MenuItem key={type.PTC_TYPE} value={type.PTC_TYPE}>
-              <Checkbox checked={selectedType.includes(type.PTC_TYPE)} />
-              <ListItemText primary={`${type.PTC_DESC}`} />
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-      <Button sx={{ ml: 2 }} variant='contained' onClick={handleTypeSearch}>
-        ค้นหา
-      </Button>
+              {diecutTypes.map(type => (
+                <MenuItem key={type.PTC_TYPE} value={type.PTC_TYPE}>
+                  <Checkbox checked={selectedType.includes(type.PTC_TYPE)} />
+                  <ListItemText primary={`${type.PTC_DESC}`} />
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <Button sx={{ ml: 2 }} variant='contained' onClick={handleTypeSearch}>
+            ค้นหา
+          </Button>
+        </div>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+          <ExportToCsvButton data={data} getStatusText={getStatusText} />
+        </Box>
+      </Box>
+
       <MaterialReactTable
         columns={columns}
         data={filteredData}

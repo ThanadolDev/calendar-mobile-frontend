@@ -43,6 +43,7 @@ export interface IDiecut {
   REVISION?: number
   isNewlyAdded?: boolean
   REMARK?: string
+  ORDER_DATE?: string | Date
 }
 
 export type UserRole = 'Manager' | 'User' | 'Mod' | 'View'

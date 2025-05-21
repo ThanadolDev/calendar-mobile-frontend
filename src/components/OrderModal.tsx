@@ -24,6 +24,7 @@ import { toast } from 'react-toastify'
 
 import apiClient from '../services/apiClient'
 import type { IDiecut } from '../types/types'
+import { usePermission } from '../contexts/PermissionContext' // Added import for permissions
 
 interface OrderModalProps {
   open: boolean
@@ -33,6 +34,7 @@ interface OrderModalProps {
 }
 
 const OrderModal = ({ open, onClose, selectedItem, onComplete }: OrderModalProps) => {
+  const { isManager } = usePermission() // Get isManager status from permission context
   const [modifyType, setModifyType] = useState('B') // B = เปลี่ยนใบมีด, M = สร้างทดแทน, E = แก้ไข
   const [bladeChangeCount, setBladeChangeCount] = useState(0)
   const [dueDateValue, setDueDateValue] = useState<string>('')
@@ -43,7 +45,9 @@ const OrderModal = ({ open, onClose, selectedItem, onComplete }: OrderModalProps
   // Reset state when the modal opens with a new item
   useEffect(() => {
     if (open && selectedItem) {
-      setModifyType('B') // Default to เปลี่ยนใบมีด
+      // Default to the appropriate modify type based on blade change count
+      // Will be updated after fetching the blade change count
+      setModifyType('B')
       setProblemDesc('')
       setDueDateValue('')
 
@@ -63,7 +67,20 @@ const OrderModal = ({ open, onClose, selectedItem, onComplete }: OrderModalProps
       })
 
       if (response.success) {
-        setBladeChangeCount(response.data.bladeChangeCount || 0)
+        const count = response.data.bladeChangeCount || 0
+
+        setBladeChangeCount(count)
+
+        // Set the default modify type based on blade change count
+        // Managers can select any option by default
+        if (!isManager) {
+          // For regular users, set default based on count
+          if (count > 1) {
+            setModifyType('M') // Default to "สร้างทดแทน" for count > 1
+          } else {
+            setModifyType('B') // Default to "เปลี่ยนใบมีด" for count 0 or 1
+          }
+        }
       } else {
         console.error('Failed to fetch blade change count:', response.message)
       }
@@ -88,6 +105,12 @@ const OrderModal = ({ open, onClose, selectedItem, onComplete }: OrderModalProps
 
     // Open confirmation dialog
     setConfirmDialog(true)
+  }
+
+  // Check if submit button should be disabled
+  const isSubmitDisabled = () => {
+    // Disable if modifyType is E and problemDesc is empty
+    return isLoading || (modifyType === 'E' && !problemDesc.trim())
   }
 
   // Handle final confirmation
@@ -127,8 +150,9 @@ const OrderModal = ({ open, onClose, selectedItem, onComplete }: OrderModalProps
     setConfirmDialog(false)
   }
 
-  // Determine if M option should be disabled
-  // const isMOptionDisabled = bladeChangeCount < 2
+  // Determine which options should be disabled based on blade change count and user role
+  const isBOptionDisabled = !isManager && bladeChangeCount > 1
+  const isMOptionDisabled = !isManager && bladeChangeCount <= 1
 
   return (
     <>
@@ -168,8 +192,8 @@ const OrderModal = ({ open, onClose, selectedItem, onComplete }: OrderModalProps
             <FormControl component='fieldset' sx={{ mb: 2 }}>
               <FormLabel component='legend'>ประเภทงาน:</FormLabel>
               <RadioGroup name='modifyType' value={modifyType} onChange={handleModifyTypeChange}>
-                <FormControlLabel value='B' control={<Radio />} label='เปลี่ยนใบมีด' />
-                <FormControlLabel value='M' control={<Radio />} label='สร้างทดแทน' />
+                <FormControlLabel value='B' control={<Radio />} label='เปลี่ยนใบมีด' disabled={isBOptionDisabled} />
+                <FormControlLabel value='M' control={<Radio />} label='สร้างทดแทน' disabled={isMOptionDisabled} />
                 <FormControlLabel value='E' control={<Radio />} label='แก้ไข' />
               </RadioGroup>
             </FormControl>
@@ -222,11 +246,11 @@ const OrderModal = ({ open, onClose, selectedItem, onComplete }: OrderModalProps
           <Button
             variant='contained'
             onClick={handleSubmit}
-            disabled={isLoading}
+            disabled={isSubmitDisabled()}
             sx={{
-              backgroundColor: '#98867B',
+              backgroundColor: isSubmitDisabled() ? '#cccccc' : '#98867B',
               '&:hover': {
-                backgroundColor: '#5A4D40'
+                backgroundColor: isSubmitDisabled() ? '#cccccc' : '#5A4D40'
               }
             }}
           >

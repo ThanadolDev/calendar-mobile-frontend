@@ -76,6 +76,7 @@ interface BladeItem {
   DIECUT_TYPE?: string
   NEW_ADD?: boolean
   CHANGE_REASON?: string // Added field for change reason
+  CR_DATE?: string | Date
 }
 
 interface DetailPanelProps {
@@ -132,6 +133,7 @@ const DetailPanel = ({
   const [relatedNewSNs, setRelatedNewSNs] = useState<BladeItem[]>([])
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
   const [newModifyType, setNewModifyType] = useState<string>('')
+  const batchSaveInProgressRef = useRef(false)
 
   // Keep original data references to compare for changes
   const originalBladeDataRef = useRef<BladeItem | null>(null)
@@ -351,10 +353,20 @@ const DetailPanel = ({
       // Allow empty value (will be caught by validation later if needed)
       if (isNaN(numValue) && value !== '') return
 
-      setBladeFormData(prev => ({
-        ...prev!,
-        [field]: value === '' ? '' : Math.min(Math.max(numValue, 0), 250000)
-      }))
+      setBladeFormData(prev => {
+        if (!prev) return prev // Handle null case by returning null
+
+        // Create a copy of the previous state
+        const updatedItem = { ...prev }
+
+        // Type-safe update based on field type
+        if (field === 'DIECUT_AGE') {
+          // For numeric fields
+          updatedItem[field] = value === '' ? 0 : Math.min(Math.max(numValue, 0), 250000)
+        }
+
+        return updatedItem as BladeItem
+      })
     } else {
       setBladeFormData(prev => ({
         ...prev!,
@@ -487,10 +499,10 @@ const DetailPanel = ({
 
       setDieCutSNList(updatedList)
 
-      if (onProcessComplete) {
-        console.log('Calling onProcessComplete to refresh parent data')
-        onProcessComplete()
-      }
+      // if (onProcessComplete) {
+      //   console.log('Calling onProcessComplete to refresh parent data')
+      //   onProcessComplete()
+      // }
 
       // Update original list reference
       originalListRef.current = JSON.parse(JSON.stringify(updatedList))
@@ -506,42 +518,87 @@ const DetailPanel = ({
   }
 
   const saveBatchNewSNs = async () => {
-    // First save the current blade with full details
-    const currentSuccess = await saveSingleBlade(bladeFormData as BladeItem, false)
-
-    if (!currentSuccess) {
-      alert('ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่อีกครั้ง')
-      setShowBatchSaveDialog(false)
+    // Skip if already processing
+    if (batchSaveInProgressRef.current) {
+      console.log('Batch save already in progress, ignoring duplicate call')
 
       return
     }
 
-    let successCount = 1 // Current blade already saved
-    let failCount = 0
+    // Set flag BEFORE any state changes
+    batchSaveInProgressRef.current = true
+    console.log('Starting batch save, dialog should stay open')
 
-    // Then save all related new blades with basic data only
-    for (const sn of relatedNewSNs) {
-      // Only create the basic SN, don't copy the detailed modifications
-      const success = await saveSingleBlade(sn, true)
+    try {
+      // First check location for the current blade
+      const checkLocation = await handleCheckLocation(bladeFormData as BladeItem)
 
-      if (success) {
-        successCount++
-      } else {
-        failCount++
+      if (!checkLocation) {
+        // Reset flag if location check fails
+        batchSaveInProgressRef.current = false
+        setShowBatchSaveDialog(false)
+
+        return
       }
+
+      // Then save the current blade with full details
+      const currentSuccess = await saveSingleBlade(bladeFormData as BladeItem, false)
+
+      if (!currentSuccess) {
+        alert('ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่อีกครั้ง')
+
+        // Reset flag and close dialog only after the alert
+        batchSaveInProgressRef.current = false
+        setShowBatchSaveDialog(false)
+
+        return
+      }
+
+      let successCount = 1 // Current blade already saved
+      let failCount = 0
+
+      // Then save all related new blades with basic data only
+      for (const sn of relatedNewSNs) {
+        // Check location for each blade
+        const snLocationCheck = await handleCheckLocation(sn)
+
+        if (snLocationCheck) {
+          const success = await saveSingleBlade(sn, true)
+
+          if (success) {
+            successCount++
+          } else {
+            failCount++
+          }
+        } else {
+          failCount++
+        }
+      }
+
+      // Only close the dialog once at the end of the entire process
+      setShowBatchSaveDialog(false)
+
+      // Clean up state in a single batch to minimize re-renders
+      setEditingBladeSN(null)
+      setBladeFormData(null)
+      originalBladeDataRef.current = null
+
+      // Call onProcessComplete to refresh the data in parent component
+      // with small delay to ensure dialog is closed first
+      setTimeout(() => {
+        if (onClose) onClose()
+        if (onProcessComplete) onProcessComplete()
+
+        // Reset the flag AFTER everything is done
+        batchSaveInProgressRef.current = false
+      }, 100)
+    } catch (error) {
+      console.error('Error in batch save:', error)
+
+      // Reset flag and close dialog on error
+      batchSaveInProgressRef.current = false
+      setShowBatchSaveDialog(false)
     }
-
-    setShowBatchSaveDialog(false)
-
-    // Call onProcessComplete to refresh the data in parent component
-    if (onProcessComplete) {
-      onProcessComplete()
-    }
-
-    setEditingBladeSN(null)
-    setBladeFormData(null)
-    onClose?.()
-    originalBladeDataRef.current = null
   }
 
   const handleCancelOrder = async () => {
@@ -575,6 +632,53 @@ const DetailPanel = ({
       console.error('Error cancelling order:', error)
 
       // You could show an error message here
+    }
+  }
+
+  const handleCheckLocation = async (blade: BladeItem): Promise<boolean> => {
+    // If the status is 'N' or 'M', no need to check location
+    if (blade.STATUS === 'N' || blade.STATUS === 'M') {
+      return true
+    }
+
+    // For status 'T', insert location automatically
+    if (blade.STATUS === 'T' || blade.END_TIME) {
+      try {
+        // Call API to insert location
+        const result: any = await apiClient.post('/api/diecuts/insertlocation', {
+          diecutId: blade.DIECUT_ID,
+          diecutSn: blade.DIECUT_SN
+        })
+
+        return result.success
+      } catch (error) {
+        console.error('Error inserting location:', error)
+
+        return false
+      }
+    }
+
+    // For all other statuses (B, E, etc.), check location
+    try {
+      const result: any = await apiClient.post('/api/diecuts/checklocation', {
+        diecutId: blade.DIECUT_ID,
+        diecutSn: blade.DIECUT_SN
+      })
+
+      if (!result.success || !result.data.hasLocation) {
+        // If location check fails, prompt user to confirm
+        const confirmResult = window.confirm(
+          'ไม่พบข้อมูลตำแหน่งจัดเก็บ Tooling นี้ ต้องการบันทึกโดยไม่ระบุตำแหน่งหรือไม่?'
+        )
+
+        return confirmResult
+      }
+
+      return true
+    } catch (error) {
+      console.error('Error checking location:', error)
+
+      return false
     }
   }
 
@@ -772,8 +876,10 @@ const DetailPanel = ({
     setBladeFormData(bladeDataWithDates)
   }
 
-  const handleSaveBlade = async () => {
+  const handleSaveBlade = async (e: any) => {
     if (!bladeFormData) return
+
+    if (e) e.stopPropagation()
 
     // Validate form before saving
     if (!validateForm()) {
@@ -825,19 +931,24 @@ const DetailPanel = ({
         }
       }
 
-      // If not a new blade or no related new SNs, just save this one
-      const success = await saveSingleBlade(bladeFormData, false)
+      // If not a new blade or no related new SNs, check location first
+      const checkLocation = await handleCheckLocation(bladeFormData)
 
-      if (success) {
-        // Call onProcessComplete to refresh the data in parent component
-        if (onProcessComplete) {
-          onProcessComplete()
+      if (checkLocation) {
+        // If location check passes, save the blade
+        const success = await saveSingleBlade(bladeFormData, false)
+
+        if (success) {
+          // Call onProcessComplete to refresh the data in parent component
+          if (onProcessComplete) {
+            onProcessComplete()
+          }
+
+          setEditingBladeSN(null)
+          setBladeFormData(null)
+          onClose?.()
+          originalBladeDataRef.current = null
         }
-
-        setEditingBladeSN(null)
-        setBladeFormData(null)
-        onClose?.()
-        originalBladeDataRef.current = null
       }
     } catch (error) {
       console.error('Error in handleSaveBlade:', error)
@@ -871,6 +982,7 @@ const DetailPanel = ({
           <Button
             onClick={saveBatchNewSNs}
             variant='contained'
+            disabled={batchSaveInProgressRef.current}
             sx={{
               backgroundColor: '#98867B',
               '&:hover': {
@@ -878,7 +990,7 @@ const DetailPanel = ({
               }
             }}
           >
-            บันทึก
+            {batchSaveInProgressRef.current ? 'กำลังบันทึก...' : 'บันทึก'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1796,7 +1908,7 @@ const DetailPanel = ({
                       }
                     }}
                   >
-                    {isManager ? 'บันทึก' : 'บันทึก'}
+                    บันทึกๅๅ
                   </Button>
                 </Box>
               </>
@@ -1925,7 +2037,10 @@ const DetailPanel = ({
                         error={!!validationErrors.START_TIME}
                         helperText={validationErrors.START_TIME}
                         inputProps={{
-                          max: new Date().toISOString().substring(0, 16) // Restrict to current date/time
+                          max: new Date().toISOString().substring(0, 16), // Restrict to current date/time
+                          min: bladeFormData?.CR_DATE
+                            ? new Date(bladeFormData.CR_DATE).toISOString().substring(0, 16)
+                            : undefined // Set minimum date to creation date
                         }}
                         disabled={bladeFormData?.MODIFY_TYPE_APPV_FLAG === 'P'}
                       />
@@ -2013,7 +2128,7 @@ const DetailPanel = ({
                             }
                           }
                         }}
-                        disabled={bladeFormData?.MODIFY_TYPE_APPV_FLAG === 'P'}
+                        disabled={bladeFormData?.MODIFY_TYPE_APPV_FLAG === 'P' || bladeFormData?.MODIFY_TYPE === 'E'}
                       />
                     </Box>
 
