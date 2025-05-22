@@ -75,7 +75,7 @@ interface BladeItem {
   MODIFY_TYPE_REQ_TO?: string
   DIECUT_TYPE?: string
   NEW_ADD?: boolean
-  CHANGE_REASON?: string // Added field for change reason
+  MODIFY_TYPE_REQ_REMARK?: string // Added field for change reason
   CR_DATE?: string | Date
 }
 
@@ -189,7 +189,7 @@ const DetailPanel = ({
         PRODUCT_NAME,
         PCS_PER_SHEET,
         REQUIRED_DATE,
-        CHANGE_REASON
+        MODIFY_TYPE_REQ_REMARK
       } = data
 
       // Format dates consistently for comparison
@@ -213,7 +213,7 @@ const DetailPanel = ({
         REQUIRED_DATE: formatDate(REQUIRED_DATE),
         START_TIME: formatDate(data.START_TIME),
         END_TIME: formatDate(data.END_TIME),
-        CHANGE_REASON: CHANGE_REASON ?? ''
+        MODIFY_TYPE_REQ_REMARK: MODIFY_TYPE_REQ_REMARK ?? ''
       }
     }
 
@@ -300,8 +300,8 @@ const DetailPanel = ({
     }
 
     // Check for change reason when changing type
-    if (showTypeChangeDialog && (!newModifyType || !bladeFormData?.CHANGE_REASON)) {
-      errors.CHANGE_REASON = 'ต้องระบุเหตุผลในการเปลี่ยนประเภท'
+    if (showTypeChangeDialog && (!newModifyType || !bladeFormData?.MODIFY_TYPE_REQ_REMARK)) {
+      errors.MODIFY_TYPE_REQ_REMARK = 'ต้องระบุเหตุผลในการเปลี่ยนประเภท'
     }
 
     setValidationErrors(errors)
@@ -469,7 +469,7 @@ const DetailPanel = ({
           productName: formData.PRODUCT_NAME,
           pcsPerSheet: formData.PCS_PER_SHEET,
           requiredDate: formData.REQUIRED_DATE,
-          changeReason: formData.CHANGE_REASON,
+          changeReason: formData.MODIFY_TYPE_REQ_REMARK,
           status: formData.END_TIME ? 'T' : formData.STATUS // Set status to T if end date is set
         }
 
@@ -650,7 +650,7 @@ const DetailPanel = ({
           diecutSn: blade.DIECUT_SN
         })
 
-        return result.success
+        return result
       } catch (error) {
         console.error('Error inserting location:', error)
 
@@ -771,7 +771,7 @@ const DetailPanel = ({
           isNewlyAdded: true,
           REMARK: '',
           MODIFY_TYPE: 'N',
-          CHANGE_REASON: ''
+          MODIFY_TYPE_REQ_REMARK: ''
         }
 
         console.log('pass1')
@@ -868,7 +868,7 @@ const DetailPanel = ({
       START_TIME: blade.START_TIME ? new Date(blade.START_TIME) : new Date(),
       END_TIME: blade.END_TIME ? new Date(blade.END_TIME) : null,
       REQUIRED_DATE: blade.REQUIRED_DATE ? new Date(blade.REQUIRED_DATE) : null,
-      CHANGE_REASON: blade.CHANGE_REASON || ''
+      MODIFY_TYPE_REQ_REMARK: blade.MODIFY_TYPE_REQ_REMARK || ''
     }
 
     // Store original data for comparison
@@ -921,7 +921,7 @@ const DetailPanel = ({
             JOB_ORDER: item.JOB_ID || '',
             PRODUCT_CODE: item.PROD_ID || '',
             PRODUCT_NAME: item.PROD_DESC || '',
-            CHANGE_REASON: ''
+            MODIFY_TYPE_REQ_REMARK: ''
           }))
 
           setRelatedNewSNs(convertedItems)
@@ -933,6 +933,8 @@ const DetailPanel = ({
 
       // If not a new blade or no related new SNs, check location first
       const checkLocation = await handleCheckLocation(bladeFormData)
+
+      console.log('checkLocation' + checkLocation)
 
       if (checkLocation) {
         // If location check passes, save the blade
@@ -1040,7 +1042,7 @@ const DetailPanel = ({
         PROB_DESC: '',
         START_TIME: new Date(),
         MODIFY_TYPE: 'N',
-        CHANGE_REASON: '',
+        MODIFY_TYPE_REQ_REMARK: '',
 
         // Add this flag to mark as newly added
         isNewlyAdded: true
@@ -1207,11 +1209,14 @@ const DetailPanel = ({
   // Dialog for work type change
   const TypeChangeDialog = () => {
     const [loading, setLoading] = useState(false)
-    const [localChangeReason, setLocalChangeReason] = useState(bladeFormData?.CHANGE_REASON || '')
+    const [localChangeReason, setLocalChangeReason] = useState(bladeFormData?.MODIFY_TYPE_REQ_REMARK || '')
     const [localError, setLocalError] = useState('')
 
+    // Use local state for the modify type to avoid conflicts
+    const [localNewModifyType, setLocalNewModifyType] = useState(newModifyType || '')
+
     const handleTypeChange = async () => {
-      if (!newModifyType || !localChangeReason) {
+      if (!localNewModifyType || !localChangeReason) {
         setLocalError('กรุณาเลือกประเภทและระบุเหตุผลในการเปลี่ยนก่อนดำเนินการต่อ')
 
         return
@@ -1227,14 +1232,14 @@ const DetailPanel = ({
 
           return {
             ...prev,
-            CHANGE_REASON: localChangeReason
+            MODIFY_TYPE_REQ_REMARK: localChangeReason
           }
         })
 
         const payload = {
           diecutId: bladeFormData?.DIECUT_ID,
           diecutSN: bladeFormData?.DIECUT_SN,
-          modifyType: newModifyType,
+          modifyType: localNewModifyType,
           changeReason: localChangeReason,
           modifyTypeAppvFlag: 'P'
         }
@@ -1242,21 +1247,26 @@ const DetailPanel = ({
         const result: any = await apiClient.post('/api/diecuts/changetyperequest', payload)
 
         if (result.success) {
+          // Update the parent state
+          setNewModifyType(localNewModifyType)
+
           // Update local state
           setBladeFormData(prev => ({
             ...prev!,
             MODIFY_TYPE_APPV_FLAG: 'P',
-            MODIFY_TYPE: newModifyType,
-            CHANGE_REASON: localChangeReason
+            MODIFY_TYPE: localNewModifyType,
+            MODIFY_TYPE_REQ_REMARK: localChangeReason
           }))
 
-          // Close dialog
+          // Close this dialog
           setShowTypeChangeDialog(false)
 
-          // Open approval dialog immediately
-          setShowTypeApprovalDialog(true)
+          // Small delay before opening the approval dialog
+          setTimeout(() => {
+            setShowTypeApprovalDialog(true)
+          }, 100)
         } else {
-          setLocalError('ไม่สามารถเปลี่ยนประเภทได้: ' + (result.message || 'เกิดข้อผิดพลาด'))
+          setLocalError('ไม่สามารถเปลี่ยนประเภทได้: ' + 'เกิดข้อผิดพลาด')
         }
       } catch (error) {
         console.error('Error requesting type change:', error)
@@ -1266,16 +1276,43 @@ const DetailPanel = ({
       }
     }
 
+    // Handle dialog close - reset local states
+    const handleClose = () => {
+      if (!loading) {
+        setLocalNewModifyType('')
+        setLocalChangeReason('')
+        setLocalError('')
+        setShowTypeChangeDialog(false)
+      }
+    }
+
     return (
-      <Dialog open={showTypeChangeDialog} onClose={() => setShowTypeChangeDialog(false)} fullWidth maxWidth='sm'>
+      <Dialog open={showTypeChangeDialog} onClose={handleClose} fullWidth maxWidth='sm' disableEscapeKeyDown={loading}>
         <DialogTitle>เปลี่ยนประเภทงาน</DialogTitle>
         <DialogContent>
           <DialogContentText sx={{ mb: 2 }}>
             เลือกประเภทงานใหม่ โดยการเปลี่ยนประเภทงานจะต้องได้รับการอนุมัติจากหัวหน้า
           </DialogContentText>
-          <FormControl fullWidth margin='dense' error={!!localError}>
+          <FormControl fullWidth margin='dense' error={!!localError && !localNewModifyType}>
             <InputLabel>ประเภทงานใหม่</InputLabel>
-            <Select value={newModifyType} onChange={e => setNewModifyType(e.target.value)} label='ประเภทงานใหม่'>
+            <Select
+              value={localNewModifyType}
+              onChange={e => {
+                console.log('Dropdown changed to:', e.target.value)
+                setLocalNewModifyType(e.target.value)
+
+                // Clear any previous errors when user selects a value
+                if (localError && !localChangeReason) {
+                  setLocalError('')
+                }
+              }}
+              label='ประเภทงานใหม่'
+              disabled={loading}
+              MenuProps={{
+                disablePortal: false,
+                keepMounted: true
+              }}
+            >
               {MODIFY_TYPES.map(type => (
                 <MenuItem key={type.value} value={type.value}>
                   {type.label}
@@ -1290,8 +1327,16 @@ const DetailPanel = ({
             rows={3}
             fullWidth
             value={localChangeReason}
-            onChange={e => setLocalChangeReason(e.target.value)}
+            onChange={e => {
+              setLocalChangeReason(e.target.value)
+
+              // Clear error when user starts typing
+              if (localError && !localNewModifyType) {
+                setLocalError('')
+              }
+            }}
             error={!!localError && !localChangeReason}
+            disabled={loading}
             sx={{ mt: 2 }}
           />
           {localError && (
@@ -1301,8 +1346,14 @@ const DetailPanel = ({
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setShowTypeChangeDialog(false)}>ยกเลิก</Button>
-          <Button onClick={handleTypeChange} disabled={loading || !newModifyType || !localChangeReason}>
+          <Button onClick={handleClose} disabled={loading}>
+            ยกเลิก
+          </Button>
+          <Button
+            onClick={handleTypeChange}
+            disabled={loading || !localNewModifyType || !localChangeReason}
+            variant='contained'
+          >
             {loading ? <CircularProgress size={24} /> : 'ยืนยัน'}
           </Button>
         </DialogActions>
@@ -1469,13 +1520,14 @@ const DetailPanel = ({
             // Update local state - revert to original type and clear approval flag
             setBladeFormData(prev => ({
               ...prev!,
-              MODIFY_TYPE: result.data.originalType || prev!.MODIFY_TYPE,
-              MODIFY_TYPE_APPV_FLAG: null
+              MODIFY_TYPE: result.data.result.originalType || prev!.MODIFY_TYPE,
+              MODIFY_TYPE_APPV_FLAG: null,
+              MODIFY_TYPE_REQ_REMARK: ''
             }))
 
             // Close dialog
             setShowTypeApprovalDialog(false)
-          }, 1000)
+          }, 500)
         } else {
           setError('ไม่สามารถยกเลิกการเปลี่ยนประเภทงานได้: ' + result.message)
           setLoadingStep(0)
@@ -1493,16 +1545,13 @@ const DetailPanel = ({
 
     return (
       <Dialog open={showTypeApprovalDialog} onClose={() => !loading && setShowTypeApprovalDialog(false)}>
-        <DialogTitle>อนุมัติการเปลี่ยนประเภทงาน</DialogTitle>
+        <DialogTitle>เปลี่ยนประเภทงาน</DialogTitle>
 
         {loadingStep === 0 ? (
           isManager ? (
             <form onSubmit={handleDirectApprove}>
               <DialogContent>
-                <DialogContentText>
-                  คุณต้องการอนุมัติการเปลี่ยนประเภทงานจาก
-                  {bladeFormData?.MODIFY_TYPE_ORIGINAL || '-'} เป็น {bladeFormData?.MODIFY_TYPE || '-'} หรือไม่?
-                </DialogContentText>
+                <DialogContentText>คุณต้องการเปลี่ยนประเภทงานจากหรือไม่?</DialogContentText>
                 {error && (
                   <Alert severity='error' sx={{ mt: 2 }}>
                     {error}
@@ -1522,8 +1571,7 @@ const DetailPanel = ({
             <form onSubmit={handleApprove}>
               <DialogContent>
                 <DialogContentText>
-                  กรุณาใส่ชื่อผู้ใช้และรหัสผ่านของหัวหน้าที่มีสิทธิ์อนุมัติการเปลี่ยนประเภทงานจาก
-                  {bladeFormData?.MODIFY_TYPE_ORIGINAL || '-'} เป็น {bladeFormData?.MODIFY_TYPE || '-'}
+                  กรุณาใส่ชื่อผู้ใช้และรหัสผ่านของคนที่มีสิทธิ์อนุมัติการเปลี่ยนประเภทงาน
                 </DialogContentText>
                 <TextField autoFocus margin='dense' name='username' label='ชื่อผู้ใช้' type='text' fullWidth required />
                 <TextField margin='dense' name='password' label='รหัสผ่าน' type='password' fullWidth required />
@@ -1865,12 +1913,12 @@ const DetailPanel = ({
                           )}
 
                           {/* Show change reason if it exists */}
-                          {blade.CHANGE_REASON && (
+                          {blade.MODIFY_TYPE_REQ_REMARK && (
                             <Box sx={{ width: '100%' }}>
                               <Typography variant='caption' color='text.secondary'>
                                 เหตุผลในการเปลี่ยน
                               </Typography>
-                              <Typography variant='body2'>{blade.CHANGE_REASON}</Typography>
+                              <Typography variant='body2'>{blade.MODIFY_TYPE_REQ_REMARK}</Typography>
                             </Box>
                           )}
                         </Box>
@@ -2170,57 +2218,60 @@ const DetailPanel = ({
                         size='small'
                         multiline
                         rows={3}
-                        value={bladeFormData.CHANGE_REASON || ''}
-                        onChange={handleBladeChange('CHANGE_REASON')}
+                        value={bladeFormData.MODIFY_TYPE_REQ_REMARK || ''}
+                        onChange={handleBladeChange('MODIFY_TYPE_REQ_REMARK')}
                         margin='normal'
-                        error={!!validationErrors.CHANGE_REASON}
-                        helperText={validationErrors.CHANGE_REASON}
+                        error={!!validationErrors.MODIFY_TYPE_REQ_REMARK}
+                        helperText={validationErrors.MODIFY_TYPE_REQ_REMARK}
                         disabled
                       />
                     </Box>
+                    {bladeFormData.MODIFY_TYPE_REQ_REMARK && (
+                      <>
+                        <Box sx={{ width: '100%' }}>
+                          <Typography variant='subtitle2'>ระยะมีด</Typography>
+                          <TextField
+                            fullWidth
+                            disabled
+                            size='small'
+                            value={bladeFormData.BLADE_TYPE || ''}
+                            onChange={handleBladeChange('BLADE_TYPE')}
+                            margin='normal'
+                          />
+                        </Box>
 
+                        {/* Reason for using double blade */}
+                        <Box sx={{ width: '100%' }}>
+                          <Typography variant='subtitle2'>สาเหตุที่ใช้มีดคู่</Typography>
+                          <TextField
+                            fullWidth
+                            size='small'
+                            disabled
+                            multiline
+                            rows={3}
+                            value={bladeFormData.MULTI_BLADE_REASON || ''}
+                            onChange={handleBladeChange('MULTI_BLADE_REASON')}
+                            margin='normal'
+                          />
+                        </Box>
+
+                        {/* Details for using double blade */}
+                        <Box sx={{ width: '100%' }}>
+                          <Typography variant='subtitle2'>รายละเอียดในการใช้มีดคู่</Typography>
+                          <TextField
+                            fullWidth
+                            size='small'
+                            disabled
+                            multiline
+                            rows={2}
+                            value={bladeFormData.MULTI_BLADE_REMARK || ''}
+                            onChange={handleBladeChange('MULTI_BLADE_REMARK')}
+                            margin='normal'
+                          />
+                        </Box>
+                      </>
+                    )}
                     {/* Blade distance */}
-                    <Box sx={{ width: '100%' }}>
-                      <Typography variant='subtitle2'>ระยะมีด</Typography>
-                      <TextField
-                        fullWidth
-                        disabled
-                        size='small'
-                        value={bladeFormData.BLADE_TYPE || ''}
-                        onChange={handleBladeChange('BLADE_TYPE')}
-                        margin='normal'
-                      />
-                    </Box>
-
-                    {/* Reason for using double blade */}
-                    <Box sx={{ width: '100%' }}>
-                      <Typography variant='subtitle2'>สาเหตุที่ใช้มีดคู่</Typography>
-                      <TextField
-                        fullWidth
-                        size='small'
-                        disabled
-                        multiline
-                        rows={3}
-                        value={bladeFormData.MULTI_BLADE_REASON || ''}
-                        onChange={handleBladeChange('MULTI_BLADE_REASON')}
-                        margin='normal'
-                      />
-                    </Box>
-
-                    {/* Details for using double blade */}
-                    <Box sx={{ width: '100%' }}>
-                      <Typography variant='subtitle2'>รายละเอียดในการใช้มีดคู่</Typography>
-                      <TextField
-                        fullWidth
-                        size='small'
-                        disabled
-                        multiline
-                        rows={2}
-                        value={bladeFormData.MULTI_BLADE_REMARK || ''}
-                        onChange={handleBladeChange('MULTI_BLADE_REMARK')}
-                        margin='normal'
-                      />
-                    </Box>
                   </Box>
                 </div>
                 <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>

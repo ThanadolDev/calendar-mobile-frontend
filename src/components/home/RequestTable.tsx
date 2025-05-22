@@ -1,9 +1,11 @@
 'use client'
 
 import type { Dispatch, SetStateAction, ChangeEvent } from 'react'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useCallback, useRef } from 'react'
 
 import type { MRT_ColumnDef, MRT_ColumnFiltersState } from 'material-react-table'
+
+import { debounce } from 'lodash'
 
 import { MaterialReactTable } from 'material-react-table'
 import {
@@ -21,8 +23,6 @@ import {
   Checkbox,
   ListItemText,
   IconButton,
-  FormControlLabel,
-  Divider,
   Menu
 } from '@mui/material'
 import { alpha } from '@mui/material/styles'
@@ -92,30 +92,34 @@ const RequestTable = ({
   const [selectedDiecut, setSelectedDiecut] = useState<IDiecut | null>(null)
   const [orderDateModalOpen, setOrderDateModalOpen] = useState(false)
   const [selectedDiecutForOrderDate, setSelectedDiecutForOrderDate] = useState<IDiecut | null>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   // Filter data based on search query
   const filteredData = useMemo(() => {
-    let filtered = [...data]
-
-    // Apply search query filter (search in multiple fields)
-    if (searchQuery) {
-      const lowerCaseQuery = searchQuery.toLowerCase().trim()
-
-      filtered = filtered.filter(
-        item =>
-          (item.DIECUT_ID && item.DIECUT_ID.toString().toLowerCase().includes(lowerCaseQuery)) ||
-          (item.DIECUT_SN && item.DIECUT_SN.toLowerCase().includes(lowerCaseQuery)) ||
-          (item.DIECUT_TYPE && item.DIECUT_TYPE.toLowerCase().includes(lowerCaseQuery)) ||
-          (item.STATUS && item.STATUS.toLowerCase().includes(lowerCaseQuery)) ||
-          (item.MODIFY_TYPE && item.MODIFY_TYPE.toLowerCase().includes(lowerCaseQuery)) ||
-          (item.PROD_DESC && item.PROD_DESC.toLowerCase().includes(lowerCaseQuery)) ||
-          (item.PROD_ID && item.PROD_ID.toLowerCase().includes(lowerCaseQuery)) ||
-          (item.JOB_ID && item.JOB_ID.toLowerCase().includes(lowerCaseQuery)) ||
-          (item.JOB_DESC && item.JOB_DESC.toLowerCase().includes(lowerCaseQuery))
-      )
+    // Early return if no search query to avoid unnecessary processing
+    if (!searchQuery || searchQuery.trim() === '') {
+      return data
     }
 
-    return filtered
+    const lowerCaseQuery = searchQuery.toLowerCase().trim()
+
+    // Use more efficient filtering - break early when possible
+    return data.filter(item => {
+      // Check most common search fields first for better performance
+      if (item.DIECUT_ID?.toString().toLowerCase().includes(lowerCaseQuery)) return true
+      if (item.DIECUT_SN?.toLowerCase().includes(lowerCaseQuery)) return true
+      if (item.JOB_ID?.toLowerCase().includes(lowerCaseQuery)) return true
+      if (item.PROD_ID?.toLowerCase().includes(lowerCaseQuery)) return true
+
+      // Less common fields - check only if needed
+      if (item.DIECUT_TYPE?.toLowerCase().includes(lowerCaseQuery)) return true
+      if (item.STATUS?.toLowerCase().includes(lowerCaseQuery)) return true
+      if (item.MODIFY_TYPE?.toLowerCase().includes(lowerCaseQuery)) return true
+      if (item.PROD_DESC?.toLowerCase().includes(lowerCaseQuery)) return true
+      if (item.JOB_DESC?.toLowerCase().includes(lowerCaseQuery)) return true
+
+      return false
+    })
   }, [data, searchQuery])
 
   // Helper functions for status display
@@ -164,6 +168,28 @@ const RequestTable = ({
         return 'default'
     }
   }
+
+  const debouncedSetSearchQuery = useCallback(
+    debounce((value: string) => {
+      setSearchQuery(value)
+    }, 1000), // 300ms delay
+    [setSearchQuery]
+  )
+
+  const handleSearchInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value
+
+      // Update input immediately for responsive UI
+      if (searchInputRef.current) {
+        searchInputRef.current.value = value
+      }
+
+      // Debounce the actual search query update
+      debouncedSetSearchQuery(value)
+    },
+    [debouncedSetSearchQuery]
+  )
 
   const handleOpenOrderDateModal = (item: IDiecut, event: React.MouseEvent) => {
     event.stopPropagation() // Prevent row selection
@@ -900,56 +926,24 @@ const RequestTable = ({
 
   // Define custom top toolbar with search and filters
   const RenderTopToolbar = () => {
-    const [filterMenuAnchor, setFilterMenuAnchor] = useState<null | HTMLElement>(null)
-    const [showStatusT, setShowStatusT] = useState(true) // Default to showing all statuses
+    // const [filterMenuAnchor, setFilterMenuAnchor] = useState<null | HTMLElement>(null)
+    // const [showStatusT, setShowStatusT] = useState(true)
 
-    // Handle filter menu open/close
-    // const handleFilterMenuClick = (event: React.MouseEvent<HTMLElement>) => {
-    //   setFilterMenuAnchor(event.currentTarget)
+    // const handleFilterMenuClose = () => {
+    //   setFilterMenuAnchor(null)
     // }
 
-    const handleFilterMenuClose = () => {
-      setFilterMenuAnchor(null)
-    }
+    // const handleStatusTFilterChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    //   setShowStatusT(event.target.checked)
 
-    // Handle filter change for status T
-    const handleStatusTFilterChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-      setShowStatusT(event.target.checked)
-
-      // Apply filter to the data
-      if (event.target.checked) {
-        // When checked, filter out status T records
-        setColumnFilters(prev => [
-          ...prev.filter(f => f.id !== 'STATUS'),
-          { id: 'STATUS', value: 'T', operator: 'notEquals' }
-        ])
-      } else {
-        // When unchecked, show all records (remove the filter)
-        setColumnFilters(prev => prev.filter(f => f.id !== 'STATUS'))
-      }
-    }
-
-    // Handle creating a new record
-    // const handleCreateNewRecord = () => {
-    //   // Close menu
-    //   handleFilterMenuClose()
-
-    //   // Create a new record with default values
-    //   const newItem: IDiecut = {
-    //     DIECUT_ID: selectedType[0] || 'DC', // Use selected type or default to DC
-    //     DIECUT_SN: `${selectedType[0] || 'DC'}-NEW-${Date.now()}`, // Generate a temporary SN
-    //     STATUS: 'N', // Default status for new records
-    //     DIECUT_TYPE: selectedType[0] || 'DC'
-
-    //     // Add other required fields with default values
+    //   if (event.target.checked) {
+    //     setColumnFilters(prev => [
+    //       ...prev.filter(f => f.id !== 'STATUS'),
+    //       { id: 'STATUS', value: 'T', operator: 'notEquals' }
+    //     ])
+    //   } else {
+    //     setColumnFilters(prev => prev.filter(f => f.id !== 'STATUS'))
     //   }
-
-    //   // Add the new item to the data (Note: This is just UI state change; actual API call will happen later)
-    //   // setData([newItem, ...data]);
-
-    //   // Select the new item and open edit mode
-    //   handleItemSelect(newItem)
-    //   handleEditClick(newItem)
     // }
 
     return (
@@ -966,9 +960,10 @@ const RequestTable = ({
         }}
       >
         <TextField
+          ref={searchInputRef}
           placeholder='ค้นหา.... (เลขที่, รหัส)'
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
+          defaultValue={searchQuery} // Use defaultValue instead of value
+          onChange={handleSearchInputChange} // Use the new optimized handler
           size='small'
           InputProps={{
             startAdornment: (
@@ -976,18 +971,6 @@ const RequestTable = ({
                 <SearchIcon fontSize='small' />
               </InputAdornment>
             )
-
-            // endAdornment: (
-            //   <InputAdornment position='end'>
-            //     {searchQuery ? (
-            //       <ClearIcon fontSize='small' sx={{ cursor: 'pointer' }} onClick={() => setSearchQuery('')} />
-            //     ) : (
-            //       <IconButton size='small' onClick={handleFilterMenuClick}>
-            //         <FilterList fontSize='small' />
-            //       </IconButton>
-            //     )}
-            //   </InputAdornment>
-            // )
           }}
           sx={{
             width: '700px',
@@ -997,40 +980,7 @@ const RequestTable = ({
           }}
         />
 
-        {/* Filter and Create Menu */}
-        <Menu
-          anchorEl={filterMenuAnchor}
-          open={Boolean(filterMenuAnchor)}
-          onClose={handleFilterMenuClose}
-          PaperProps={{
-            sx: {
-              minWidth: '200px',
-              p: 1,
-              boxShadow: '0px 4px 8px rgba(0,0,0,0.1)'
-            }
-          }}
-        >
-          <MenuItem sx={{ p: 0 }}>
-            <FormControlLabel
-              control={<Checkbox checked={showStatusT} onChange={handleStatusTFilterChange} size='small' />}
-              label='Show Ready Items (Status = T)'
-              sx={{ width: '100%', pl: 1 }}
-            />
-          </MenuItem>
-
-          <Divider sx={{ my: 1 }} />
-
-          {/* <MenuItem onClick={handleCreateNewRecord} sx={{ color: 'primary.main' }}>
-            <AddIcon fontSize='small' sx={{ mr: 1 }} />
-            Create New Record
-          </MenuItem>
-
-          <MenuItem onClick={handleClearFilters}>
-            <ClearIcon fontSize='small' sx={{ mr: 1 }} />
-            Clear All Filters
-          </MenuItem> */}
-        </Menu>
-
+        {/* Rest of your existing toolbar components... */}
         <Box sx={{ marginLeft: 'auto' }}>
           <Chip
             label={`รวม ${formatNumber(
@@ -1120,9 +1070,10 @@ const RequestTable = ({
         enableGrouping
         enableExpanding
         enableStickyHeader
-        enableColumnDragging={false} // Add this to disable column dragging
-        enableRowDragging={false} // Add this to disable row dragging
-        enableColumnActions={true} // Add this to remove the column menu button
+        enableColumnDragging={false}
+        enableRowDragging={false}
+        enableColumnActions={true}
+        autoResetPageIndex={false}
         initialState={{
           pagination: { pageSize: 50, pageIndex: 0 },
           density: 'compact',

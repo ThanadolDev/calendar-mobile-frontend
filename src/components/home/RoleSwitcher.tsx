@@ -18,10 +18,10 @@ import { usePermission } from '../../contexts/PermissionContext'
 
 // Define all available roles for switching
 const AVAILABLE_ROLES = [
-  { id: 'DIECUT_STAMPING_MANAGER_POS', label: 'หน้าตาหัวหน้าห้องแบบ' },
-  { id: 'DIECUT_STAMPING_MANAGER_UID', label: 'พนักงานห้องแบบ' },
+  { id: 'DIECUT_STAMPING_MANAGER_POS', label: 'หัวหน้าห้องแบบ' },
+  { id: 'DIECUT_CHG_MOD_TYPE_LIST', label: 'พนักงานห้องแบบ' },
   { id: 'DIECUT_PLANNING_POS', label: 'วางแผน' },
-  { id: null, label: 'View' }
+  { id: null, label: 'ดู' }
 ]
 
 const RoleSwitcher = () => {
