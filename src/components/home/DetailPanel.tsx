@@ -1446,11 +1446,14 @@ const DetailPanel = ({
         // First verify the supervisor credentials
         const authResult: any = await apiClient.post('/api/diecuts/verifyapprover', {
           username,
-          password,
-          requiredPositionId: 'DIECUT_CHG_MOD_TYPE_APPV_POS'
+          password
         })
 
         if (authResult.success) {
+          setError('ไม่สามารถบันทึกการอนุมัติได้: ' + authResult.message)
+        }
+
+        if (authResult.data.permissionCheckDetails.appvrole) {
           setLoadingStep(2) // Move to saving step
 
           // If authentication is successful, approve the change
@@ -1486,7 +1489,7 @@ const DetailPanel = ({
             setLoadingStep(0)
           }
         } else {
-          setError('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง หรือคุณไม่มีตำแหน่งงานที่สามารถอนุมัติได้')
+          setError('คุณไม่มีตำแหน่งงานที่สามารถอนุมัติได้')
           setLoadingStep(0)
         }
       } catch (error) {
@@ -1551,7 +1554,7 @@ const DetailPanel = ({
           isManager ? (
             <form onSubmit={handleDirectApprove}>
               <DialogContent>
-                <DialogContentText>คุณต้องการเปลี่ยนประเภทงานจากหรือไม่?</DialogContentText>
+                <DialogContentText>คุณต้องการเปลี่ยนประเภทงานหรือไม่?</DialogContentText>
                 {error && (
                   <Alert severity='error' sx={{ mt: 2 }}>
                     {error}
@@ -1570,10 +1573,8 @@ const DetailPanel = ({
           ) : (
             <form onSubmit={handleApprove}>
               <DialogContent>
-                <DialogContentText>
-                  กรุณาใส่ชื่อผู้ใช้และรหัสผ่านของคนที่มีสิทธิ์อนุมัติการเปลี่ยนประเภทงาน
-                </DialogContentText>
-                <TextField autoFocus margin='dense' name='username' label='ชื่อผู้ใช้' type='text' fullWidth required />
+                <DialogContentText>กรุณาใส่ ID และรหัสผ่านของคนที่มีสิทธิ์อนุมัติการเปลี่ยนประเภทงาน</DialogContentText>
+                <TextField autoFocus margin='dense' name='username' label='ID ผู้ใช้' type='text' fullWidth required />
                 <TextField margin='dense' name='password' label='รหัสผ่าน' type='password' fullWidth required />
                 {error && (
                   <Alert severity='error' sx={{ mt: 2 }}>
@@ -1992,29 +1993,25 @@ const DetailPanel = ({
                     {/* แก้ไขที่ Box ที่มีปุ่มให้มีเงื่อนไขแสดงผล */}
                     <Box sx={{ ml: 'auto' }}>
                       {bladeFormData?.MODIFY_TYPE_APPV_FLAG === 'P' ? (
-                        isManager && (
-                          <PermissionGate requiredPermission='isManager'>
-                            <Button
-                              variant='outlined'
-                              size='small'
-                              onClick={() => setShowTypeApprovalDialog(true)}
-                              sx={{
-                                borderColor: '#98867B',
-                                color: '#98867B',
-                                '&:hover': {
-                                  borderColor: '#5A4D40',
-                                  backgroundColor: 'rgba(152, 134, 123, 0.04)'
-                                },
-                                '&.Mui-disabled': {
-                                  borderColor: 'rgba(0, 0, 0, 0.12)',
-                                  color: 'rgba(0, 0, 0, 0.26)'
-                                }
-                              }}
-                            >
-                              อนุมัติ
-                            </Button>
-                          </PermissionGate>
-                        )
+                        <Button
+                          variant='outlined'
+                          size='small'
+                          onClick={() => setShowTypeApprovalDialog(true)}
+                          sx={{
+                            borderColor: '#98867B',
+                            color: '#98867B',
+                            '&:hover': {
+                              borderColor: '#5A4D40',
+                              backgroundColor: 'rgba(152, 134, 123, 0.04)'
+                            },
+                            '&.Mui-disabled': {
+                              borderColor: 'rgba(0, 0, 0, 0.12)',
+                              color: 'rgba(0, 0, 0, 0.26)'
+                            }
+                          }}
+                        >
+                          อนุมัติ
+                        </Button>
                       ) : (
                         <Button
                           variant='outlined'
