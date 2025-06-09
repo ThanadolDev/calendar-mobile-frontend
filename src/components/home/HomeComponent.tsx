@@ -6,7 +6,6 @@ import { Box, useTheme, useMediaQuery, Alert, CircularProgress, Typography, Pape
 
 import OrderModal from '../OrderModal'
 
-
 // import { getUserInfo } from '@/utils/userInfo'
 import type { IDiecut } from '../../types/types'
 import RequestTable from './RequestTable'
@@ -455,6 +454,7 @@ const HomeComponent = () => {
             typesLoading={typesLoading}
             handleTypeChange={handleTypeChange}
             handleOrderClick={handleOrderClick}
+            selectedItem={selectedItem}
           />
         </Paper>
 

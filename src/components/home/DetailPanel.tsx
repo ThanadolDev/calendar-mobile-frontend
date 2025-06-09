@@ -6,6 +6,11 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
 import ConstructionIcon from '@mui/icons-material/Construction'
+import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker'
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
+import dayjs from 'dayjs'
+import 'dayjs/locale/th'
 import {
   Box,
   Typography,
@@ -51,7 +56,7 @@ interface BladeItem {
   details: string
   TL_STATUS: string
   PROB_DESC: string
-  START_TIME: Date
+  START_TIME: Date | null
   END_TIME: Date | null
   PRODUCTION_ISSUE: string
   TOOLING_AGE: number
@@ -77,6 +82,7 @@ interface BladeItem {
   NEW_ADD?: boolean
   MODIFY_TYPE_REQ_REMARK?: string // Added field for change reason
   CR_DATE?: string | Date
+  LAST_MODIFY?: string | Date
 }
 
 interface DetailPanelProps {
@@ -240,21 +246,6 @@ const DetailPanel = ({
   )
 
   // Function to format date as DD/MM/YYYY
-  const formatDateDisplay = (date: Date | string | null): string => {
-    if (!date) return '-'
-
-    try {
-      const dateObj = typeof date === 'string' ? new Date(date) : date
-
-      if (isNaN(dateObj.getTime())) return '-'
-
-      return `${dateObj.getDate().toString().padStart(2, '0')}/${(dateObj.getMonth() + 1).toString().padStart(2, '0')}/${dateObj.getFullYear()}`
-    } catch (error) {
-      console.error('Error formatting date:', error)
-
-      return '-'
-    }
-  }
 
   // Validate the form before saving
   const validateForm = (): boolean => {
@@ -457,8 +448,8 @@ const DetailPanel = ({
           diecutId: formData.DIECUT_ID,
           diecutSN: formData.DIECUT_SN,
           diecutAge: formData.DIECUT_AGE,
-          startTime: formData.START_TIME ? new Date(formData.START_TIME) : null,
-          endTime: formData.END_TIME ? new Date(formData.END_TIME) : null,
+          startTime: formData.START_TIME ? formData.START_TIME : null,
+          endTime: formData.END_TIME ? formData.END_TIME : null,
           bladeType: formData.BLADE_TYPE,
           multiBladeReason: formData.MULTI_BLADE_REASON,
           multiBladeRemark: formData.MULTI_BLADE_REMARK,
@@ -601,6 +592,50 @@ const DetailPanel = ({
     }
   }
 
+  const handleOpenTypeChangeDialog = async () => {
+    if (!bladeFormData) return
+
+    try {
+      // Set loading state if you want to show loading indicator
+      // setLoading(true); // You might want to add a specific loading state for this
+
+      // Fetch allowed change types from API
+      const result: any = await apiClient.post('/api/diecuts/getallowedtypes', {
+        diecutId: bladeFormData.DIECUT_ID,
+        diecutSN: bladeFormData.DIECUT_SN,
+        currentType: bladeFormData.MODIFY_TYPE,
+        status: bladeFormData.STATUS
+      })
+
+      if (result.success && result.data.diecutType) {
+        // Split the comma-separated string into an array
+        const allowedTypesArray = result.data.diecutType
+          .split(',')
+          .map((type: string) => type.trim())
+          .filter((type: string) => type.length > 0)
+
+        // Update the allowed change types state
+        setAllowedChangeTypes(allowedTypesArray)
+
+        // Now open the dialog
+        setShowTypeChangeDialog(true)
+      } else {
+        // Handle case where no allowed types are returned
+        console.warn('No allowed change types found')
+
+        // You might want to show a message to the user
+        alert('ไม่สามารถเปลี่ยนประเภทงานได้ในขณะนี้')
+      }
+    } catch (error) {
+      console.error('Error fetching allowed change types:', error)
+
+      // Show error message to user
+      alert('เกิดข้อผิดพลาดในการโหลดข้อมูล กรุณาลองใหม่อีกครั้ง')
+    } finally {
+      // setLoading(false);
+    }
+  }
+
   const handleCancelOrder = async () => {
     if (!bladeFormData) return
 
@@ -632,6 +667,50 @@ const DetailPanel = ({
       console.error('Error cancelling order:', error)
 
       // You could show an error message here
+    }
+  }
+
+  const formatDateForInput = (date: Date | string | null): string => {
+    if (!date) return ''
+
+    try {
+      const dateObj = typeof date === 'string' ? new Date(date) : date
+
+      if (isNaN(dateObj.getTime())) return ''
+
+      // Force to use Thailand timezone and format as YYYY-MM-DDTHH:MM
+      const year = dateObj.getFullYear()
+      const month = (dateObj.getMonth() + 1).toString().padStart(2, '0')
+      const day = dateObj.getDate().toString().padStart(2, '0')
+      const hours = dateObj.getHours().toString().padStart(2, '0')
+      const minutes = dateObj.getMinutes().toString().padStart(2, '0')
+
+      return `${year}-${month}-${day}T${hours}:${minutes}`
+    } catch (error) {
+      console.error('Error formatting date for input:', error)
+
+      return ''
+    }
+  }
+
+  const formatDateDisplay = (date: Date | string | null): string => {
+    if (!date) return '-'
+
+    try {
+      const dateObj = typeof date === 'string' ? new Date(date) : date
+
+      if (isNaN(dateObj.getTime())) return '-'
+
+      // Force DD/MM/YYYY format regardless of user locale
+      const day = dateObj.getDate().toString().padStart(2, '0')
+      const month = (dateObj.getMonth() + 1).toString().padStart(2, '0')
+      const year = dateObj.getFullYear()
+
+      return `${day}/${month}/${year}`
+    } catch (error) {
+      console.error('Error formatting date:', error)
+
+      return '-'
     }
   }
 
@@ -760,7 +839,7 @@ const DetailPanel = ({
           details: '',
           TL_STATUS: 'GOOD',
           PROB_DESC: '',
-          START_TIME: new Date(),
+          START_TIME: null,
           END_TIME: null,
           PRODUCTION_ISSUE: '',
           TOOLING_AGE: 0,
@@ -865,7 +944,7 @@ const DetailPanel = ({
       ...blade,
 
       // Convert string dates to Date objects if they exist
-      START_TIME: blade.START_TIME ? new Date(blade.START_TIME) : new Date(),
+      START_TIME: blade.START_TIME ? new Date(blade.START_TIME) : null,
       END_TIME: blade.END_TIME ? new Date(blade.END_TIME) : null,
       REQUIRED_DATE: blade.REQUIRED_DATE ? new Date(blade.REQUIRED_DATE) : null,
       MODIFY_TYPE_REQ_REMARK: blade.MODIFY_TYPE_REQ_REMARK || ''
@@ -907,7 +986,7 @@ const DetailPanel = ({
             details: '',
             TL_STATUS: 'GOOD',
             PROB_DESC: item.PROD_DESC || '',
-            START_TIME: new Date(),
+            START_TIME: null,
             END_TIME: null,
             PRODUCTION_ISSUE: '',
             TOOLING_AGE: item.AGES || 0,
@@ -1040,7 +1119,7 @@ const DetailPanel = ({
         details: '',
         TL_STATUS: 'GOOD',
         PROB_DESC: '',
-        START_TIME: new Date(),
+        START_TIME: null,
         MODIFY_TYPE: 'N',
         MODIFY_TYPE_REQ_REMARK: '',
 
@@ -1209,7 +1288,7 @@ const DetailPanel = ({
   // Dialog for work type change
   const TypeChangeDialog = () => {
     const [loading, setLoading] = useState(false)
-    const [localChangeReason, setLocalChangeReason] = useState(bladeFormData?.MODIFY_TYPE_REQ_REMARK || '')
+    const [localChangeReason, setLocalChangeReason] = useState('')
     const [localError, setLocalError] = useState('')
 
     // Use local state for the modify type to avoid conflicts
@@ -1240,6 +1319,7 @@ const DetailPanel = ({
           diecutId: bladeFormData?.DIECUT_ID,
           diecutSN: bladeFormData?.DIECUT_SN,
           modifyType: localNewModifyType,
+          modifyTypeBefore: bladeFormData?.STATUS,
           changeReason: localChangeReason,
           modifyTypeAppvFlag: 'P'
         }
@@ -1254,7 +1334,7 @@ const DetailPanel = ({
           setBladeFormData(prev => ({
             ...prev!,
             MODIFY_TYPE_APPV_FLAG: 'P',
-            MODIFY_TYPE: localNewModifyType,
+            MODIFY_TYPE_REQ_TO: localNewModifyType,
             MODIFY_TYPE_REQ_REMARK: localChangeReason
           }))
 
@@ -1298,31 +1378,37 @@ const DetailPanel = ({
             <Select
               value={localNewModifyType}
               onChange={e => {
-                console.log('Dropdown changed to:', e.target.value)
                 setLocalNewModifyType(e.target.value)
 
-                // Clear any previous errors when user selects a value
                 if (localError && !localChangeReason) {
                   setLocalError('')
                 }
               }}
               label='ประเภทงานใหม่'
               disabled={loading}
-              MenuProps={{
-                disablePortal: false,
-                keepMounted: true
-              }}
             >
-              {MODIFY_TYPES.map(type => (
-                <MenuItem key={type.value} value={type.value}>
-                  {type.label}
-                </MenuItem>
-              ))}
+              {/* Only show allowed types from the API response */}
+              {allowedChangeTypes.length > 0
+                ? allowedChangeTypes.map(typeValue => {
+                    const typeConfig = MODIFY_TYPES.find(t => t.value === typeValue)
+
+                    return (
+                      <MenuItem key={typeValue} value={typeValue}>
+                        {typeConfig ? typeConfig.label : typeValue}
+                      </MenuItem>
+                    )
+                  })
+                : // Fallback to all types if no specific allowed types
+                  MODIFY_TYPES.map(type => (
+                    <MenuItem key={type.value} value={type.value}>
+                      {type.label}
+                    </MenuItem>
+                  ))}
             </Select>
           </FormControl>
           <TextField
             margin='dense'
-            label='เหตุผลในการเปลี่ยน'
+            label='เหตุผลในการเปลี่ยนประเภทงาน'
             multiline
             rows={3}
             fullWidth
@@ -1359,6 +1445,26 @@ const DetailPanel = ({
         </DialogActions>
       </Dialog>
     )
+  }
+
+  const shouldDisableCancelButton = () => {
+    if (!bladeFormData) return true
+
+    // Check if status is not 'N'
+    if (bladeFormData.STATUS !== 'N') return true
+
+    // Check if DIECUT_SN ends with '-1' or '-0'
+    const diecutSN = bladeFormData.DIECUT_SN
+
+    if (diecutSN) {
+      const lastPart = diecutSN.split('-').pop() // Get the last part after splitting by '-'
+
+      if (lastPart === '1' || lastPart === '0') {
+        return true // Disable if ends with -1 or -0
+      }
+    }
+
+    return false // Enable button if all conditions are met
   }
 
   // Dialog for work type change approval
@@ -1637,7 +1743,7 @@ const DetailPanel = ({
 
     switch (status) {
       case 'N':
-        return 'สร้างใหม่'
+        return 'สั่งทำใหม่'
       case 'B':
         return 'เปลี่ยนใบมีด'
       case 'M':
@@ -2016,7 +2122,7 @@ const DetailPanel = ({
                         <Button
                           variant='outlined'
                           size='small'
-                          onClick={() => setShowTypeChangeDialog(true)}
+                          onClick={handleOpenTypeChangeDialog}
                           sx={{
                             borderColor: '#98867B',
                             color: '#98867B',
@@ -2039,114 +2145,120 @@ const DetailPanel = ({
 
                 <div className='flex-1 overflow-auto' style={{ height: '65vh' }}>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-                    {/* Start Date */}
                     <Box sx={{ width: 'calc(50% - 8px)' }}>
                       <Typography variant='subtitle2'>เริ่มงานวันที่</Typography>
-                      <TextField
-                        fullWidth
-                        size='small'
-                        type='datetime-local'
-                        value={(() => {
-                          // Check if START_TIME exists
-                          if (!bladeFormData.START_TIME) {
-                            return new Date().toISOString().substring(0, 16) // Default to current date and time
-                          }
+                      <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale='th'>
+                        <DateTimePicker
+                          value={(() => {
+                            if (!bladeFormData.START_TIME) return null
 
-                          // Convert to Date object if it's a string
-                          const startTimeDate =
-                            typeof bladeFormData.START_TIME === 'string'
-                              ? new Date(bladeFormData.START_TIME)
-                              : new Date(bladeFormData.START_TIME)
+                            try {
+                              const startDate = dayjs(bladeFormData.START_TIME)
 
-                          // Check if the date is valid
-                          if (isNaN(startTimeDate.getTime())) {
-                            return new Date().toISOString().substring(0, 16) // Invalid date, use current date
-                          }
+                              if (!startDate.isValid()) return null
 
-                          // Check if date is more than 50 years ago
-                          const fiftyYearsAgo = new Date()
+                              // Check if date is more than 50 years ago
+                              const fiftyYearsAgo = dayjs().subtract(50, 'year')
 
-                          fiftyYearsAgo.setFullYear(fiftyYearsAgo.getFullYear() - 50)
+                              if (startDate.isBefore(fiftyYearsAgo)) return null
 
-                          if (startTimeDate < fiftyYearsAgo) {
-                            // If date is more than 50 years ago, use current date instead
-                            return new Date().toISOString().substring(0, 16)
-                          }
+                              return startDate
+                            } catch (e) {
+                              return null
+                            }
+                          })()}
+                          onChange={newValue => {
+                            // Create a synthetic event-like object for consistency with existing handler
+                            const syntheticEvent = {
+                              target: {
+                                value: newValue ? newValue.toISOString() : ''
+                              }
+                            } as React.ChangeEvent<HTMLInputElement>
 
-                          // Format date to YYYY-MM-DDTHH:MM
-                          return startTimeDate.toISOString().substring(0, 16)
-                        })()}
-                        onChange={handleBladeChange('START_TIME')}
-                        InputLabelProps={{ shrink: true }}
-                        margin='normal'
-                        error={!!validationErrors.START_TIME}
-                        helperText={validationErrors.START_TIME}
-                        inputProps={{
-                          max: new Date().toISOString().substring(0, 16), // Restrict to current date/time
-                          min: bladeFormData?.CR_DATE
-                            ? new Date(bladeFormData.CR_DATE).toISOString().substring(0, 16)
-                            : undefined // Set minimum date to creation date
-                        }}
-                        disabled={bladeFormData?.MODIFY_TYPE_APPV_FLAG === 'P'}
-                      />
+                            handleBladeChange('START_TIME')(syntheticEvent)
+                          }}
+                          maxDateTime={dayjs()} // Prevent future dates
+                          disabled={bladeFormData?.MODIFY_TYPE_APPV_FLAG === 'P'}
+                          slotProps={{
+                            textField: {
+                              fullWidth: true,
+                              size: 'small',
+                              margin: 'normal',
+                              error: !!validationErrors.START_TIME,
+                              helperText: validationErrors.START_TIME
+                            },
+                            actionBar: {
+                              actions: ['clear', 'cancel', 'accept']
+                            }
+                          }}
+                          format='DD/MM/YYYY'
+                          ampm={false} // Use 24-hour format
+                          minutesStep={1} // Allow selection of every minute
+                        />
+                      </LocalizationProvider>
                     </Box>
 
                     {/* End Date */}
                     <Box sx={{ width: 'calc(50% - 8px)' }}>
                       <Typography variant='subtitle2'>สิ้นสุดวันที่</Typography>
-                      <TextField
-                        fullWidth
-                        size='small'
-                        type='datetime-local'
-                        value={(() => {
-                          if (!bladeFormData.END_TIME) return ''
-
-                          try {
-                            const endDate =
-                              typeof bladeFormData.END_TIME === 'string'
-                                ? new Date(bladeFormData.END_TIME)
-                                : bladeFormData.END_TIME
-
-                            // Check if date is valid
-                            if (isNaN(endDate.getTime())) return ''
-
-                            return endDate.toISOString().substring(0, 16)
-                          } catch (e) {
-                            console.error('Error formatting END_TIME:', e)
-
-                            return ''
-                          }
-                        })()}
-                        onChange={handleBladeChange('END_TIME')}
-                        InputLabelProps={{ shrink: true }}
-                        margin='normal'
-                        inputProps={{
-                          min: (() => {
-                            if (!bladeFormData.START_TIME) return ''
+                      <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale='th'>
+                        <DateTimePicker
+                          value={(() => {
+                            if (!bladeFormData.END_TIME) return null
 
                             try {
-                              const startDate =
-                                typeof bladeFormData.START_TIME === 'string'
-                                  ? new Date(bladeFormData.START_TIME)
-                                  : bladeFormData.START_TIME
+                              const endDate = dayjs(bladeFormData.END_TIME)
 
-                              // Check if date is valid
-                              if (isNaN(startDate.getTime())) return ''
+                              if (!endDate.isValid()) return null
 
-                              return startDate.toISOString().substring(0, 16)
+                              return endDate
                             } catch (e) {
-                              console.error('Error formatting START_TIME minimum:', e)
-
-                              return ''
+                              return null
                             }
-                          })(),
+                          })()}
+                          onChange={newValue => {
+                            // Create a synthetic event-like object for consistency with existing handler
+                            const syntheticEvent = {
+                              target: {
+                                value: newValue ? newValue.toISOString() : ''
+                              }
+                            } as React.ChangeEvent<HTMLInputElement>
 
-                          max: new Date().toISOString().substring(0, 16) // Restrict to current date/time
-                        }}
-                        error={!!validationErrors.END_TIME}
-                        helperText={validationErrors.END_TIME}
-                        disabled={bladeFormData?.MODIFY_TYPE_APPV_FLAG === 'P'}
-                      />
+                            handleBladeChange('END_TIME')(syntheticEvent)
+                          }}
+                          minDateTime={(() => {
+                            if (!bladeFormData.START_TIME) return undefined
+
+                            try {
+                              const startDate = dayjs(bladeFormData.START_TIME)
+
+                              if (!startDate.isValid()) return undefined
+
+                              return startDate
+                            } catch (e) {
+                              return undefined
+                            }
+                          })()}
+                          maxDateTime={dayjs()} // Prevent future dates
+                          disabled={bladeFormData?.MODIFY_TYPE_APPV_FLAG === 'P' || !bladeFormData?.START_TIME}
+                          slotProps={{
+                            textField: {
+                              fullWidth: true,
+                              size: 'small',
+                              margin: 'normal',
+                              error: !!validationErrors.END_TIME,
+                              helperText:
+                                validationErrors.END_TIME ||
+                                (!bladeFormData?.START_TIME ? 'กรุณาเลือกวันที่เริ่มงานก่อน' : '')
+                            },
+                            actionBar: {
+                              actions: ['clear', 'cancel', 'accept']
+                            }
+                          }}
+                          format='DD/MM/YYYY'
+                          ampm={false} // Use 24-hour format
+                        />
+                      </LocalizationProvider>
                     </Box>
 
                     {/* Full-width Fields */}
@@ -2204,6 +2316,9 @@ const DetailPanel = ({
                         onChange={handleBladeChange('REMARK')}
                         margin='normal'
                         disabled={bladeFormData?.MODIFY_TYPE_APPV_FLAG === 'P'}
+                        inputProps={{
+                          maxLength: 250
+                        }}
                       />
                     </Box>
 
@@ -2277,10 +2392,22 @@ const DetailPanel = ({
                       variant='outlined'
                       color='error'
                       onClick={() => setShowCancelOrderDialog(true)}
+                      disabled={shouldDisableCancelButton()}
                       sx={{
-                        borderColor: '#d32f2f',
-                        color: '#d32f2f'
+                        borderColor: shouldDisableCancelButton() ? 'rgba(211, 47, 47, 0.3)' : '#d32f2f',
+                        color: shouldDisableCancelButton() ? 'rgba(211, 47, 47, 0.3)' : '#d32f2f',
+                        '&.Mui-disabled': {
+                          borderColor: 'rgba(211, 47, 47, 0.3)',
+                          color: 'rgba(211, 47, 47, 0.3)'
+                        }
                       }}
+                      title={
+                        shouldDisableCancelButton()
+                          ? bladeFormData?.STATUS !== 'N'
+                            ? 'สามารถยกเลิกได้เฉพาะสถานะ "สร้างใหม่" เท่านั้น'
+                            : 'ไม่สามารถยกเลิก tooling หลักได้'
+                          : 'ยกเลิก tooling'
+                      }
                     >
                       ยกเลิก tooling
                     </Button>

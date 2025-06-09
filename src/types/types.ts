@@ -25,8 +25,8 @@ export interface IDiecut {
   LAST_MODIFY?: string
   DUE_DATE?: string | Date
   MODIFY_TYPE?: string
-  START_TIME?: Date | string
-  END_TIME?: Date | string
+  START_TIME?: Date | string | null
+  END_TIME?: Date | string | null
   PRODUCTION_ISSUE?: string
   TOOLING_AGE?: number
   FIX_DETAILS?: string
@@ -44,6 +44,7 @@ export interface IDiecut {
   isNewlyAdded?: boolean
   REMARK?: string
   ORDER_DATE?: string | Date
+  CR_DATE?: string | Date
 }
 
 export type UserRole = 'Manager' | 'User' | 'Mod' | 'View'

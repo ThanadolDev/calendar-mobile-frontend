@@ -51,7 +51,7 @@ export function getPermissionsByPositionId(posId: string | null): PermissionSet 
       }
 
     // จนท ห้องแบบ แผนกปั๊ม
-    case 'DIECUT_CHG_MOD_TYPE_LIST':
+    case 'DIECUT_CHG_MOD_TYPE_APPV_POS':
       return {
         isManager: false,
         canModify: false,

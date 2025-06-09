@@ -7,6 +7,7 @@ import type { MRT_ColumnDef, MRT_ColumnFiltersState } from 'material-react-table
 
 import { debounce } from 'lodash'
 
+// import dayjs from 'dayjs'
 import { MaterialReactTable } from 'material-react-table'
 import {
   Box,
@@ -26,7 +27,13 @@ import {
   Menu
 } from '@mui/material'
 import { alpha } from '@mui/material/styles'
-import { Search as SearchIcon, Add as AddIcon, Construction as ConstructionIcon, NoteAdd } from '@mui/icons-material'
+import {
+  Search as SearchIcon,
+  Add as AddIcon,
+  Construction as ConstructionIcon,
+  NoteAdd,
+  Clear as ClearIcon
+} from '@mui/icons-material'
 
 // import ConstructionIcon from '@mui/icons-material/Construction'
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined'
@@ -61,12 +68,13 @@ interface RequestTableProps {
   handleOrderClick?: (item: IDiecut) => void
   updateDiecutJobInfo?: (diecutId: string, diecutSn: string, jobId: string, prodId: string, revision: string) => void
   handleTypeSearch?: () => void
+  selectedItem?: IDiecut | null
 }
 
 const RequestTable = ({
   data,
   loading,
-
+  selectedItem,
   handleItemSelect,
   handleEditClick,
   searchQuery,
@@ -77,7 +85,8 @@ const RequestTable = ({
   handleTypeChange,
   setData,
   handleOrderClick,
-  handleTypeSearch
+  handleTypeSearch,
+  setSelectedType
 }: RequestTableProps) => {
   const { canRecordDetails, canCreateNew } = usePermission()
 
@@ -175,6 +184,17 @@ const RequestTable = ({
     }, 1000), // 300ms delay
     [setSearchQuery]
   )
+
+  const handleClearSearch = () => {
+    if (searchInputRef.current) {
+      searchInputRef.current.value = ''
+
+      // Clear your search query state
+      setSearchQuery('') // Assuming you have this function
+      // Optionally trigger search immediately
+      // handleSearchInputChange({ target: { value: '' } })
+    }
+  }
 
   const handleSearchInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -422,16 +442,55 @@ const RequestTable = ({
 
           return status ? <Chip label={getStatusText(status)} size='small' color={getStatusColor(status)} /> : null
         },
+
+        // Updated Filter component for STATUS column in RequestTable.tsx
         Filter: ({ header }) => {
           const { column } = header
           const filterValue = (column.getFilterValue() as string[]) || []
 
+          // All available status options
+          const allStatusOptions = ['N', 'B', 'M', 'E', 'T', 'F', 'D']
+
+          // Check if all options are selected
+          const isAllSelected = allStatusOptions.every(status => filterValue.includes(status))
+
+          // Check if some (but not all) options are selected
+          const isSomeSelected = filterValue.length > 0 && filterValue.length < allStatusOptions.length
+
           // Handler for select/unselect
           const handleSelectChange = (event: any) => {
-            const values = event.target.value
+            const values = event.target.value as string[]
 
-            // Make sure we're setting either an array or undefined (not an empty array)
+            // If 'ALL' is clicked
+            if (values.includes('ALL')) {
+              if (isAllSelected) {
+                // If all were selected, deselect all
+                column.setFilterValue(undefined)
+              } else {
+                // If not all were selected, select all
+                column.setFilterValue(allStatusOptions)
+              }
+
+              return
+            }
+
+            // Regular handling for individual status selections
             column.setFilterValue(values.length > 0 ? values : undefined)
+          }
+
+          // Handle individual status clicks
+          const handleStatusClick = (statusValue: string) => {
+            let newValues: string[]
+
+            if (filterValue.includes(statusValue)) {
+              // Remove the status
+              newValues = filterValue.filter(v => v !== statusValue)
+            } else {
+              // Add the status
+              newValues = [...filterValue, statusValue]
+            }
+
+            column.setFilterValue(newValues.length > 0 ? newValues : undefined)
           }
 
           return (
@@ -444,6 +503,10 @@ const RequestTable = ({
                 renderValue={selected => {
                   if (!selected || (selected as string[]).length === 0) {
                     return <em>ทั้งหมด</em>
+                  }
+
+                  if ((selected as string[]).length === allStatusOptions.length) {
+                    return <em>เลือกทั้งหมด</em>
                   }
 
                   return (selected as string[]).map(value => getStatusText(value)).join(', ')
@@ -466,31 +529,107 @@ const RequestTable = ({
                   }
                 }}
               >
-                <MenuItem value='N'>
-                  <Checkbox checked={filterValue?.includes('N') || false} />
-                  <ListItemText primary='สร้างใหม่' />
+                {/* ALL option */}
+                <MenuItem
+                  value='ALL'
+                  onClick={e => {
+                    e.preventDefault()
+                    e.stopPropagation()
+
+                    if (isAllSelected) {
+                      column.setFilterValue(undefined)
+                    } else {
+                      column.setFilterValue(allStatusOptions)
+                    }
+                  }}
+                  sx={{
+                    borderBottom: '1px solid #e0e0e0',
+                    mb: 1
+                  }}
+                >
+                  <Checkbox
+                    checked={isAllSelected}
+                    indeterminate={isSomeSelected}
+                    onChange={() => {}} // Handled by onClick above
+                  />
+                  <ListItemText primary='ทั้งหมด' sx={{ fontWeight: 'bold' }} />
                 </MenuItem>
-                <MenuItem value='B'>
+
+                {/* Individual status options */}
+                <MenuItem
+                  value='N'
+                  onClick={e => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    handleStatusClick('N')
+                  }}
+                >
+                  <Checkbox checked={filterValue?.includes('N') || false} />
+                  <ListItemText primary='สั่งทำใหม่' />
+                </MenuItem>
+                <MenuItem
+                  value='B'
+                  onClick={e => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    handleStatusClick('B')
+                  }}
+                >
                   <Checkbox checked={filterValue?.includes('B') || false} />
                   <ListItemText primary='เปลี่ยนใบมีด' />
                 </MenuItem>
-                <MenuItem value='M'>
+                <MenuItem
+                  value='M'
+                  onClick={e => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    handleStatusClick('M')
+                  }}
+                >
                   <Checkbox checked={filterValue?.includes('M') || false} />
                   <ListItemText primary='สร้างทดแทน' />
                 </MenuItem>
-                <MenuItem value='E'>
+                <MenuItem
+                  value='E'
+                  onClick={e => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    handleStatusClick('E')
+                  }}
+                >
                   <Checkbox checked={filterValue?.includes('E') || false} />
                   <ListItemText primary='แก้ไข' />
                 </MenuItem>
-                <MenuItem value='T'>
+                <MenuItem
+                  value='T'
+                  onClick={e => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    handleStatusClick('T')
+                  }}
+                >
                   <Checkbox checked={filterValue?.includes('T') || false} />
                   <ListItemText primary='พร้อมใช้งาน' />
                 </MenuItem>
-                <MenuItem value='F'>
+                <MenuItem
+                  value='F'
+                  onClick={e => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    handleStatusClick('F')
+                  }}
+                >
                   <Checkbox checked={filterValue?.includes('F') || false} />
                   <ListItemText primary='ยกเลิก' />
                 </MenuItem>
-                <MenuItem value='D'>
+                <MenuItem
+                  value='D'
+                  onClick={e => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    handleStatusClick('D')
+                  }}
+                >
                   <Checkbox checked={filterValue?.includes('D') || false} />
                   <ListItemText primary='ทำลายแล้ว' />
                 </MenuItem>
@@ -568,36 +707,97 @@ const RequestTable = ({
         header: 'ชื่องาน',
         size: 450
       },
+
+      // {
+      //   accessorKey: 'BLANK_SIZE_X',
+      //   header: 'กว้าง',
+      //   size: 100,
+      //   Cell: ({ cell }) => {
+      //     const value = formatNumber(cell.getValue() as string | number)
+
+      //     return <div style={{ textAlign: 'right', width: '100%' }}>{value || '-'}</div>
+      //   }
+      // },
       {
         accessorKey: 'BLANK_SIZE_X',
         header: 'กว้าง',
         size: 100,
+        filterVariant: 'text', // Use text-based filtering
         Cell: ({ cell }) => {
           const value = formatNumber(cell.getValue() as string | number)
 
           return <div style={{ textAlign: 'right', width: '100%' }}>{value || '-'}</div>
+        },
+        filterFn: (row, id, filterValue) => {
+          if (!filterValue) return true
+
+          const rawValue = row.getValue(id)
+
+          // Handle null/undefined values
+          if (rawValue === null || rawValue === undefined) return false
+
+          // Get both raw value and formatted value for exact matching
+          const formattedValue = formatNumber(rawValue as string | number) || ''
+          const rawStringValue = String(rawValue)
+          const filterString = String(filterValue).toLowerCase().trim()
+
+          // Exact match against both raw value and formatted value
+          return rawStringValue.toLowerCase() === filterString || formattedValue.toLowerCase() === filterString
         }
       },
       {
         accessorKey: 'BLANK_SIZE_Y',
         header: 'ยาว',
         size: 100,
+        filterVariant: 'text', // Use text-based filtering
         Cell: ({ cell }) => {
           const value = formatNumber(cell.getValue() as string | number)
 
           return <div style={{ textAlign: 'right', width: '100%' }}>{value || '-'}</div>
+        },
+        filterFn: (row, id, filterValue) => {
+          if (!filterValue) return true
+
+          const rawValue = row.getValue(id)
+
+          // Handle null/undefined values
+          if (rawValue === null || rawValue === undefined) return false
+
+          // Get both raw value and formatted value for exact matching
+          const formattedValue = formatNumber(rawValue as string | number) || ''
+          const rawStringValue = String(rawValue)
+          const filterString = String(filterValue).toLowerCase().trim()
+
+          // Exact match against both raw value and formatted value
+          return rawStringValue.toLowerCase() === filterString || formattedValue.toLowerCase() === filterString
         }
       },
-
       {
         accessorKey: 'REMAIN',
         header: 'อายุคงเหลือ',
         enableColumnOrdering: false,
         size: 143,
+        filterVariant: 'text', // Use text-based filtering
         Cell: ({ cell }) => {
           const value = formatNumber(cell.getValue() as string | number)
 
           return <div style={{ textAlign: 'right', width: '100%' }}>{value || '-'}</div>
+        },
+        filterFn: (row, id, filterValue) => {
+          if (!filterValue) return true
+
+          const rawValue = row.getValue(id)
+
+          // Handle null/undefined values
+          if (rawValue === null || rawValue === undefined) return false
+
+          // Get both raw value and formatted value for exact matching
+          const formattedValue = formatNumber(rawValue as string | number) || ''
+          const rawStringValue = String(rawValue)
+          const filterString = String(filterValue).toLowerCase().trim()
+
+          // Exact match against both raw value and formatted value
+          return rawStringValue.toLowerCase() === filterString || formattedValue.toLowerCase() === filterString
         }
       },
 
@@ -730,9 +930,23 @@ const RequestTable = ({
             setMenuAnchor(null)
           }
 
+          // Check if there are any unsaved local blades in this group
+          const diecutId: string = row.getValue('DIECUT_ID')
+
+          const hasUnsavedBlades = data.some(
+            item => item.DIECUT_ID === diecutId && (item.NEW_ADD === true || item.isNewlyAdded === true)
+          )
+
           const handleCreateNewBladeInGroup = (e: any) => {
             handleClose()
             if (e) e.stopPropagation()
+
+            // Prevent adding if there are already unsaved blades
+            if (hasUnsavedBlades) {
+              alert('กรุณาบันทึกใบมีดที่เพิ่มใหม่ก่อน หรือลบออกก่อนเพิ่มใหม่')
+
+              return
+            }
 
             // Get the group's DIECUT_ID
             const diecutId: string = row.getValue('DIECUT_ID')
@@ -779,11 +993,6 @@ const RequestTable = ({
               setData([...data, newItem])
             }
 
-            // Call the parent handlers to select and edit the new item
-            // handleItemSelect(newItem)
-
-            // handleEditClick(newItem)
-
             // Expand the group to show the new item
             if (!row.getIsExpanded()) {
               row.toggleExpanded()
@@ -797,23 +1006,43 @@ const RequestTable = ({
                   size='small'
                   variant='contained'
                   onClick={handleMenuClick}
+                  disabled={hasUnsavedBlades}
                   sx={{
-                    backgroundColor: '#98867B',
-                    color: 'white',
+                    backgroundColor: hasUnsavedBlades ? '#ccc' : '#98867B',
+                    color: hasUnsavedBlades ? '#666' : 'white',
                     '&:hover': {
-                      backgroundColor: '#5A4D40'
+                      backgroundColor: hasUnsavedBlades ? '#ccc' : '#5A4D40'
+                    },
+                    '&.Mui-disabled': {
+                      backgroundColor: '#ccc',
+                      color: '#666'
                     },
                     width: '150px'
                   }}
                   startIcon={<AddIcon fontSize='small' />}
+                  title={hasUnsavedBlades ? 'มีใบมีดที่ยังไม่ได้บันทึก กรุณาบันทึกก่อน' : 'เพิ่ม COPY'}
                 >
                   เพิ่ม COPY
                 </Button>
 
                 <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={handleClose} sx={{ mt: 1 }}>
-                  <MenuItem onClick={handleCreateNewBladeInGroup}>
-                    <AddIcon fontSize='small' sx={{ mr: 1 }} />
+                  <MenuItem
+                    onClick={handleCreateNewBladeInGroup}
+                    disabled={hasUnsavedBlades}
+                    sx={{
+                      '&.Mui-disabled': {
+                        opacity: 0.5,
+                        cursor: 'not-allowed'
+                      }
+                    }}
+                  >
+                    <AddIcon fontSize='small' sx={{ mr: 1, opacity: hasUnsavedBlades ? 0.5 : 1 }} />
                     เพิ่มใบมีดในกลุ่มนี้
+                    {hasUnsavedBlades && (
+                      <Typography variant='caption' sx={{ ml: 1, color: 'text.secondary' }}>
+                        (มีใบมีดที่ยังไม่บันทึก)
+                      </Typography>
+                    )}
                   </MenuItem>
                 </Menu>
               </>
@@ -970,6 +1199,24 @@ const RequestTable = ({
               <InputAdornment position='start'>
                 <SearchIcon fontSize='small' />
               </InputAdornment>
+            ),
+            endAdornment: searchQuery && (
+              <InputAdornment position='end'>
+                <IconButton
+                  size='small'
+                  onClick={handleClearSearch}
+                  edge='end'
+                  sx={{
+                    color: '#666',
+                    '&:hover': {
+                      color: '#333',
+                      backgroundColor: 'rgba(0, 0, 0, 0.04)'
+                    }
+                  }}
+                >
+                  <ClearIcon fontSize='small' />
+                </IconButton>
+              </InputAdornment>
             )
           }}
           sx={{
@@ -1006,7 +1253,7 @@ const RequestTable = ({
           </Box>
         )} */}
         <div>
-          <FormControl size='small' sx={{ minWidth: 150, mb: 2 }}>
+          <FormControl size='small' sx={{ minWidth: 150, mb: 2, maxWidth: 300 }}>
             <InputLabel id='diecut-type-filter-label'>เลือกประเภท Diecut</InputLabel>
             <Select
               labelId='diecut-type-filter-label'
@@ -1015,18 +1262,49 @@ const RequestTable = ({
               label='เลือกประเภท Diecut'
               multiple
               onChange={event => {
-                // Convert the event here
+                const values = event.target.value as string[]
+
+                // Get all available diecut types
+                const allDiecutTypes = diecutTypes.map(type => type.PTC_TYPE)
+
+                // If 'ALL' is clicked
+                if (values.includes('ALL')) {
+                  const isAllSelected = allDiecutTypes.every(type => selectedType.includes(type))
+
+                  if (isAllSelected) {
+                    // If all were selected, deselect all
+                    setSelectedType([])
+                  } else {
+                    // If not all were selected, select all
+                    setSelectedType(allDiecutTypes)
+                  }
+
+                  return
+                }
+
+                // Regular handling for individual type selections
+                setSelectedType(values)
+
+                // Convert the event for compatibility with existing handler
                 const compatibleEvent = {
                   target: {
                     name: event.target.name,
-                    value: event.target.value
+                    value: values
                   }
                 } as ChangeEvent<{ name?: string; value: unknown }>
 
                 handleTypeChange(compatibleEvent)
               }}
               renderValue={selected => {
-                if (selected.includes('')) return 'ทั้งหมด'
+                if (!selected || selected.length === 0) {
+                  return 'ทั้งหมด'
+                }
+
+                const allDiecutTypes = diecutTypes.map(type => type.PTC_TYPE)
+
+                if (selected.length === allDiecutTypes.length) {
+                  return 'เลือกทั้งหมด'
+                }
 
                 // Map the selected PTC_TYPE values to their corresponding PTC_DESC values
                 return selected
@@ -1041,14 +1319,83 @@ const RequestTable = ({
                   </InputAdornment>
                 ) : null
               }
+              MenuProps={{
+                PaperProps: {
+                  style: {
+                    maxHeight: 300
+                  }
+                }
+              }}
             >
-              {/* <MenuItem value=''>
-            <Checkbox checked={selectedType.includes('')} />
-            <ListItemText primary='ทั้งหมด' />
-          </MenuItem> */}
+              {/* ALL option */}
+              <MenuItem
+                value='ALL'
+                onClick={e => {
+                  e.preventDefault()
+                  e.stopPropagation()
 
+                  const allDiecutTypes = diecutTypes.map(type => type.PTC_TYPE)
+                  const isAllSelected = allDiecutTypes.every(type => selectedType.includes(type))
+
+                  if (isAllSelected) {
+                    setSelectedType([])
+                  } else {
+                    setSelectedType(allDiecutTypes)
+                  }
+                }}
+                sx={{
+                  borderBottom: '1px solid #e0e0e0',
+                  mb: 1
+                }}
+              >
+                <Checkbox
+                  checked={(() => {
+                    const allDiecutTypes = diecutTypes.map(type => type.PTC_TYPE)
+
+                    return allDiecutTypes.every(type => selectedType.includes(type))
+                  })()}
+                  indeterminate={(() => {
+                    const allDiecutTypes = diecutTypes.map(type => type.PTC_TYPE)
+
+                    return selectedType.length > 0 && selectedType.length < allDiecutTypes.length
+                  })()}
+                  onChange={() => {}} // Handled by onClick above
+                />
+                <ListItemText primary='ทั้งหมด' sx={{ fontWeight: 'bold' }} />
+              </MenuItem>
+
+              {/* Individual diecut type options */}
               {diecutTypes.map(type => (
-                <MenuItem key={type.PTC_TYPE} value={type.PTC_TYPE}>
+                <MenuItem
+                  key={type.PTC_TYPE}
+                  value={type.PTC_TYPE}
+                  onClick={e => {
+                    e.preventDefault()
+                    e.stopPropagation()
+
+                    let newValues: string[]
+
+                    if (selectedType.includes(type.PTC_TYPE)) {
+                      // Remove the type
+                      newValues = selectedType.filter(v => v !== type.PTC_TYPE)
+                    } else {
+                      // Add the type
+                      newValues = [...selectedType, type.PTC_TYPE]
+                    }
+
+                    setSelectedType(newValues)
+
+                    // Convert the event for compatibility with existing handler
+                    const compatibleEvent = {
+                      target: {
+                        name: 'diecut-type-filter',
+                        value: newValues
+                      }
+                    } as ChangeEvent<{ name?: string; value: unknown }>
+
+                    handleTypeChange(compatibleEvent)
+                  }}
+                >
                   <Checkbox checked={selectedType.includes(type.PTC_TYPE)} />
                   <ListItemText primary={`${type.PTC_DESC}`} />
                 </MenuItem>
@@ -1060,7 +1407,7 @@ const RequestTable = ({
           </Button>
         </div>
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-          <ExportToCsvButton data={data} getStatusText={getStatusText} />
+          <ExportToCsvButton data={filteredData} getStatusText={getStatusText} />
         </Box>
       </Box>
 
@@ -1193,9 +1540,14 @@ const RequestTable = ({
 
             // Style for detail rows
             ...(!row.getIsGrouped() && {
-              // borderLeft: '4px solid',
-              // borderColor: alpha('#D0C6BD', 0.5),
-              ...getPriorityStyle(row.original)
+              ...getPriorityStyle(row.original),
+
+              ...(selectedItem &&
+                selectedItem.DIECUT_ID === row.original.DIECUT_ID &&
+                selectedItem.DIECUT_SN === row.original.DIECUT_SN && {
+                  backgroundColor: alpha('#8eff8e', 0.3) + ' !important',
+                  borderLeft: '4px solid #8eff8e'
+                })
             }),
             '&:hover': {
               backgroundColor: alpha('#D5AA9F', 0.2)
@@ -1299,7 +1651,7 @@ const RequestTable = ({
         <Typography sx={{ color: 'red' }}>*สีแดงคือถึงอายุใช้งานแล้ว</Typography>
         <Typography sx={{ color: 'orange' }}>*สีส้มคือเกือบถึงอายุใช้งานแล้ว</Typography>
         <Typography sx={{ color: 'gray' }}>
-          *สีเทาคือ Tooling เข้าสู่รายการ สร้างใหม่/เปลี่ยนใบมีด/สร้างทดแทน/แก้ไข
+          *สีเทาคือ Tooling เข้าสู่รายการ สั่งทำใหม่/เปลี่ยนใบมีด/สร้างทดแทน/แก้ไข
         </Typography>
       </div>
     </>
