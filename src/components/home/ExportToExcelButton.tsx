@@ -2,7 +2,6 @@ import React from 'react'
 
 import { Button } from '@mui/material'
 import FileDownloadIcon from '@mui/icons-material/FileUpload'
-
 import * as XLSX from 'xlsx'
 
 import type { IDiecut } from '../../types/types'
@@ -13,92 +12,181 @@ interface ExportToExcelButtonProps {
   getStatusText: (status: string | null | undefined) => string
 }
 
+interface ParsedItem {
+  item: IDiecut
+  baseId: string
+  numberPart: number
+  originalIndex: number
+}
+
 const ExportToExcelButton: React.FC<ExportToExcelButtonProps> = ({ data, getStatusText }) => {
-  const exportToExcel = () => {
+  // Memoized date formatter
+  const formatDate = React.useCallback((dateValue: any): string => {
+    if (!dateValue) return ''
+
     try {
-      // Format dates properly
-      const formatDate = (dateValue: any): string => {
-        if (!dateValue) return ''
+      const date = new Date(dateValue)
 
-        try {
-          const date = new Date(dateValue)
+      if (isNaN(date.getTime())) return ''
 
-          if (isNaN(date.getTime())) return ''
+      return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1)
+        .toString()
+        .padStart(2, '0')}/${date.getFullYear()}`
+    } catch (e) {
+      return ''
+    }
+  }, [])
 
-          return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1)
-            .toString()
-            .padStart(2, '0')}/${date.getFullYear()}`
-        } catch (e) {
-          return ''
+  // Pre-process all items once - O(n) instead of O(n²)
+  const parseAllItems = React.useCallback((items: IDiecut[]): ParsedItem[] => {
+    return items.map((item, originalIndex) => {
+      const sn = item.DIECUT_SN || ''
+      const parts = sn.split('-')
+
+      if (parts.length >= 2) {
+        const baseId = parts.slice(0, -1).join('-')
+        const numberPart = parseInt(parts[parts.length - 1]) || 0
+
+        return { item, baseId, numberPart, originalIndex }
+      }
+
+      return { item, baseId: sn, numberPart: 0, originalIndex }
+    })
+  }, [])
+
+  // Optimized sorting - O(n log n) instead of O(n³)
+  const sortParsedItems = React.useCallback((parsedItems: ParsedItem[]): ParsedItem[] => {
+    // Create a map of baseId to first occurrence index - O(n)
+    const firstOccurrenceMap = new Map<string, number>()
+
+    parsedItems.forEach(parsed => {
+      if (!firstOccurrenceMap.has(parsed.baseId)) {
+        firstOccurrenceMap.set(parsed.baseId, parsed.originalIndex)
+      }
+    })
+
+    // Sort with O(log n) comparisons - O(n log n) total
+    return [...parsedItems].sort((a, b) => {
+      // If same base ID, sort by number part
+      if (a.baseId === b.baseId) {
+        return a.numberPart - b.numberPart
+      }
+
+      // Different base IDs - sort by first occurrence
+      const aFirstIndex = firstOccurrenceMap.get(a.baseId) || 0
+      const bFirstIndex = firstOccurrenceMap.get(b.baseId) || 0
+
+      return aFirstIndex - bFirstIndex
+    })
+  }, [])
+
+  // Use Web Workers for large datasets (optional enhancement)
+  const processDataAsync = React.useCallback(
+    async (items: IDiecut[]) => {
+      return new Promise<IDiecut[]>(resolve => {
+        // Use setTimeout to avoid blocking the UI
+        setTimeout(() => {
+          const parsedItems = parseAllItems(items)
+          const sortedParsedItems = sortParsedItems(parsedItems)
+          const sortedData = sortedParsedItems.map(parsed => parsed.item)
+
+          resolve(sortedData)
+        }, 0)
+      })
+    },
+    [parseAllItems, sortParsedItems]
+  )
+
+  const exportToExcel = async () => {
+    try {
+      // Show loading state (you might want to add a loading indicator)
+      console.log('Processing data...')
+
+      // Process data asynchronously to avoid blocking UI
+      const sortedData = await processDataAsync(data)
+
+      console.log('Generating Excel file...')
+
+      // Prepare headers
+      const headers = [
+        'เลขที่',
+        'รหัส',
+        'JOB',
+        'วันที่สั่งทำ',
+        'วันที่ต้องการใช้',
+        'รหัสสินค้า',
+        'ชื่องาน',
+        'กว้าง',
+        'ยาว',
+        'อายุคงเหลือ',
+        'สถานะ'
+      ]
+
+      // Pre-allocate array for better performance
+      const excelData: (string | number)[][] = new Array(sortedData.length + 1)
+
+      excelData[0] = headers
+
+      // Process data in chunks to avoid blocking UI for very large datasets
+      const CHUNK_SIZE = 1000
+
+      for (let i = 0; i < sortedData.length; i += CHUNK_SIZE) {
+        const chunk = sortedData.slice(i, i + CHUNK_SIZE)
+
+        chunk.forEach((item, chunkIndex) => {
+          const rowIndex = i + chunkIndex + 1
+
+          excelData[rowIndex] = [
+            String(item.DIECUT_ID) || '',
+            item.DIECUT_SN || '',
+            item.JOB_ID || '',
+            formatDate(item.DUE_DATE),
+            formatDate(item.ORDER_DATE),
+            item.PROD_ID ? (item.REVISION ? `${item.PROD_ID}-${item.REVISION}` : item.PROD_ID) : '',
+            item.JOB_DESC || '',
+            formatNumber(item.BLANK_SIZE_X) || '',
+            formatNumber(item.BLANK_SIZE_Y) || '',
+            formatNumber(item.REMAIN) || '',
+            getStatusText(item.STATUS) || ''
+          ]
+        })
+
+        // Yield control back to the browser for every chunk
+        if (i + CHUNK_SIZE < sortedData.length) {
+          await new Promise(resolve => setTimeout(resolve, 0))
         }
       }
 
-      // Prepare data rows with column headers
-      const excelData = [
-        // Headers row
-        [
-          'เลขที่',
-          'สถานะ',
-          'รหัส',
-          'JOB',
-          'รหัสสินค้า',
-          'ชื่องาน',
-          'กว้าง',
-          'ยาว',
-          'อายุคงเหลือ',
-          'วันที่ต้องการใช้',
-          'วันที่สั่งทำ'
-        ]
-      ]
+      console.log('Creating workbook...')
 
-      // Add data rows
-      data.forEach(item => {
-        excelData.push([
-          String(item.DIECUT_ID) || '',
-          getStatusText(item.STATUS) || '',
-          item.DIECUT_SN || '',
-          item.JOB_ID || '',
-          item.PROD_ID ? (item.REVISION ? `${item.PROD_ID}-${item.REVISION}` : item.PROD_ID) : '',
-          item.JOB_DESC || '',
-          formatNumber(item.BLANK_SIZE_X) || '',
-          formatNumber(item.BLANK_SIZE_Y) || '',
-          formatNumber(item.REMAIN) || '',
-          formatDate(item.DUE_DATE),
-          formatDate(item.ORDER_DATE)
-        ])
-      })
-
-      // Create workbook with a single worksheet
+      // Create workbook
       const ws = XLSX.utils.aoa_to_sheet(excelData)
 
       // Set column widths
-      const colWidths = [
-        { wch: 15 }, // เลขที่
-        { wch: 12 }, // สถานะ
-        { wch: 15 }, // รหัส
-        { wch: 12 }, // JOB
-        { wch: 15 }, // รหัสสินค้า
-        { wch: 40 }, // ชื่องาน
-        { wch: 10 }, // กว้าง
-        { wch: 10 }, // ยาว
-        { wch: 15 }, // อายุคงเหลือ
-        { wch: 15 }, // วันที่ต้องการใช้
-        { wch: 15 } // วันที่สั่งทำ
+      ws['!cols'] = [
+        { wch: 15 },
+        { wch: 15 },
+        { wch: 15 },
+        { wch: 15 },
+        { wch: 15 },
+        { wch: 15 },
+        { wch: 40 },
+        { wch: 10 },
+        { wch: 10 },
+        { wch: 15 },
+        { wch: 15 }
       ]
 
-      ws['!cols'] = colWidths
-
-      // Set the first row as the header (bold, etc.)
-      ws['!rows'] = [{ hpt: 20 }] // height of first row
+      ws['!rows'] = [{ hpt: 20 }]
 
       const wb = XLSX.utils.book_new()
 
       XLSX.utils.book_append_sheet(wb, ws, 'Diecut Data')
 
-      // Generate filename with current date
+      // Generate filename
       const filename = `diecut_data_${new Date().toISOString().slice(0, 10)}.xlsx`
 
-      // Export the file
+      console.log('Downloading file...')
       XLSX.writeFile(wb, filename)
     } catch (error) {
       console.error('Error exporting data to Excel:', error)

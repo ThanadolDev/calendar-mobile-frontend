@@ -191,6 +191,7 @@ const RequestTable = ({
 
       // Clear your search query state
       setSearchQuery('') // Assuming you have this function
+
       // Optionally trigger search immediately
       // handleSearchInputChange({ target: { value: '' } })
     }
@@ -1146,6 +1147,65 @@ const RequestTable = ({
     handleOrderClick
   ])
 
+  const tableFilteredData = useMemo(() => {
+    let result = filteredData // Start with your custom search filtered data
+
+    // Apply column filters
+    columnFilters.forEach(filter => {
+      const { id, value } = filter
+
+      if (id === 'STATUS' && Array.isArray(value)) {
+        result = result.filter(item => value.includes(item.STATUS))
+      }
+
+      if (id === 'BLANK_SIZE_X' && value) {
+        result = result.filter(item => {
+          const rawValue = item.BLANK_SIZE_X
+
+          if (rawValue === null || rawValue === undefined) return false
+
+          const formattedValue = formatNumber(rawValue) || ''
+          const rawStringValue = String(rawValue)
+          const filterString = String(value).toLowerCase().trim()
+
+          return rawStringValue.toLowerCase() === filterString || formattedValue.toLowerCase() === filterString
+        })
+      }
+
+      if (id === 'BLANK_SIZE_Y' && value) {
+        result = result.filter(item => {
+          const rawValue = item.BLANK_SIZE_Y
+
+          if (rawValue === null || rawValue === undefined) return false
+
+          const formattedValue = formatNumber(rawValue) || ''
+          const rawStringValue = String(rawValue)
+          const filterString = String(value).toLowerCase().trim()
+
+          return rawStringValue.toLowerCase() === filterString || formattedValue.toLowerCase() === filterString
+        })
+      }
+
+      if (id === 'REMAIN' && value) {
+        result = result.filter(item => {
+          const rawValue = item.REMAIN
+
+          if (rawValue === null || rawValue === undefined) return false
+
+          const formattedValue = formatNumber(rawValue) || ''
+          const rawStringValue = String(rawValue)
+          const filterString = String(value).toLowerCase().trim()
+
+          return rawStringValue.toLowerCase() === filterString || formattedValue.toLowerCase() === filterString
+        })
+      }
+
+      // Add more column filters as needed for other filterable columns
+    })
+
+    return result
+  }, [filteredData, columnFilters])
+
   // Clear all filters
   // const handleClearFilters = () => {
   //   setSearchQuery('')
@@ -1231,8 +1291,8 @@ const RequestTable = ({
         <Box sx={{ marginLeft: 'auto' }}>
           <Chip
             label={`รวม ${formatNumber(
-              new Set(filteredData.map(item => item.DIECUT_ID)).size
-            )} กลุ่ม (${formatNumber(filteredData.length)} รายการ)`}
+              new Set(tableFilteredData.map(item => item.DIECUT_ID)).size
+            )} กลุ่ม (${formatNumber(tableFilteredData.length)} รายการ)`}
             size='small'
             sx={{ mr: 1 }}
           />
@@ -1407,7 +1467,7 @@ const RequestTable = ({
           </Button>
         </div>
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-          <ExportToCsvButton data={filteredData} getStatusText={getStatusText} />
+          <ExportToCsvButton data={tableFilteredData} getStatusText={getStatusText} />
         </Box>
       </Box>
 

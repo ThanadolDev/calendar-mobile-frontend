@@ -4,7 +4,6 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions,
   Button,
   TextField,
   Paper,
@@ -311,8 +310,12 @@ const JobOrderModal = ({ open, onClose, onSelect }: JobOrderModalProps) => {
         />
       </DialogContent>
 
-      <div className='mt-4'>
-        <DialogActions sx={{ borderTop: '1px solid #E0E0E0', p: 2, marginTop: 4, marginLeft: 'auto' }}>
+      <div className='mt-4 flex justify-between border-t border-gray-300 p-2'>
+        <div>
+          <Typography>*LSD ปั๊ม = DUE ส่งของแรก-จำนวนขั้นตอนการผลิตจนถึงขั้นตอนปั๊ม</Typography>
+          <Typography>*Job Scheduling = วันที่วางแผนกำหนดเริ่มงานแผนกปั๊ม</Typography>
+        </div>
+        <div className='gap-2 flex'>
           <Button
             onClick={onClose}
             sx={{
@@ -339,7 +342,7 @@ const JobOrderModal = ({ open, onClose, onSelect }: JobOrderModalProps) => {
           >
             ตกลง
           </Button>
-        </DialogActions>
+        </div>
       </div>
     </Dialog>
   )
