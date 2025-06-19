@@ -39,6 +39,8 @@ import {
 // import ConstructionIcon from '@mui/icons-material/Construction'
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined'
 
+import ArrowBackIcon from '@mui/icons-material/ArrowBack'
+
 import EventNoteIcon from '@mui/icons-material/EventNote'
 
 import ExportToCsvButton from './ExportToExcelButton'
@@ -223,7 +225,8 @@ const RequestTable = ({
         jobId: orderData.JOB_ID,
         prodId: orderData.PROD_ID,
         prodDesc: orderData.PROD_DESC,
-        REVISION: orderData.REVISION
+        REVISION: orderData.REVISION,
+        orderDateType: orderData.ORDER_DATE_TYPE
       })
 
       // Call API to update the order date, due date, and job info
@@ -235,7 +238,8 @@ const RequestTable = ({
         jobId: orderData.JOB_ID,
         prodId: orderData.PROD_ID,
         jobDesc: orderData.JOB_DESC,
-        REVISION: orderData.REVISION
+        REVISION: orderData.REVISION,
+        orderDateType: orderData.ORDER_DATE_TYPE
       })
 
       if ((result as { success: boolean }).success) {
@@ -256,7 +260,8 @@ const RequestTable = ({
                 PROD_ID: orderData.PROD_ID,
                 PROD_DESC: orderData.PROD_DESC,
                 JOB_DESC: orderData.JOB_DESC,
-                REVISION: orderData.REVISION
+                REVISION: orderData.REVISION,
+                ORDER_DATE_TYPE: orderData.ORDER_DATE_TYPE
               }
             }
 
@@ -790,13 +795,13 @@ const RequestTable = ({
           return rawStringValue.toLowerCase() === filterString || formattedValue.toLowerCase() === filterString
         }
       },
-
       {
         accessorKey: 'DUE_DATE',
         header: 'วันที่ต้องการใช้',
         size: 160,
-        Cell: ({ cell }) => {
+        Cell: ({ row, cell }) => {
           const value = cell.getValue()
+          const dueIcon = row.original.DUE_ICON
           let formattedDisplayDate = '-'
 
           if (value) {
@@ -818,6 +823,17 @@ const RequestTable = ({
 
           return (
             <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+              {/* แสดง Icon ลูกศรแดงถ้า DUE_ICON เป็น 'EARLIER' */}
+              {dueIcon == 'EARLIER' && (
+                <ArrowBackIcon
+                  sx={{
+                    color: 'red',
+                    fontSize: '16px',
+                    marginRight: '4px',
+                    animation: 'pulse 2s infinite' // เพิ่มการกระพริบเพื่อดึงดูดสายตา
+                  }}
+                />
+              )}
               <Typography
                 variant='body2'
                 sx={{
@@ -840,6 +856,7 @@ const RequestTable = ({
           const value = cell.getValue()
           const status = row.original.STATUS
           const isNewAdd = row.original.NEW_ADD === true
+          const orderIcon = row.original.ORDER_ICON // เพิ่มการดึง ORDER_ICON
 
           // Parse the date more carefully
           let formattedDisplayDate = '-'
@@ -867,6 +884,18 @@ const RequestTable = ({
 
           return (
             <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+              {/* แสดง Icon ลูกศรแดงถ้า ORDER_ICON เป็น 'EARLIER' */}
+              {orderIcon == 'EARLIER' && (
+                <ArrowBackIcon
+                  sx={{
+                    color: 'red',
+                    fontSize: '24px',
+                    marginRight: '4px',
+                    animation: 'pulse 2s infinite'
+                  }}
+                  titleAccess='มีแผนการผลิตที่เร็วกว่าเดิม (วันที่สั่งทำ)'
+                />
+              )}
               <Typography
                 variant='body2'
                 sx={{

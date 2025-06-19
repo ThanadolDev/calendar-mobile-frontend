@@ -46,6 +46,9 @@ export interface IDiecut {
   ORDER_DATE?: string | Date
   CR_DATE?: string | Date
   tableInstanceRef?: string
+  DUE_ICON?: string
+  ORDER_ICON?: string
+  ORDER_DATE_TYPE?: 'AUTO' | 'MANUAL'
 }
 
 export type UserRole = 'Manager' | 'User' | 'Mod' | 'View'
