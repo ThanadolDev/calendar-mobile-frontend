@@ -31,8 +31,9 @@ import {
   Search as SearchIcon,
   Add as AddIcon,
   Construction as ConstructionIcon,
-  NoteAdd,
-  Clear as ClearIcon
+  NoteAdd
+
+  // Clear as ClearIcon
 } from '@mui/icons-material'
 
 // import ConstructionIcon from '@mui/icons-material/Construction'
@@ -184,18 +185,6 @@ const RequestTable = ({
     }, 1000), // 300ms delay
     [setSearchQuery]
   )
-
-  const handleClearSearch = () => {
-    if (searchInputRef.current) {
-      searchInputRef.current.value = ''
-
-      // Clear your search query state
-      setSearchQuery('') // Assuming you have this function
-
-      // Optionally trigger search immediately
-      // handleSearchInputChange({ target: { value: '' } })
-    }
-  }
 
   const handleSearchInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1259,25 +1248,26 @@ const RequestTable = ({
               <InputAdornment position='start'>
                 <SearchIcon fontSize='small' />
               </InputAdornment>
-            ),
-            endAdornment: searchQuery && (
-              <InputAdornment position='end'>
-                <IconButton
-                  size='small'
-                  onClick={handleClearSearch}
-                  edge='end'
-                  sx={{
-                    color: '#666',
-                    '&:hover': {
-                      color: '#333',
-                      backgroundColor: 'rgba(0, 0, 0, 0.04)'
-                    }
-                  }}
-                >
-                  <ClearIcon fontSize='small' />
-                </IconButton>
-              </InputAdornment>
             )
+
+            // endAdornment: searchQuery && (
+            //   <InputAdornment position='end'>
+            //     <IconButton
+            //       size='small'
+            //       onClick={handleClearSearch}
+            //       edge='end'
+            //       sx={{
+            //         color: '#666',
+            //         '&:hover': {
+            //           color: '#333',
+            //           backgroundColor: 'rgba(0, 0, 0, 0.04)'
+            //         }
+            //       }}
+            //     >
+            //       <ClearIcon fontSize='small' />
+            //     </IconButton>
+            //   </InputAdornment>
+            // )
           }}
           sx={{
             width: '700px',

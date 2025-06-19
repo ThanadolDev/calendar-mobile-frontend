@@ -67,6 +67,7 @@ const HomeComponent = () => {
 
     try {
       console.log(selectedType)
+      fetchStore()
 
       // If selectedType has a value, include it in the API call
       const url = selectedType ? `/api/diecuts/status?diecutType=${selectedType}` : `/api/diecuts/status`
@@ -84,6 +85,16 @@ const HomeComponent = () => {
       setError(error instanceof Error ? error.message : 'Failed to fetch data. Please try again later.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchStore = async () => {
+    const url = `/api/diecuts/refreshstore`
+
+    const result: any = await apiClient.get(url)
+
+    if (result) {
+      console.log('refresh store')
     }
   }
 

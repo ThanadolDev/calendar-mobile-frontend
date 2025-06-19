@@ -311,10 +311,7 @@ const JobOrderModal = ({ open, onClose, onSelect }: JobOrderModalProps) => {
       </DialogContent>
 
       <div className='mt-4 flex justify-between border-t border-gray-300 p-2'>
-        <div>
-          <Typography>*LSD ปั๊ม = DUE ส่งของแรก-จำนวนขั้นตอนการผลิตจนถึงขั้นตอนปั๊ม</Typography>
-          <Typography>*Job Scheduling = วันที่วางแผนกำหนดเริ่มงานแผนกปั๊ม</Typography>
-        </div>
+        <div></div>
         <div className='gap-2 flex'>
           <Button
             onClick={onClose}

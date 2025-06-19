@@ -8,8 +8,16 @@ import { useEffect, useState } from 'react'
 import classnames from 'classnames'
 
 // Component Imports
-import { Box, Tooltip, Typography, IconButton } from '@mui/material'
-import InfoIcon from '@mui/icons-material/Info'
+import {
+  Box,
+
+  // Tooltip,
+  Typography
+
+  // IconButton
+} from '@mui/material'
+
+// import InfoIcon from '@mui/icons-material/Info'
 
 import NavToggle from './NavToggle'
 import UserDropdown from '@components/layout/shared/UserDropdown'
@@ -17,6 +25,8 @@ import UserDropdown from '@components/layout/shared/UserDropdown'
 // Util Imports
 import { verticalLayoutClasses } from '@layouts/utils/layoutClasses'
 import { getUserInfo } from '@/utils/userInfo'
+
+// import apiClient from '../../../services/apiClient'
 
 const NavbarContent = () => {
   // const router = useRouter()
@@ -34,11 +44,11 @@ const NavbarContent = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const handleInfoClick = () => {
-    // Fetch data or simply navigate to the info page
-    // You can replace this with an actual API call if needed
-    // router.push('/info-page')
-  }
+  // const handleInfoClick = async () => {
+  //   // const result = await apiClient.get('/api/diecuts/infos')
+  //   // const filePath = 'file:///y:/system_implement_dept/program_info/'
+  //   // window.open(filePath, '_blank')
+  // }
 
   // Wait for hydration to finish before rendering
   if (!hydrated) return null
@@ -65,7 +75,7 @@ const NavbarContent = () => {
             lineHeight: '1.5'
           }}
         >
-          <Tooltip title='Click for more information'>
+          {/* <Tooltip title='Click for more information'>
             <IconButton
               onClick={handleInfoClick}
               size='small'
@@ -84,7 +94,7 @@ const NavbarContent = () => {
                 }}
               />
             </IconButton>
-          </Tooltip>
+          </Tooltip> */}
           Tooling Management
         </Box>
       </div>

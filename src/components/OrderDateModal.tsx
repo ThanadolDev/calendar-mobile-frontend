@@ -263,7 +263,12 @@ const OrderDateModal = ({ open, onClose, onSelect, selectedDiecutForOrderDate }:
           </Table>
         </TableContainer>
       </DialogContent>
+
       <DialogActions>
+        <div className='mr-auto'>
+          <Typography>*LSD ปั๊ม = DUE ส่งของแรก-จำนวนขั้นตอนการผลิตจนถึงขั้นตอนปั๊ม</Typography>
+          <Typography>*Job Scheduling = วันที่วางแผนกำหนดเริ่มงานแผนกปั๊ม</Typography>
+        </div>
         <Button onClick={onClose} sx={{ color: '#98867B' }}>
           ยกเลิก
         </Button>
