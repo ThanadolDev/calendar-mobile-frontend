@@ -20,27 +20,23 @@ import {
   Paper,
   CircularProgress,
   Typography,
-  Divider,
-  Grid
+  Grid,
+  Alert,
+  Collapse
 } from '@mui/material'
 import SearchIcon from '@mui/icons-material/Search'
+import EditIcon from '@mui/icons-material/Edit'
+import TableViewIcon from '@mui/icons-material/TableView'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import { DatePicker } from '@mui/x-date-pickers/DatePicker'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import dayjs from 'dayjs'
-import 'dayjs/locale/th' // Thai locale
-import utc from 'dayjs/plugin/utc'
-import timezone from 'dayjs/plugin/timezone'
+import 'dayjs/locale/th'
 
 import apiClient from '../services/apiClient'
 import type { IDiecut } from '../types/types'
-
-// Configure dayjs plugins
-dayjs.extend(utc)
-dayjs.extend(timezone)
-
-// Set default timezone to Thailand
-dayjs.tz.setDefault('Asia/Bangkok')
 
 interface OrderDateModalProps {
   open: boolean
@@ -52,106 +48,122 @@ interface OrderDateModalProps {
 const OrderDateModal = ({ open, onClose, onSelect, selectedDiecutForOrderDate }: OrderDateModalProps) => {
   const [loading, setLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [allOrderData, setAllOrderData] = useState<any[]>([]) // Store all data
-  const [orderData, setOrderData] = useState<any[]>([]) // Store filtered data
+  const [allOrderData, setAllOrderData] = useState<any[]>([])
+  const [orderData, setOrderData] = useState<any[]>([])
   const [selectedRow, setSelectedRow] = useState<any | null>(null)
 
-  // State สำหรับการเลือกวันที่เอง (MANUAL mode)
-  const [manualDueDate, setManualDueDate] = useState<dayjs.Dayjs | null>(null)
-  const [manualOrderDate, setManualOrderDate] = useState<dayjs.Dayjs | null>(null)
+  // Custom date mode
+  const [isCustomDateMode, setIsCustomDateMode] = useState(false)
+  const [customDueDate, setCustomDueDate] = useState<dayjs.Dayjs | null>(null)
+  const [customOrderDate, setCustomOrderDate] = useState<dayjs.Dayjs | null>(null)
 
-  // State สำหรับเก็บวันที่เก่าที่เคยบันทึกไว้
+  // Saved data from database
   const [savedDateData, setSavedDateData] = useState<any>(null)
 
-  // Function to ensure date is in Thailand timezone and format correctly
-  const ensureThailandDate = (date: dayjs.Dayjs | null): dayjs.Dayjs | null => {
-    if (!date) return null
+  // UI states
+  const [showTableSection, setShowTableSection] = useState(true)
 
-    // Convert to Thailand timezone and ensure it's the start of day to avoid timezone issues
-    return dayjs.tz(date.format('YYYY-MM-DD'), 'Asia/Bangkok').startOf('day')
-  }
-
-  // Function to format date for display (always DD/MM/YYYY)
-  const formatDateDisplay = (dateValue: string | Date | dayjs.Dayjs | null): string => {
-    if (!dateValue) return '-'
+  // Fixed timezone date parsing
+  const parseDate = (dateValue: string | Date | dayjs.Dayjs | null): dayjs.Dayjs | null => {
+    if (!dateValue) return null
 
     try {
-      let date: dayjs.Dayjs
-
       if (typeof dateValue === 'string') {
-        // Parse string date and set to Thailand timezone
-        date = dayjs.tz(dateValue, 'Asia/Bangkok')
+        // Remove timezone and parse as local date
+        const dateOnly = dateValue.split('T')[0]
+
+        return dayjs(dateOnly)
       } else if (dateValue instanceof Date) {
-        // Convert Date to dayjs with Thailand timezone
-        date = dayjs.tz(dateValue, 'Asia/Bangkok')
+        // Convert to YYYY-MM-DD string to avoid timezone issues
+        const year = dateValue.getFullYear()
+        const month = String(dateValue.getMonth() + 1).padStart(2, '0')
+        const day = String(dateValue.getDate()).padStart(2, '0')
+
+        return dayjs(`${year}-${month}-${day}`)
       } else {
-        // Already dayjs object, ensure Thailand timezone
-        date = dayjs.tz(dateValue, 'Asia/Bangkok')
+        return dayjs(dateValue)
       }
-
-      // Always return DD/MM/YYYY format
-      return date.format('DD/MM/YYYY')
     } catch (error) {
-      console.error('Error formatting date:', error)
+      console.error('Error parsing date:', error)
 
-      return '-'
+      return null
     }
   }
 
-  // Function to format date for API (always YYYY-MM-DD)
-  const formatDateForAPI = (date: dayjs.Dayjs | null): string => {
-    if (!date) return ''
+  // Format date for display (DD/MM/YYYY)
+  const formatDateDisplay = (dateValue: any) => {
+    // const date = parseDate(dateValue)
 
-    // Ensure Thailand timezone and return YYYY-MM-DD format
-    return dayjs.tz(date, 'Asia/Bangkok').format('YYYY-MM-DD')
+    // return date ? date.format('DD/MM/YYYY') : '-'
+
+    const date = new Date(dateValue)
+
+    // let formattedDisplayDate = '-'
+
+    // Check if date is valid
+    if (!isNaN(date.getTime())) {
+      // Format for display (DD/MM/YYYY)
+      return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1)
+        .toString()
+        .padStart(2, '0')}/${date.getFullYear()}`
+    }
   }
 
-  // Fetch data when modal opens
+  // Format date for API (YYYY-MM-DD)
+  const formatDateForAPI = (date: dayjs.Dayjs | null): string => {
+    return date ? date.format('YYYY-MM-DD') : ''
+  }
+
+  // Reset states when modal opens/closes
   useEffect(() => {
     if (open) {
       fetchOrderData()
-      console.log(selectedDiecutForOrderDate)
     } else {
-      // Clear selection when modal closes
+      // Reset all states
       setSelectedRow(null)
       setSearchQuery('')
-      setManualDueDate(null)
-      setManualOrderDate(null)
+      setCustomDueDate(null)
+      setCustomOrderDate(null)
       setSavedDateData(null)
+      setIsCustomDateMode(false)
+      setShowTableSection(true)
     }
   }, [open])
 
-  // Populate saved dates when data is loaded
+  // Load saved data and determine initial state
   useEffect(() => {
     if (savedDateData) {
-      // Populate the date fields based on saved data
       const savedDueDate = savedDateData.DUE_DATE ? dayjs(savedDateData.DUE_DATE) : null
+
       const savedOrderDate = savedDateData.ORDER_DATE ? dayjs(savedDateData.ORDER_DATE) : null
 
-      if (savedDateData.ORDER_DATE_TYPE === 'MANUAL') {
-        // If previously saved as MANUAL, populate manual date fields
-        setManualDueDate(savedDueDate)
-        setManualOrderDate(savedOrderDate)
-      } else if (savedDateData.ORDER_DATE_TYPE === 'AUTO') {
-        // If previously saved as AUTO, try to find and select the matching row
-        const matchingRow = allOrderData.find(
-          row => row.JOB_ID === savedDateData.JOB_ID && row.PROD_ID === savedDateData.PROD_ID
-        )
+      // If has saved dates, check if it matches any row in table
+      const matchingRow = allOrderData.find(
+        row => row.JOB_ID === savedDateData.JOB_ID && row.PROD_ID === savedDateData.PROD_ID
+      )
 
-        if (matchingRow) {
-          setSelectedRow(matchingRow)
-        }
+      if (matchingRow) {
+        // Found matching row - select it
+        setSelectedRow(matchingRow)
+        setIsCustomDateMode(false)
+      } else {
+        // No matching row - use custom date mode with saved dates
+        setCustomDueDate(savedDueDate)
+        setCustomOrderDate(savedOrderDate)
+        setIsCustomDateMode(true)
+        setShowTableSection(false) // Hide table since using custom dates
       }
+    } else if (allOrderData.length === 0 && !loading) {
+      // No table data available - switch to custom date mode
+      setIsCustomDateMode(true)
+      setShowTableSection(false)
     }
-  }, [savedDateData, allOrderData])
+  }, [savedDateData, allOrderData, loading])
 
-  // Fetch order data from API - only called once when modal opens
   const fetchOrderData = async () => {
     setLoading(true)
 
     try {
-      console.log(selectedDiecutForOrderDate)
-
       const result: any = await apiClient.post('/api/diecuts/getjoborderlist', {
         diecutId: selectedDiecutForOrderDate?.DIECUT_ID,
         DIECUT_TYPE: selectedDiecutForOrderDate?.DIECUT_TYPE,
@@ -159,47 +171,38 @@ const OrderDateModal = ({ open, onClose, onSelect, selectedDiecutForOrderDate }:
       })
 
       if (result.success) {
-        console.log(result)
         const data = result.data.jobList || []
         const dateData = result.data.dateList || []
 
-        setAllOrderData(data) // Store all data
-        setOrderData(data) // Initial display all data
+        setAllOrderData(data)
+        setOrderData(data)
 
-        // Store saved date data if available
         if (dateData.length > 0) {
-          setSavedDateData(dateData[0]) // Assume first item contains saved dates
+          setSavedDateData(dateData[0])
         }
       } else {
-        console.error('Failed to fetch job orders:', result.message)
         setAllOrderData([])
         setOrderData([])
-        setSavedDateData(null)
       }
     } catch (error) {
       console.error('Error fetching job orders:', error)
       setAllOrderData([])
       setOrderData([])
-      setSavedDateData(null)
     } finally {
       setLoading(false)
     }
   }
 
-  // Handle search - now filters local data instead of API call
   const handleSearch = () => {
     if (!searchQuery.trim()) {
-      // If search query is empty, show all data
       setOrderData(allOrderData)
 
       return
     }
 
-    // Filter the data based on search query
     const filteredData = allOrderData.filter(row => {
       const query = searchQuery.toLowerCase()
 
-      // Search in JOB_ID, PROD_ID, and JOB_DESC fields
       return (
         (row.JOB_ID && row.JOB_ID.toLowerCase().includes(query)) ||
         (row.PROD_ID && row.PROD_ID.toLowerCase().includes(query)) ||
@@ -210,69 +213,62 @@ const OrderDateModal = ({ open, onClose, onSelect, selectedDiecutForOrderDate }:
     setOrderData(filteredData)
   }
 
-  // Handle search input keypress (search on Enter)
-  const handleKeyPress = (event: React.KeyboardEvent) => {
-    if (event.key === 'Enter') {
-      handleSearch()
-    }
-  }
-
-  // Handle row selection (AUTO mode)
   const handleRowClick = (row: any) => {
-    setSelectedRow(row)
-
-    // ยกเลิกการเลือกวันที่เมื่อเลือกจาก table
-    setManualDueDate(null)
-    setManualOrderDate(null)
-  }
-
-  // Handle manual date selection (MANUAL mode)
-  const handleManualDueDateChange = (newValue: dayjs.Dayjs | null) => {
-    const adjustedDate = ensureThailandDate(newValue)
-
-    setManualDueDate(adjustedDate)
-
-    // ยกเลิกการเลือกจาก table เมื่อเลือกวันที่
-    if (adjustedDate) {
-      setSelectedRow(null)
+    if (!isCustomDateMode) {
+      setSelectedRow(row)
     }
   }
 
-  const handleManualOrderDateChange = (newValue: dayjs.Dayjs | null) => {
-    const adjustedDate = ensureThailandDate(newValue)
+  // Switch to custom date mode
+  const handleSwitchToCustomDate = () => {
+    setIsCustomDateMode(true)
+    setSelectedRow(null)
 
-    setManualOrderDate(adjustedDate)
-
-    // ยกเลิกการเลือกจาก table เมื่อเลือกวันที่
-    if (adjustedDate) {
-      setSelectedRow(null)
+    // If there was a selected row, pre-populate with its dates
+    if (selectedRow) {
+      setCustomDueDate(parseDate(selectedRow.DATE_USING))
+      setCustomOrderDate(parseDate(selectedRow.ORDER_DATE))
     }
   }
 
-  // Handle confirmation and pass selected data back
+  // Switch back to table selection
+  const handleSwitchToTable = () => {
+    setIsCustomDateMode(false)
+    setCustomDueDate(null)
+    setCustomOrderDate(null)
+    setShowTableSection(true)
+  }
+
+  const handleCustomDateChange = (field: 'due' | 'order') => (newValue: dayjs.Dayjs | null) => {
+    if (field === 'due') {
+      setCustomDueDate(newValue)
+    } else {
+      setCustomOrderDate(newValue)
+    }
+  }
+
   const handleConfirm = () => {
     let enrichedData: any = {}
 
-    if (selectedRow) {
-      // AUTO mode - เลือกจาก table
-      enrichedData = {
-        ...selectedRow,
-        ORDER_DATE_TYPE: 'AUTO'
-      }
-    } else if (manualDueDate && manualOrderDate) {
-      // MANUAL mode - กรอกวันที่เอง
+    if (isCustomDateMode) {
+      // Custom date mode
       enrichedData = {
         JOB_ID: selectedDiecutForOrderDate?.JOB_ID || '',
         PROD_ID: selectedDiecutForOrderDate?.PROD_ID || '',
         PROD_DESC: selectedDiecutForOrderDate?.PROD_DESC || '',
         JOB_DESC: selectedDiecutForOrderDate?.JOB_DESC || '',
         REVISION: selectedDiecutForOrderDate?.REVISION || '',
-        DATE_USING: formatDateForAPI(manualDueDate), // Always YYYY-MM-DD
-        ORDER_DATE: formatDateForAPI(manualOrderDate), // Always YYYY-MM-DD
-        ORDER_DATE_TYPE: 'MANUAL'
+        DATE_USING: customDueDate ? formatDateForAPI(customDueDate) : null,
+        ORDER_DATE: customOrderDate ? formatDateForAPI(customOrderDate) : null,
+        ORDER_DATE_TYPE: 'MANUAL' // Backend still needs this
+      }
+    } else if (selectedRow) {
+      // Table selection
+      enrichedData = {
+        ...selectedRow,
+        ORDER_DATE_TYPE: 'MANUAL' // All selections are treated as manual now
       }
     } else {
-      // ข้อมูลไม่ครบ
       return
     }
 
@@ -280,218 +276,273 @@ const OrderDateModal = ({ open, onClose, onSelect, selectedDiecutForOrderDate }:
     onClose()
   }
 
-  // Check if confirm button should be enabled
   const isConfirmDisabled = () => {
-    // ต้องเลือกอย่างใดอย่างหนึ่ง: จาก table หรือ กรอกวันที่เอง
-    const hasTableSelection = selectedRow !== null
-    const hasManualSelection = manualDueDate !== null && manualOrderDate !== null
-
-    return !hasTableSelection && !hasManualSelection
+    if (isCustomDateMode) {
+      return false // Can always save in custom date mode (even with null dates)
+    } else {
+      return !selectedRow // Must select a row in table mode
+    }
   }
+
+  const hasTableData = allOrderData.length > 0
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth='md' fullWidth>
       <DialogTitle>งานสั่งทำ</DialogTitle>
-      <DialogContent>
-        {/* Search field */}
-        <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-          <TextField
-            placeholder='ค้นหา (JOB, รหัสสินค้า, ชื่องาน)'
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            onKeyPress={handleKeyPress}
-            size='small'
-            sx={{ flexGrow: 1 }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position='start'>
-                  <SearchIcon fontSize='small' />
-                </InputAdornment>
-              )
-            }}
-          />
-          <Button
-            variant='contained'
-            onClick={handleSearch}
-            sx={{
-              backgroundColor: '#98867B',
-              '&:hover': {
-                backgroundColor: '#5A4D40'
-              }
-            }}
-          >
-            ค้นหา
-          </Button>
-        </Box>
 
-        {/* Table */}
-        <TableContainer component={Paper} sx={{ height: '350px', mb: 2 }}>
-          <Table stickyHeader size='small'>
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#E6E1DC', whiteSpace: 'nowrap' }}>
-                  วันที่ต้องการใช้
-                </TableCell>
-                <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#E6E1DC', whiteSpace: 'nowrap' }}>
-                  วันที่สั่งทำ
-                </TableCell>
-                <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#E6E1DC', whiteSpace: 'nowrap' }}>JOB</TableCell>
-                <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#E6E1DC', whiteSpace: 'nowrap' }}>
-                  รหัสสินค้า
-                </TableCell>
-                <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#E6E1DC', minWidth: '300px' }}>
-                  ชื่องาน
-                </TableCell>
-                <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#E6E1DC', whiteSpace: 'nowrap' }}>
-                  ประเภท
-                </TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={6} align='center' sx={{ height: '300px' }}>
-                    <CircularProgress size={40} sx={{ color: '#98867B' }} />
-                  </TableCell>
-                </TableRow>
-              ) : orderData.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} align='center' sx={{ height: '300px' }}>
-                    <Typography variant='body1'>ไม่พบข้อมูล</Typography>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                orderData.map((row, index) => (
-                  <TableRow
-                    key={index}
-                    onClick={() => handleRowClick(row)}
-                    selected={selectedRow && selectedRow.JOB_ID === row.JOB_ID}
-                    hover
+      <DialogContent>
+        {/* Info when no table data */}
+        {!loading && !hasTableData && (
+          <Alert severity='info' sx={{ mb: 2 }}>
+            ไม่พบข้อมูลแผนการผลิต กรุณากำหนดวันที่เอง
+          </Alert>
+        )}
+
+        {/* Table Section */}
+        {hasTableData && (
+          <Box sx={{ mb: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+              <Button
+                startIcon={showTableSection ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                onClick={() => setShowTableSection(!showTableSection)}
+                variant='text'
+                sx={{ color: '#98867B' }}
+              >
+                เลือกจากแผนการผลิต ({allOrderData.length} รายการ)
+              </Button>
+
+              {!isCustomDateMode && (
+                <Button
+                  startIcon={<EditIcon />}
+                  onClick={handleSwitchToCustomDate}
+                  variant='outlined'
+                  size='small'
+                  sx={{
+                    borderColor: '#98867B',
+                    color: '#98867B',
+                    '&:hover': { borderColor: '#5A4D40', backgroundColor: 'rgba(152, 134, 123, 0.04)' }
+                  }}
+                >
+                  กำหนดวันที่เอง
+                </Button>
+              )}
+            </Box>
+
+            <Collapse in={showTableSection && !isCustomDateMode}>
+              <Box>
+                {/* Search */}
+                <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <TextField
+                    placeholder='ค้นหา (JOB, รหัสสินค้า, ชื่องาน)'
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    onKeyPress={e => e.key === 'Enter' && handleSearch()}
+                    size='small'
+                    sx={{ flexGrow: 1 }}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position='start'>
+                          <SearchIcon fontSize='small' />
+                        </InputAdornment>
+                      )
+                    }}
+                  />
+                  <Button
+                    variant='contained'
+                    onClick={handleSearch}
                     sx={{
-                      cursor: 'pointer',
-                      '&.Mui-selected': {
-                        backgroundColor: 'rgba(152, 134, 123, 0.15)',
-                        '&:hover': {
-                          backgroundColor: 'rgba(152, 134, 123, 0.25)'
-                        }
-                      }
+                      backgroundColor: '#98867B',
+                      '&:hover': { backgroundColor: '#5A4D40' }
                     }}
                   >
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatDateDisplay(row.DATE_USING)}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatDateDisplay(row.ORDER_DATE)}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{row.JOB_ID || '-'}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                      {row.PROD_ID
-                        ? row.REVISION
-                          ? `${row.PROD_ID.replace(/^0+/, '')}-${row.REVISION}`
-                          : row.PROD_ID.replace(/^0+/, '')
-                        : '-'}
-                    </TableCell>
-                    <TableCell sx={{ minWidth: '300px', whiteSpace: 'normal', wordBreak: 'break-word' }}>
-                      {row.JOB_DESC || '-'}
-                    </TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                      {row.SRC == 'LSD' ? 'L.S.D ปั๊ม' : 'Job Scheduling'}
-                    </TableCell>
-                  </TableRow>
-                ))
+                    ค้นหา
+                  </Button>
+                </Box>
+
+                {/* Table */}
+                <TableContainer component={Paper} sx={{ height: '300px', mb: 2 }}>
+                  <Table stickyHeader size='small'>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#E6E1DC' }}>วันที่ต้องการใช้</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#E6E1DC' }}>วันที่สั่งทำ</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#E6E1DC' }}>JOB</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#E6E1DC' }}>รหัสสินค้า</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#E6E1DC' }}>ชื่องาน</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#E6E1DC' }}>ประเภท</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {loading ? (
+                        <TableRow>
+                          <TableCell colSpan={6} align='center' sx={{ height: '200px' }}>
+                            <CircularProgress size={40} sx={{ color: '#98867B' }} />
+                          </TableCell>
+                        </TableRow>
+                      ) : orderData.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={6} align='center' sx={{ height: '200px' }}>
+                            <Typography variant='body1'>ไม่พบข้อมูลตามการค้นหา</Typography>
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        orderData.map((row, index) => (
+                          <TableRow
+                            key={index}
+                            onClick={() => handleRowClick(row)}
+                            selected={selectedRow && selectedRow.JOB_ID === row.JOB_ID}
+                            hover
+                            sx={{
+                              cursor: 'pointer',
+                              '&.Mui-selected': {
+                                backgroundColor: 'rgba(152, 134, 123, 0.15)',
+                                '&:hover': { backgroundColor: 'rgba(152, 134, 123, 0.25)' }
+                              }
+                            }}
+                          >
+                            <TableCell>{formatDateDisplay(row.DATE_USING)}</TableCell>
+                            <TableCell>{formatDateDisplay(row.ORDER_DATE)}</TableCell>
+                            <TableCell>{row.JOB_ID || '-'}</TableCell>
+                            <TableCell>
+                              {row.PROD_ID
+                                ? row.REVISION
+                                  ? `${row.PROD_ID.replace(/^0+/, '')}-${row.REVISION}`
+                                  : row.PROD_ID.replace(/^0+/, '')
+                                : '-'}
+                            </TableCell>
+                            <TableCell sx={{ maxWidth: '300px', wordBreak: 'break-word' }}>
+                              {row.JOB_DESC || '-'}
+                            </TableCell>
+                            <TableCell>{row.SRC == 'LSD' ? 'L.S.D ปั๊ม' : 'Job Scheduling'}</TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Box>
+            </Collapse>
+          </Box>
+        )}
+
+        {/* Custom Date Section */}
+        {isCustomDateMode && (
+          <Box
+            sx={{
+              p: 2,
+              border: '1px solid #e0e0e0',
+              borderRadius: 1,
+              backgroundColor: 'rgba(152, 134, 123, 0.05)'
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+              <Typography variant='subtitle1' sx={{ fontWeight: 'bold' }}>
+                กำหนดวันที่เอง
+              </Typography>
+              {hasTableData && (
+                <Button
+                  startIcon={<TableViewIcon />}
+                  onClick={handleSwitchToTable}
+                  variant='outlined'
+                  size='small'
+                  sx={{
+                    borderColor: '#1976d2',
+                    color: '#1976d2',
+                    '&:hover': { borderColor: '#1565c0', backgroundColor: 'rgba(25, 118, 210, 0.04)' }
+                  }}
+                >
+                  กลับไปเลือกจากรายการ
+                </Button>
               )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+            </Box>
 
-        {/* Divider */}
-        <Divider sx={{ my: 2 }}>
+            <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale='th'>
+              <Grid container spacing={2}>
+                <Grid item xs={6}>
+                  <DatePicker
+                    label='วันที่ต้องการใช้'
+                    value={customDueDate}
+                    onChange={handleCustomDateChange('due')}
+                    format='DD/MM/YYYY'
+                    slotProps={{
+                      textField: {
+                        fullWidth: true,
+                        size: 'small',
+                        placeholder: 'วว/ดด/ปปปป',
+                        error: false
+                      }
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <DatePicker
+                    label='วันที่สั่งทำ'
+                    value={customOrderDate}
+                    onChange={handleCustomDateChange('order')}
+                    format='DD/MM/YYYY'
+                    maxDate={customDueDate || undefined}
+                    slotProps={{
+                      textField: {
+                        fullWidth: true,
+                        size: 'small',
+                        placeholder: 'วว/ดด/ปปปป',
+                        helperText: customDueDate
+                          ? 'วันที่สั่งทำต้องไม่เกินวันที่ต้องการใช้'
+                          : 'ไม่จำเป็นต้องกรอก (สามารถเว้นว่างได้)'
+                      }
+                    }}
+                  />
+                </Grid>
+              </Grid>
+            </LocalizationProvider>
+          </Box>
+        )}
+
+        {/* Status Display */}
+        <Box sx={{ mt: 2, p: 1.5, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
           <Typography variant='body2' color='text.secondary'>
-            หรือ
+            <strong>สถานะปัจจุบัน:</strong>{' '}
+            {isCustomDateMode
+              ? `กำหนดวันที่เอง ${
+                  customDueDate || customOrderDate
+                    ? `(${customDueDate ? formatDateDisplay(customDueDate) : '-'} | ${customOrderDate ? formatDateDisplay(customOrderDate) : '-'})`
+                    : '(ยังไม่มีวันที่)'
+                }`
+              : selectedRow
+                ? `เลือกจากรายการ: ${selectedRow.JOB_ID} (${formatDateDisplay(selectedRow.DATE_USING)} | ${formatDateDisplay(selectedRow.ORDER_DATE)})`
+                : 'ยังไม่ได้เลือกรายการ'}
           </Typography>
-        </Divider>
-
-        {/* Manual Date Selection with Thailand Locale */}
-        <Box
-          sx={{
-            p: 2,
-            border: '1px solid #e0e0e0',
-            borderRadius: 1,
-            backgroundColor: manualDueDate || manualOrderDate ? 'rgba(152, 134, 123, 0.05)' : 'transparent'
-          }}
-        >
-          <Typography variant='subtitle2' gutterBottom sx={{ fontWeight: 'bold' }}>
-            กำหนดวันที่เอง
-          </Typography>
-
-          <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale='th'>
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <DatePicker
-                  label='วันที่ต้องการใช้'
-                  value={manualDueDate}
-                  onChange={handleManualDueDateChange}
-                  format='DD/MM/YYYY' // Force DD/MM/YYYY format
-                  timezone='Asia/Bangkok' // Ensure Thailand timezone
-                  slotProps={{
-                    textField: {
-                      fullWidth: true,
-                      size: 'small',
-                      placeholder: 'วว/ดด/ปปปป'
-                    }
-                  }}
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <DatePicker
-                  label='วันที่สั่งทำ'
-                  value={manualOrderDate}
-                  onChange={handleManualOrderDateChange}
-                  format='DD/MM/YYYY' // Force DD/MM/YYYY format
-                  timezone='Asia/Bangkok' // Ensure Thailand timezone
-                  maxDate={manualDueDate || undefined}
-                  slotProps={{
-                    textField: {
-                      fullWidth: true,
-                      size: 'small',
-                      placeholder: 'วว/ดด/ปปปป',
-                      helperText: manualDueDate ? 'วันที่สั่งทำต้องไม่เกินวันที่ต้องการใช้' : ''
-                    }
-                  }}
-                />
-              </Grid>
-            </Grid>
-          </LocalizationProvider>
         </Box>
-
-        {/* Selection Status */}
       </DialogContent>
 
       <DialogActions>
-        <div className='mr-auto'>
-          <Typography variant='caption' display='block'>
-            *LSD ปั๊ม = DUE ส่งของแรก-จำนวนขั้นตอนการผลิตจนถึงขั้นตอนปั๊ม
-          </Typography>
-          <Typography variant='caption' display='block'>
-            *Job Scheduling = วันที่วางแผนกำหนดเริ่มงานแผนกปั๊ม
-          </Typography>
-        </div>
-        <Button onClick={onClose} sx={{ color: '#98867B' }}>
-          ยกเลิก
-        </Button>
-        <Button
-          onClick={handleConfirm}
-          disabled={isConfirmDisabled()}
-          variant='contained'
-          sx={{
-            backgroundColor: '#98867B',
-            '&:hover': {
-              backgroundColor: '#5A4D40'
-            },
-            '&.Mui-disabled': {
-              backgroundColor: 'action.disabledBackground',
-              opacity: 0.7
-            }
-          }}
-        >
-          ตกลง
-        </Button>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+          <Box>
+            <Typography variant='caption' display='block'>
+              *LSD ปั๊ม = DUE ส่งของแรก-จำนวนขั้นตอนการผลิตจนถึงขั้นตอนปั๊ม
+            </Typography>
+            <Typography variant='caption' display='block'>
+              *Job Scheduling = วันที่วางแผนกำหนดเริ่มงานแผนกปั๊ม
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button onClick={onClose} sx={{ color: '#98867B' }}>
+              ยกเลิก
+            </Button>
+            <Button
+              onClick={handleConfirm}
+              disabled={isConfirmDisabled()}
+              variant='contained'
+              sx={{
+                backgroundColor: '#98867B',
+                '&:hover': { backgroundColor: '#5A4D40' },
+                '&.Mui-disabled': { backgroundColor: 'action.disabledBackground', opacity: 0.7 }
+              }}
+            >
+              ตกลง
+            </Button>
+          </Box>
+        </Box>
       </DialogActions>
     </Dialog>
   )

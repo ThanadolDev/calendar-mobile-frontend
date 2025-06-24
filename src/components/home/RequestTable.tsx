@@ -214,14 +214,23 @@ const RequestTable = ({
 
     try {
       // Calculate dueDate (orderDate - 3 days)
-      const orderDate = new Date(orderData.ORDER_DATE)
-      const dueDate = new Date(orderData.DATE_USING)
+      let orderDate: any
+      let dueDate: any
 
+      if (orderData.ORDER_DATE != null) {
+        orderDate = new Date(orderData.ORDER_DATE)
+      }
+
+      if (orderData.DATE_USING != null) {
+        dueDate = new Date(orderData.DATE_USING)
+      }
+
+      console.log(orderData.ORDER_DATE)
       console.log({
         diecutId: selectedDiecutForOrderDate.DIECUT_ID,
         diecutSn: selectedDiecutForOrderDate.DIECUT_SN,
-        orderDate: orderDate.toLocaleString('en-GB', { timeZone: 'Asia/Bangkok' }),
-        dueDate: dueDate.toLocaleString('en-GB', { timeZone: 'Asia/Bangkok' }),
+        orderDate: orderDate,
+        dueDate: dueDate,
         jobId: orderData.JOB_ID,
         prodId: orderData.PROD_ID,
         prodDesc: orderData.PROD_DESC,
@@ -233,8 +242,8 @@ const RequestTable = ({
       const result = await apiClient.post('/api/diecuts/updateorderinfo', {
         diecutId: selectedDiecutForOrderDate.DIECUT_ID,
         diecutSn: selectedDiecutForOrderDate.DIECUT_SN,
-        orderDate: orderDate.toLocaleString('en-GB', { timeZone: 'Asia/Bangkok' }),
-        dueDate: dueDate.toLocaleString('en-GB', { timeZone: 'Asia/Bangkok' }),
+        orderDate: orderDate ? orderDate.toLocaleString() : null,
+        dueDate: dueDate ? dueDate.toLocaleString() : null,
         jobId: orderData.JOB_ID,
         prodId: orderData.PROD_ID,
         jobDesc: orderData.JOB_DESC,
