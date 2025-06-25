@@ -860,7 +860,7 @@ const RequestTable = ({
       {
         accessorKey: 'ORDER_DATE',
         header: 'วันที่สั่งทำ',
-        size: 130,
+        size: 160,
         Cell: ({ row, cell }) => {
           const value = cell.getValue()
           const status = row.original.STATUS

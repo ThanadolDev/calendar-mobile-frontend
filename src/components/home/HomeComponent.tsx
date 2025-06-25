@@ -91,7 +91,9 @@ const HomeComponent = () => {
   const fetchStore = async () => {
     const url = `/api/diecuts/refreshstore`
 
-    const result: any = await apiClient.get(url)
+    const result = await apiClient.get(url, {
+      timeout: 150000 // 2.5 minutes in milliseconds
+    })
 
     if (result) {
       console.log('refresh store')
