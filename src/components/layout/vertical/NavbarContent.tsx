@@ -12,7 +12,7 @@ import {
   Box,
 
   // Tooltip,
-  Typography
+
 
   // IconButton
 } from '@mui/material'
@@ -95,11 +95,11 @@ const NavbarContent = () => {
               />
             </IconButton>
           </Tooltip> */}
-          Tooling Management
+          สมุดพก
         </Box>
       </div>
       <div className='flex items-center gap-4'>
-        <Typography>{userInfo?.name}</Typography>
+        {/* <Typography>{userInfo?.name}</Typography> */}
         <UserDropdown />
       </div>
     </div>
