@@ -372,12 +372,12 @@ const FeedbackDashboard = () => {
                 : 'bg-orange-100 text-orange-800'
             }`}
           >
-            {expression.type === 'praise' ? 'ชื่นชม' : 'แนะนำ'}
+            {expression.type === 'praise' ? 'ชื่นชม' : 'ต้องปรับปรุง'}
           </span>
           {expression.isPublic !== undefined && (
             <button
               className="p-1 text-gray-400 hover:text-gray-600"
-              aria-label={expression.isPublic ? 'เปิดเผย' : 'ไม่เปิดเผย'}
+              aria-label={expression.isPublic ? 'ชื่นชม (ไม่ feedback)' : 'ต้องปรับปรุง (ไม่ feedback)'}
             >
               {expression.isPublic ? (
                 <Eye className="w-4 h-4" />
