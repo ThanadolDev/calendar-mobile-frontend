@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useRef, useEffect, useReducer, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   Plus,
   ThumbsUp,
@@ -26,6 +26,10 @@ import {
   AlertCircle
 } from 'lucide-react';
 
+import { useExpressions } from '../../hooks/useExpressions';
+import { useAuth } from '../../contexts/AuthContext';
+import type { CreateExpressionRequest, Expression } from '../../types/expression';
+
 // Constants
 const SWIPE_THRESHOLD = 50;
 
@@ -34,144 +38,59 @@ const MONTH_NAMES = [
   'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
 ];
 
-// Initial state for useReducer
-const initialState = {
-  expressions: [
-    {
-      id: 1,
-      type: 'praise',
-      from: 'สมชาย ใจดี',
-      content: 'ทำงานได้ดีมากครับ ประทับใจในความตั้งใจและความรับผิดชอบ',
-      fullContent: 'ทำงานได้ดีมากครับ ประทับใจในความตั้งใจและความรับผิดชอบ ช่วงที่ผ่านมาเห็นการทำงานที่มีคุณภาพและส่งมอบงานตรงเวลาเสมอ การประสานงานกับทีมก็ดีมาก และยังช่วยเหลือเพื่อนร่วมงานอีกด้วย หวังว่าจะคงความเป็นเลิศแบบนี้ต่อไป',
-      date: '2024-06-20',
-      time: '14:30',
-      isPublic: true,
-      attachments: ['image1.jpg'],
-      department: 'แผนกการตลาด',
-      position: 'ผู้จัดการฝ่ายขาย',
-      tags: ['ความรับผิดชอบ', 'การทำงานเป็นทีม', 'คุณภาพงาน'],
-      month: 5, // June (0-indexed)
-      year: 2024
-    },
-    {
-      id: 2,
-      type: 'praise',
-      from: 'นายพล หนักแน่น',
-      content: 'ขอบคุณสำหรับการนำเสนองานที่ยอดเยี่ยม',
-      fullContent: 'ขอบคุณสำหรับการนำเสนองานที่ยอดเยี่ยม การเตรียมข้อมูลครบถ้วน การออกแบบสไลด์ที่สวยงาม และการนำเสนอที่มั่นใจและชัดเจน ทำให้ลูกค้าประทับใจมาก และตัดสินใจใช้บริการของเราในที่สุด ขอชื่นชมการทำงานที่มีคุณภาพและความมุ่งมั่นในครั้งนี้',
-      date: '2024-05-15',
-      time: '16:45',
-      isPublic: true,
-      attachments: ['report.pdf', 'presentation.pptx'],
-      department: 'แผนกขาย',
-      position: 'ผู้จัดการแผนกขาย',
-      tags: ['การนำเสนอ', 'ความมุ่งมั่น', 'ผลลัพธ์'],
-      month: 4, // May
-      year: 2024
-    },
-    {
-      id: 3,
-      type: 'suggestion',
-      from: 'มานะ ขยันดี',
-      content: 'ควรเพิ่มการวางแผนล่วงหน้าในโปรเจกต์ จะทำให้ทีมทำงานได้ราบรื่นขึ้น',
-      fullContent: 'ควรเพิ่มการวางแผนล่วงหน้าในโปรเจกต์ จะทำให้ทีมทำงานได้ราบรื่นขึ้น การมี roadmap ที่ชัดเจนและ milestone ที่เหมาะสม จะช่วยให้ทุกคนเข้าใจขั้นตอนการทำงานและสามารถเตรียมตัวได้ดีขึ้น รวมถึงการจัดสรรทรัพยากรที่เหมาะสม',
-      date: '2024-06-17',
-      time: '11:20',
-      isPublic: true,
-      attachments: [],
-      department: 'แผนกเทคโนโลยี',
-      position: 'หัวหน้าโปรเจกต์',
-      tags: ['การวางแผน', 'การจัดการ', 'ประสิทธิภาพ'],
-      month: 5, // June
-      year: 2024
-    }
-  ],
-  myExpressions: [
-    {
-      id: 4,
-      type: 'praise',
-      to: 'นายพล หนักแน่น',
-      content: 'ขอบคุณที่ช่วยเหลือในโปรเจกต์นี้ครับ',
-      date: '2024-06-19',
-      status: 'published',
-      attachments: [],
-      month: 5,
-      year: 2024
-    },
-    {
-      id: 5,
-      type: 'suggestion',
-      to: 'สมหญิง รักงาน',
-      content: 'อาจจะดีกว่าถ้าเราจัดการประชุมสั้นๆ ทุกสัปดาห์',
-      date: '2024-05-17',
-      status: 'draft',
-      attachments: [],
-      month: 4,
-      year: 2024
-    }
-  ],
-  loading: false,
-  error: null
-};
-
-// Reducer for state management
-const feedbackReducer = (state, action) => {
-  switch (action.type) {
-    case 'SET_LOADING':
-      return { ...state, loading: action.payload };
-    case 'SET_ERROR':
-      return { ...state, error: action.payload, loading: false };
-    case 'ADD_EXPRESSION':
-      return {
-        ...state,
-        myExpressions: [...state.myExpressions, action.payload],
-        loading: false
-      };
-    case 'UPDATE_EXPRESSION':
-      return {
-        ...state,
-        myExpressions: state.myExpressions.map(exp =>
-          exp.id === action.payload.id ? action.payload : exp
-        )
-      };
-    case 'DELETE_EXPRESSION':
-      return {
-        ...state,
-        myExpressions: state.myExpressions.filter(exp => exp.id !== action.payload)
-      };
-    default:
-      return state;
-  }
-};
-
 const FeedbackDashboard = () => {
-  const [state, dispatch] = useReducer(feedbackReducer, initialState);
+  // Get authenticated user data
+  const { user } = useAuth();
+  const userEmpId = user?.id;
+
+  // Use the expressions hook for API integration
+  const {
+    expressions,
+    myExpressions,
+    loading,
+    error,
+    stats,
+    createExpression,
+    loadReceivedExpressions,
+    loadSentExpressions,
+    updateExpression,
+    deleteExpression,
+    clearError,
+    calculateStatsForPeriod
+  } = useExpressions(userEmpId);
+
   const [activeTab, setActiveTab] = useState(0);
-  const [timePeriod, setTimePeriod] = useState('monthly');
+  const [timePeriod, setTimePeriod] = useState<'monthly' | 'yearly'>('monthly');
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [newExpressionOpen, setNewExpressionOpen] = useState(false);
-  const [selectedExpression, setSelectedExpression] = useState(null);
+  const [selectedExpression, setSelectedExpression] = useState<(Expression & { 
+    from?: string; 
+    department?: string; 
+    position?: string; 
+    fullContent?: string;
+    content?: string;
+  }) | null>(null);
 
-  const [expressionData, setExpressionData] = useState({
+  const [expressionData, setExpressionData] = useState<CreateExpressionRequest>({
     type: 'praise',
     recipient: '',
     content: '',
-    attachments: [],
+    attachments: [] as CreateExpressionRequest['attachments'],
     privacy: 'public',
     status: 'draft'
   });
 
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
-  const fileInputRef = useRef(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Handle touch events
-  const handleTouchStart = (e) => {
+  const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.targetTouches[0].clientX;
   };
 
-  const handleTouchMove = (e) => {
+  const handleTouchMove = (e: React.TouchEvent) => {
     touchEndX.current = e.targetTouches[0].clientX;
   };
 
@@ -198,7 +117,7 @@ const FeedbackDashboard = () => {
   };
 
   // Navigation functions
-  const navigateMonth = (direction) => {
+  const navigateMonth = (direction: number) => {
     const newMonth = currentMonth + direction;
 
     if (newMonth > 11) {
@@ -212,13 +131,13 @@ const FeedbackDashboard = () => {
     }
   };
 
-  const navigateYear = (direction) => {
+  const navigateYear = (direction: number) => {
     setCurrentYear(currentYear + direction);
   };
 
-  // Filter expressions based on time period
+  // Filter expressions based on time period  
   const filteredExpressions = useMemo(() => {
-    let filtered = state.expressions;
+    let filtered = expressions;
 
     // Filter by time period
     if (timePeriod === 'monthly') {
@@ -230,10 +149,10 @@ const FeedbackDashboard = () => {
     }
 
     return filtered;
-  }, [state.expressions, timePeriod, currentMonth, currentYear]);
+  }, [expressions, timePeriod, currentMonth, currentYear]);
 
   const filteredMyExpressions = useMemo(() => {
-    let filtered = state.myExpressions;
+    let filtered = myExpressions;
 
     if (timePeriod === 'monthly') {
       filtered = filtered.filter(exp =>
@@ -244,85 +163,110 @@ const FeedbackDashboard = () => {
     }
 
     return filtered;
-  }, [state.myExpressions, timePeriod, currentMonth, currentYear]);
+  }, [myExpressions, timePeriod, currentMonth, currentYear]);
 
-  // Calculate stats based on filtered data
-  const stats = useMemo(() => {
-    const currentExpressions = timePeriod === 'monthly'
-      ? state.expressions.filter(exp => exp.month === currentMonth && exp.year === currentYear)
-      : state.expressions.filter(exp => exp.year === currentYear);
+  // Calculate stats for current time period
+  const currentStats = useMemo(() => {
+    return calculateStatsForPeriod(timePeriod, currentYear, currentMonth);
+  }, [calculateStatsForPeriod, timePeriod, currentYear, currentMonth]);
 
-    return {
-      praise: currentExpressions.filter(exp => exp.type === 'praise').length,
-      suggestions: currentExpressions.filter(exp => exp.type === 'suggestion').length,
-      public: currentExpressions.filter(exp => exp.isPublic).length,
-      private: currentExpressions.filter(exp => !exp.isPublic).length
-    };
-  }, [state.expressions, timePeriod, currentMonth, currentYear]);
+  // Reload data when time period changes
+  useEffect(() => {
+    if (userEmpId) {
+      const filters = {
+        timePeriod,
+        year: currentYear,
+        ...(timePeriod === 'monthly' && { month: currentMonth })
+      };
+      
+      loadReceivedExpressions(userEmpId, filters);
+      loadSentExpressions(userEmpId, filters);
+    }
+  }, [userEmpId, timePeriod, currentYear, currentMonth, loadReceivedExpressions, loadSentExpressions]);
 
   // Handle file upload
-  const handleFileUpload = (event) => {
-    const files = Array.from(event.target.files);
-    const fileNames = files.map(file => file.name);
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    const newAttachments = files.map(file => ({
+      fileId: `temp-${Date.now()}-${Math.random()}`, // Temporary ID for new files
+      fileName: file.name,
+      type: file.type || 'FILE'
+    }));
+    
     setExpressionData({
       ...expressionData,
-      attachments: [...expressionData.attachments, ...fileNames]
+      attachments: [...(expressionData.attachments || []), ...newAttachments]
     });
   };
 
   // Handle saving expression
-  const handleSaveExpression = async (status) => {
+  const handleSaveExpression = async (status: 'draft' | 'published') => {
     if (!expressionData.recipient || !expressionData.content) {
-      dispatch({ type: 'SET_ERROR', payload: 'กรุณากรอกข้อมูลให้ครบถ้วน' });
+      // Note: Error handling is managed by the useExpressions hook
+      alert('กรุณากรอกข้อมูลให้ครบถ้วน');
       return;
     }
 
-    dispatch({ type: 'SET_LOADING', payload: true });
-
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      const newExpression = {
-        id: Date.now(),
+      const newExpressionData: CreateExpressionRequest = {
         ...expressionData,
-        status,
-        date: new Date().toISOString().split('T')[0],
-        month: new Date().getMonth(),
-        year: new Date().getFullYear()
+        status
       };
 
-      dispatch({ type: 'ADD_EXPRESSION', payload: newExpression });
+      await createExpression(newExpressionData);
+      
+      // Close modal and reset form on success
       setNewExpressionOpen(false);
       setExpressionData({
         type: 'praise',
         recipient: '',
         content: '',
-        attachments: [],
+        attachments: [] as CreateExpressionRequest['attachments'],
         privacy: 'public',
         status: 'draft'
       });
     } catch (error) {
-      dispatch({ type: 'SET_ERROR', payload: 'เกิดข้อผิดพลาดในการบันทึก' });
+      // Error is already handled by the hook
+      console.error('Failed to save expression:', error);
     }
   };
 
-  const removeAttachment = (index) => {
-    const newAttachments = expressionData.attachments.filter((_, i) => i !== index);
+  const removeAttachment = (index: number) => {
+    const newAttachments = (expressionData.attachments || []).filter((_, i) => i !== index);
     setExpressionData({ ...expressionData, attachments: newAttachments });
   };
 
   // Clear error after 3 seconds
   useEffect(() => {
-    if (state.error) {
+    if (error) {
       const timer = setTimeout(() => {
-        dispatch({ type: 'SET_ERROR', payload: null });
+        clearError();
       }, 3000);
       return () => clearTimeout(timer);
     }
-  }, [state.error]);
+  }, [error, clearError]);
 
-  const StatCard = ({ title, value, icon: Icon, bgColor, textColor }) => (
+  // Show loading if user data or expressions are loading
+  if (!user || !userEmpId || loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <p className="mt-2 text-gray-600">กำลังโหลดข้อมูล...</p>
+        </div>
+      </div>
+    );
+  }
+
+  interface StatCardProps {
+    title: string;
+    value: number;
+    icon: React.ComponentType<{ className?: string }>;
+    bgColor: string;
+    textColor: string;
+  }
+
+  const StatCard = ({ title, value, icon: Icon, bgColor, textColor }: StatCardProps) => (
     <div className="bg-white rounded-lg p-4 shadow-sm border">
       <div className="flex items-center justify-between">
         <div>
@@ -336,7 +280,13 @@ const FeedbackDashboard = () => {
     </div>
   );
 
-  const ExpressionCard = ({ expression, showActions = false, clickable = false }) => (
+  interface ExpressionCardProps {
+    expression: Expression & { from?: string; to?: string; status?: string; content?: string };
+    showActions?: boolean;
+    clickable?: boolean;
+  }
+
+  const ExpressionCard = ({ expression, showActions = false, clickable = false }: ExpressionCardProps) => (
     <div
       className={`bg-white rounded-lg p-4 shadow-sm border mb-3 ${
         clickable ? 'cursor-pointer hover:shadow-md transition-shadow' : ''
@@ -359,9 +309,9 @@ const FeedbackDashboard = () => {
           </div>
           <div>
             <p className="font-medium text-sm text-gray-900">
-              {expression.from || expression.to}
+              {expression.CR_UID || expression.EXP_TO || expression.from || expression.to}
             </p>
-            <p className="text-xs text-gray-500">{expression.date}</p>
+            <p className="text-xs text-gray-500">{expression.date || expression.EXP_DATE}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -389,7 +339,9 @@ const FeedbackDashboard = () => {
         </div>
       </div>
 
-      <p className="text-sm text-gray-700 mb-3 line-clamp-2">{expression.content}</p>
+      <p className="text-sm text-gray-700 mb-3 line-clamp-2">
+        {expression.EXP_DETAIL || expression.content}
+      </p>
 
       {expression.attachments && expression.attachments.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-3">
@@ -399,7 +351,7 @@ const FeedbackDashboard = () => {
               className="flex items-center gap-1 px-2 py-1 bg-gray-100 rounded text-xs text-gray-600"
             >
               <Paperclip className="w-3 h-3" />
-              {file}
+              {typeof file === 'string' ? file : file.fileName}
             </div>
           ))}
         </div>
@@ -428,23 +380,34 @@ const FeedbackDashboard = () => {
         </div>
       )}
 
-      {expression.status && (
+      {(expression.expressionStatus || expression.status) && (
         <div className="mt-2 pt-2 border-t">
           <span
             className={`inline-block px-2 py-1 text-xs rounded ${
-              expression.status === 'published'
+              (expression.expressionStatus || expression.status) === 'published'
                 ? 'bg-blue-100 text-blue-800'
                 : 'bg-gray-100 text-gray-600'
             }`}
           >
-            {expression.status === 'published' ? 'เผยแพร่แล้ว' : 'ร่าง'}
+            {(expression.expressionStatus || expression.status) === 'published' ? 'เผยแพร่แล้ว' : 'ร่าง'}
           </span>
         </div>
       )}
     </div>
   );
 
-  const ExpressionDetailModal = ({ expression, onClose }) => {
+  interface ExpressionDetailModalProps {
+    expression: Expression & { 
+      from?: string; 
+      department?: string; 
+      position?: string; 
+      fullContent?: string;
+      content?: string;
+    } | null;
+    onClose: () => void;
+  }
+
+  const ExpressionDetailModal = ({ expression, onClose }: ExpressionDetailModalProps) => {
     if (!expression) return null;
 
     return (
@@ -483,9 +446,11 @@ const FeedbackDashboard = () => {
                   <User className="w-6 h-6 text-blue-600" />
                 </div>
                 <div>
-                  <p className="font-semibold text-gray-900">{expression.from}</p>
-                  <p className="text-sm text-gray-600">{expression.department}</p>
-                  <p className="text-sm text-gray-600">{expression.position}</p>
+                  <p className="font-semibold text-gray-900">
+                    {expression.CR_UID || expression.from}
+                  </p>
+                  <p className="text-sm text-gray-600">{expression.department || 'แผนก'}</p>
+                  <p className="text-sm text-gray-600">{expression.position || 'ตำแหน่ง'}</p>
                 </div>
               </div>
             </div>
@@ -497,11 +462,11 @@ const FeedbackDashboard = () => {
               <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg text-sm text-gray-700">
                 <div className="flex items-center gap-1">
                   <Calendar className="w-4 h-4" />
-                  {expression.date}
+                  {expression.date || expression.EXP_DATE}
                 </div>
                 <div className="flex items-center gap-1">
                   <Clock className="w-4 h-4" />
-                  {expression.time}
+                  {expression.time || ''}
                 </div>
               </div>
             </div>
@@ -523,7 +488,9 @@ const FeedbackDashboard = () => {
                 เนื้อหา
               </label>
               <div className="p-3 bg-gray-50 rounded-lg">
-                <p className="text-gray-700 leading-relaxed">{expression.fullContent}</p>
+                <p className="text-gray-700 leading-relaxed">
+                  {expression.EXP_DETAIL || expression.fullContent || expression.content}
+                </p>
               </div>
             </div>
 
@@ -539,7 +506,9 @@ const FeedbackDashboard = () => {
                       className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer"
                     >
                       <Paperclip className="w-5 h-5 text-gray-600" />
-                      <span className="text-gray-700">{file}</span>
+                      <span className="text-gray-700">
+                        {typeof file === 'string' ? file : file.fileName}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -563,10 +532,10 @@ const FeedbackDashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Error Message */}
-      {state.error && (
+      {error && (
         <div className="mx-4 mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg flex items-center gap-2">
           <AlertCircle className="w-5 h-5" />
-          {state.error}
+          {error}
         </div>
       )}
 
@@ -636,28 +605,28 @@ const FeedbackDashboard = () => {
         <div className="grid grid-cols-2 gap-3">
           <StatCard
             title="ชื่นชม"
-            value={stats.praise}
+            value={currentStats.praise}
             icon={ThumbsUp}
             bgColor="bg-green-100"
             textColor="text-green-600"
           />
           <StatCard
             title="ข้อแนะนำที่ได้รับ"
-            value={stats.suggestions}
+            value={currentStats.suggestions}
             icon={MessageSquare}
             bgColor="bg-orange-100"
             textColor="text-orange-600"
           />
           <StatCard
             title="เปิดเผย"
-            value={stats.public}
+            value={currentStats.public}
             icon={Eye}
             bgColor="bg-blue-100"
             textColor="text-blue-600"
           />
           <StatCard
             title="ไม่เปิดเผย"
-            value={stats.private}
+            value={currentStats.private}
             icon={EyeOff}
             bgColor="bg-gray-100"
             textColor="text-gray-600"
@@ -701,7 +670,7 @@ const FeedbackDashboard = () => {
               ) : (
                 filteredExpressions.map((expression) => (
                   <ExpressionCard
-                    key={expression.id}
+                    key={expression.EXP_ID}
                     expression={expression}
                     clickable={true}
                   />
@@ -720,7 +689,7 @@ const FeedbackDashboard = () => {
               ) : (
                 filteredMyExpressions.map((expression) => (
                   <ExpressionCard
-                    key={expression.id}
+                    key={expression.EXP_ID}
                     expression={expression}
                     showActions={true}
                   />
@@ -869,18 +838,20 @@ const FeedbackDashboard = () => {
                   <Paperclip className="w-5 h-5" />
                   แนบไฟล์
                 </button>
-                {expressionData.attachments.length > 0 && (
+                {(expressionData.attachments?.length ?? 0) > 0 && (
                   <div className="mt-2 space-y-2">
-                    {expressionData.attachments.map((file, index) => (
+                    {(expressionData.attachments || []).map((file, index) => (
                       <div
                         key={index}
                         className="flex items-center justify-between p-2 bg-gray-100 rounded"
                       >
-                        <span className="text-sm text-gray-700">{file}</span>
+                        <span className="text-sm text-gray-700">
+                          {typeof file === 'string' ? file : file.fileName}
+                        </span>
                         <button
                           onClick={() => removeAttachment(index)}
                           className="text-red-500 hover:text-red-700"
-                          aria-label={`ลบไฟล์ ${file}`}
+                          aria-label={`ลบไฟล์ ${typeof file === 'string' ? file : file.fileName}`}
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -895,24 +866,24 @@ const FeedbackDashboard = () => {
               <button
                 onClick={() => setNewExpressionOpen(false)}
                 className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-                disabled={state.loading}
+                disabled={loading}
               >
                 ยกเลิก
               </button>
               <button
                 onClick={() => handleSaveExpression('draft')}
                 className="flex-1 py-2 px-4 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 flex items-center justify-center gap-2"
-                disabled={state.loading}
+                disabled={loading}
               >
-                {state.loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 บันทึก
               </button>
               <button
                 onClick={() => handleSaveExpression('published')}
                 className="flex-1 py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
-                disabled={state.loading}
+                disabled={loading}
               >
-                {state.loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 เผยแพร่
               </button>
             </div>

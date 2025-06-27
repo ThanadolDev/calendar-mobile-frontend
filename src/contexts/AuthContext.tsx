@@ -31,7 +31,7 @@ const AuthContext = createContext<AuthContextType>({
 export const useAuth = () => useContext(AuthContext)
 
 // Define public routes that don't require authentication
-const publicRoutes = ['/login-og', '/public', '/unauthorized']
+const publicRoutes = ['/', '/login-og', '/public', '/unauthorized']
 
 // Configure route-based role requirements
 const roleRequirements: Record<string, string[]> = {
@@ -53,7 +53,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const router = useRouter()
   const pathname = usePathname()
 
-  const currentUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/toolingmanage/login-og`
+  const currentUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/handbook/login-og`
   const redirectUrl = typeof window !== 'undefined' ? window.location.href : ''
 
   const logout = async () => {

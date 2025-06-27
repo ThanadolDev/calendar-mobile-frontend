@@ -9,7 +9,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.example.com
 const AUTH_VERIFY_URL = 'https://api.nitisakc.dev/auth/verify'
 const AUTH_REFRESH_URL = 'https://api.nitisakc.dev/auth/refresh'
 const DEFAULT_TIMEOUT = 30000 // 30 seconds
-const currentUrl = `${window.location.origin}/toolingmanage/login-og`
+const currentUrl = `${window.location.origin}/handbook/login-og`
 const redirectUrl = window.location.href
 
 /**

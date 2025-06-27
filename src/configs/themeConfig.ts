@@ -53,9 +53,9 @@ export type Config = {
 }
 
 const themeConfig: Config = {
-  templateName: 'Tooling Management',
+  templateName: 'Handbook Management',
   homePageUrl: '/home',
-  settingsCookieName: 'Tooling-next',
+  settingsCookieName: 'Handbook-next',
   mode: 'light', // 'system', 'light', 'dark'
   skin: 'default', // 'default', 'bordered'
   semiDark: false, // true, false

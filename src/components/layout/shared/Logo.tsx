@@ -19,7 +19,7 @@ import themeConfig from '@configs/themeConfig'
 // Hook Imports
 import useVerticalNav from '@menu/hooks/useVerticalNav'
 import { useSettings } from '@core/hooks/useSettings'
-import LogoTooling from '@/@core/svg/Logotooling'
+import LogoHandbook from '@/@core/svg/LogoHandbook'
 
 type LogoTextProps = {
   isHovered?: VerticalNavContextProps['isHovered']
@@ -73,7 +73,7 @@ const Logo = ({ color }: { color?: CSSProperties['color'] }) => {
   return (
     <div className='flex items-center'>
       {/* <VuexyLogo className='text-2xl text-primary' /> */}
-      <LogoTooling />
+      <LogoHandbook />
 
       <LogoText
         color={color}

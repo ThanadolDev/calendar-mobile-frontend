@@ -86,7 +86,7 @@ const LoginOg = ({}: { mode: SystemMode }) => {
       const sessionId = params.get('SESSION_ID')
 
       // const redirectWebsite = params.get('redirectWebsite')
-      const currentUrl = window.location.origin + '/toolingmanage/login-og'
+      const currentUrl = window.location.origin + '/handbook/login-og'
 
       // console.log(urlToken && urlTokenRe && sessionId)
       // window.alert(urlToken)
@@ -180,7 +180,7 @@ const LoginOg = ({}: { mode: SystemMode }) => {
       // const params = new URLSearchParams(window.location.search)
 
       // const redirectWebsite = params.get('redirectWebsite')
-      const currentUrl = window.location.origin + '/toolingmanage/login-og'
+      const currentUrl = window.location.origin + '/handbook/login-og'
 
       router.replace(
         `${process.env.REACT_APP_URLMAIN_LOGIN}/logout?ogwebsite=${currentUrl}&redirectWebsite=${process.env.NEXT_PUBLIC_HOME_BASE_URL}`

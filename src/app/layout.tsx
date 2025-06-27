@@ -24,8 +24,8 @@ const sarabun = Noto_Sans_Thai({
 // const modeTitle = process.env.MODE_TITLE
 
 export const metadata = {
-  title: `Tooling Management`,
-  description: 'Tooling Management WEB'
+  title: `Handbook Management`,
+  description: 'Handbook Management WEB'
 }
 
 const RootLayout = ({ children }: ChildrenType) => {
