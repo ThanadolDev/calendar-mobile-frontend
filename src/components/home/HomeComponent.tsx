@@ -22,13 +22,13 @@ import {
   Lightbulb,
   ArrowLeft,
   Clock,
-  Filter,
   Loader2,
   AlertCircle
 } from 'lucide-react';
 
 // Constants
 const SWIPE_THRESHOLD = 50;
+
 const MONTH_NAMES = [
   'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
   'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
