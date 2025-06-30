@@ -107,6 +107,22 @@ class ExpressionService {
       // Debug: Log the response to see the actual data structure
       console.log('getReceivedExpressions response:', JSON.stringify(response, null, 2))
       
+      // Transform the data to ensure all required fields are present
+      if (response.success && response.data?.expressions) {
+        response.data.expressions = response.data.expressions.map(expr => ({
+          ...expr,
+          // Ensure content fields are available with fallbacks
+          EXP_DETAIL: expr.EXP_DETAIL || expr.content || 'No content available',
+          EXP_SUBJECT: expr.EXP_SUBJECT || expr.subject || 'No subject',
+          // Ensure date fields are properly formatted
+          date: expr.date || expr.EXP_DATE_STR || new Date(expr.EXP_DATE).toISOString().split('T')[0],
+          time: expr.time || new Date(expr.EXP_DATE).toTimeString().slice(0, 5),
+          // Ensure other required fields
+          content: expr.EXP_DETAIL || expr.content || 'No content available',
+          subject: expr.EXP_SUBJECT || expr.subject || 'No subject'
+        }))
+      }
+      
       return response
     } catch (error) {
       throw this.handleError(error)
@@ -134,6 +150,22 @@ class ExpressionService {
       
       // Debug: Log the response to see the actual data structure
       console.log('getSentExpressions response:', JSON.stringify(response, null, 2))
+      
+      // Transform the data to ensure all required fields are present
+      if (response.success && response.data?.expressions) {
+        response.data.expressions = response.data.expressions.map(expr => ({
+          ...expr,
+          // Ensure content fields are available with fallbacks
+          EXP_DETAIL: expr.EXP_DETAIL || expr.content || 'No content available',
+          EXP_SUBJECT: expr.EXP_SUBJECT || expr.subject || 'No subject',
+          // Ensure date fields are properly formatted
+          date: expr.date || expr.EXP_DATE_STR || new Date(expr.EXP_DATE).toISOString().split('T')[0],
+          time: expr.time || new Date(expr.EXP_DATE).toTimeString().slice(0, 5),
+          // Ensure other required fields
+          content: expr.EXP_DETAIL || expr.content || 'No content available',
+          subject: expr.EXP_SUBJECT || expr.subject || 'No subject'
+        }))
+      }
       
       return response
     } catch (error) {
