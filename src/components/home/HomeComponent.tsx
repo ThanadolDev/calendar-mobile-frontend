@@ -58,7 +58,11 @@ const FeedbackDashboard = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [timePeriod, setTimePeriod] = useState<'monthly' | 'yearly'>('monthly');
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
-  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
+  const [currentMonth, setCurrentMonth] = useState(() => {
+    const month = new Date().getMonth();
+    console.log('Initial month:', month);
+    return month;
+  });
   const [newExpressionOpen, setNewExpressionOpen] = useState(false);
   const [periodLoading, setPeriodLoading] = useState(false);
 
@@ -119,6 +123,8 @@ const FeedbackDashboard = () => {
     setPeriodLoading(true);
     const newMonth = currentMonth + direction;
 
+    console.log('navigateMonth - current:', currentMonth, 'direction:', direction, 'newMonth:', newMonth);
+
     if (newMonth > 11) {
       setCurrentMonth(0);
       setCurrentYear(currentYear + 1);
@@ -126,7 +132,9 @@ const FeedbackDashboard = () => {
       setCurrentMonth(11);
       setCurrentYear(currentYear - 1);
     } else {
-      setCurrentMonth(newMonth);
+      // Safety check to ensure month is always valid
+      const safeMonth = Math.max(0, Math.min(11, newMonth));
+      setCurrentMonth(safeMonth);
     }
   };
 
@@ -262,6 +270,7 @@ const FeedbackDashboard = () => {
 
   // Debug logging
   console.log('HomeComponent render - user:', user, 'userEmpId:', userEmpId, 'loading:', loading);
+  console.log('Current date values - month:', currentMonth, 'year:', currentYear);
 
   // If no user and not loading, redirect to login
   React.useEffect(() => {
