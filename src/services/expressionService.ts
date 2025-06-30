@@ -161,7 +161,9 @@ class ExpressionService {
       if (response.success && response.data?.expressions) {
         response.data.expressions = response.data.expressions.map(expr => ({
           ...expr,
+
           // Ensure content fields are available with fallbacks
+
           EXP_DETAIL: expr.EXP_DETAIL || expr.content || 'No content available',
           EXP_SUBJECT: expr.EXP_SUBJECT || expr.subject || 'No subject',
           // Ensure date fields are properly formatted

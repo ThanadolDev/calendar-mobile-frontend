@@ -232,7 +232,7 @@ const FeedbackDashboard = () => {
 
   const removeAttachment = (index: number) => {
     const newAttachments = (expressionData.attachments || []).filter((_, i) => i !== index);
-    
+
     setExpressionData({ ...expressionData, attachments: newAttachments });
   };
 
