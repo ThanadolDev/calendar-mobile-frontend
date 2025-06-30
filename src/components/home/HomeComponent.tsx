@@ -60,6 +60,7 @@ const FeedbackDashboard = () => {
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [newExpressionOpen, setNewExpressionOpen] = useState(false);
+  const [periodLoading, setPeriodLoading] = useState(false);
 
   const [selectedExpression, setSelectedExpression] = useState<(Expression & {
     from?: string;
@@ -115,6 +116,7 @@ const FeedbackDashboard = () => {
 
   // Navigation functions
   const navigateMonth = (direction: number) => {
+    setPeriodLoading(true);
     const newMonth = currentMonth + direction;
 
     if (newMonth > 11) {
@@ -129,6 +131,7 @@ const FeedbackDashboard = () => {
   };
 
   const navigateYear = (direction: number) => {
+    setPeriodLoading(true);
     setCurrentYear(currentYear + direction);
   };
 
@@ -176,8 +179,18 @@ const FeedbackDashboard = () => {
         ...(timePeriod === 'monthly' && { month: currentMonth })
       };
 
-      loadReceivedExpressions(userEmpId, filters);
-      loadSentExpressions(userEmpId, filters);
+      const loadData = async () => {
+        try {
+          await Promise.all([
+            loadReceivedExpressions(userEmpId, filters),
+            loadSentExpressions(userEmpId, filters)
+          ]);
+        } finally {
+          setPeriodLoading(false);
+        }
+      };
+
+      loadData();
     }
   }, [userEmpId, timePeriod, currentYear, currentMonth, loadReceivedExpressions, loadSentExpressions]);
 
@@ -298,6 +311,42 @@ const FeedbackDashboard = () => {
         <div className={`p-3 rounded-full ${bgColor}`}>
           <Icon className={`w-6 h-6 ${textColor}`} />
         </div>
+      </div>
+    </div>
+  );
+
+  const StatCardSkeleton = () => (
+    <div className="bg-white rounded-lg p-4 shadow-sm border animate-pulse">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="h-4 bg-gray-300 rounded w-20 mb-2"></div>
+          <div className="h-8 bg-gray-300 rounded w-8"></div>
+        </div>
+        <div className="p-3 rounded-full bg-gray-200">
+          <div className="w-6 h-6 bg-gray-300 rounded"></div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const ExpressionCardSkeleton = () => (
+    <div className="bg-white rounded-lg p-4 shadow-sm border mb-3 animate-pulse">
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center">
+          <div className="w-10 h-10 bg-gray-200 rounded-full mr-3"></div>
+          <div>
+            <div className="h-4 bg-gray-300 rounded w-24 mb-1"></div>
+            <div className="h-3 bg-gray-300 rounded w-16"></div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="h-6 bg-gray-300 rounded-full w-16"></div>
+          <div className="h-4 w-4 bg-gray-300 rounded"></div>
+        </div>
+      </div>
+      <div className="space-y-2 mb-3">
+        <div className="h-4 bg-gray-300 rounded w-full"></div>
+        <div className="h-4 bg-gray-300 rounded w-3/4"></div>
       </div>
     </div>
   );
@@ -565,22 +614,30 @@ const FeedbackDashboard = () => {
       <div className="p-4 bg-white border-b">
         <div className="flex rounded-lg border overflow-hidden">
           <button
-            onClick={() => setTimePeriod('monthly')}
+            onClick={() => {
+              setPeriodLoading(true);
+              setTimePeriod('monthly');
+            }}
             className={`flex-1 py-2 px-4 text-sm font-medium ${
               timePeriod === 'monthly'
                 ? 'bg-blue-600 text-white'
                 : 'bg-white text-gray-700 hover:bg-gray-50'
             }`}
+            disabled={periodLoading}
           >
             รายเดือน
           </button>
           <button
-            onClick={() => setTimePeriod('yearly')}
+            onClick={() => {
+              setPeriodLoading(true);
+              setTimePeriod('yearly');
+            }}
             className={`flex-1 py-2 px-4 text-sm font-medium ${
               timePeriod === 'yearly'
                 ? 'bg-blue-600 text-white'
                 : 'bg-white text-gray-700 hover:bg-gray-50'
             }`}
+            disabled={periodLoading}
           >
             รายปี
           </button>
@@ -625,34 +682,45 @@ const FeedbackDashboard = () => {
       {/* Stats Cards */}
       <div className="p-4">
         <div className="grid grid-cols-2 gap-3">
-          <StatCard
-            title="ชื่นชม"
-            value={currentStats.praise}
-            icon={ThumbsUp}
-            bgColor="bg-green-100"
-            textColor="text-green-600"
-          />
-          <StatCard
-            title="ข้อแนะนำที่ได้รับ"
-            value={currentStats.suggestions}
-            icon={MessageSquare}
-            bgColor="bg-orange-100"
-            textColor="text-orange-600"
-          />
-          <StatCard
-            title="เปิดเผย"
-            value={currentStats.public}
-            icon={Eye}
-            bgColor="bg-blue-100"
-            textColor="text-blue-600"
-          />
-          <StatCard
-            title="ไม่เปิดเผย"
-            value={currentStats.private}
-            icon={EyeOff}
-            bgColor="bg-gray-100"
-            textColor="text-gray-600"
-          />
+          {periodLoading ? (
+            <>
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+            </>
+          ) : (
+            <>
+              <StatCard
+                title="ชื่นชม"
+                value={currentStats.praise}
+                icon={ThumbsUp}
+                bgColor="bg-green-100"
+                textColor="text-green-600"
+              />
+              <StatCard
+                title="ข้อแนะนำที่ได้รับ"
+                value={currentStats.suggestions}
+                icon={MessageSquare}
+                bgColor="bg-orange-100"
+                textColor="text-orange-600"
+              />
+              <StatCard
+                title="เปิดเผย"
+                value={currentStats.public}
+                icon={Eye}
+                bgColor="bg-blue-100"
+                textColor="text-blue-600"
+              />
+              <StatCard
+                title="ไม่เปิดเผย"
+                value={currentStats.private}
+                icon={EyeOff}
+                bgColor="bg-gray-100"
+                textColor="text-gray-600"
+              />
+            </>
+          )}
         </div>
       </div>
 
@@ -685,7 +753,13 @@ const FeedbackDashboard = () => {
           {activeTab === 0 && (
             <div>
               <h3 className="text-lg font-medium mb-4">ความคิดเห็นที่ได้รับ</h3>
-              {filteredExpressions.length === 0 ? (
+              {periodLoading ? (
+                <>
+                  <ExpressionCardSkeleton />
+                  <ExpressionCardSkeleton />
+                  <ExpressionCardSkeleton />
+                </>
+              ) : filteredExpressions.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   ไม่มีความคิดเห็นในช่วงเวลานี้
                 </div>
@@ -704,7 +778,13 @@ const FeedbackDashboard = () => {
           {activeTab === 1 && (
             <div>
               <h3 className="text-lg font-medium mb-4">ความคิดเห็นที่แสดง</h3>
-              {filteredMyExpressions.length === 0 ? (
+              {periodLoading ? (
+                <>
+                  <ExpressionCardSkeleton />
+                  <ExpressionCardSkeleton />
+                  <ExpressionCardSkeleton />
+                </>
+              ) : filteredMyExpressions.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   ไม่มีความคิดเห็นในช่วงเวลานี้
                 </div>
