@@ -2,6 +2,10 @@ export interface ExpressionAttachment {
   fileId: string
   fileName: string
   type?: string
+  originalName?: string
+  size?: number
+  mimeType?: string
+  url?: string
 }
 
 export interface CreateExpressionRequest {

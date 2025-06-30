@@ -28,6 +28,8 @@ import {
 import { useExpressions } from '../../hooks/useExpressions';
 import { useAuth } from '../../contexts/AuthContext';
 import type { CreateExpressionRequest, Expression } from '../../types/expression';
+import fileUploadService from '../../services/fileUploadService';
+import fileDownloadService from '../../services/fileDownloadService';
 
 // Constants
 const SWIPE_THRESHOLD = 50;
@@ -65,6 +67,7 @@ const FeedbackDashboard = () => {
   });
   const [newExpressionOpen, setNewExpressionOpen] = useState(false);
   const [periodLoading, setPeriodLoading] = useState(false);
+  const [uploadLoading, setUploadLoading] = useState(false);
 
   const [selectedExpression, setSelectedExpression] = useState<(Expression & {
     from?: string;
@@ -203,19 +206,49 @@ const FeedbackDashboard = () => {
   }, [userEmpId, timePeriod, currentYear, currentMonth, loadReceivedExpressions, loadSentExpressions]);
 
   // Handle file upload
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
+    
+    if (files.length === 0) return;
 
-    const newAttachments = files.map(file => ({
-      fileId: `temp-${Date.now()}-${Math.random()}`, // Temporary ID for new files
-      fileName: file.name,
-      type: file.type || 'FILE'
-    }));
+    // Validate files
+    const validation = fileUploadService.validateFiles(files);
+    if (!validation.valid) {
+      alert(`File validation failed:\n${validation.errors.join('\n')}`);
+      return;
+    }
 
-    setExpressionData({
-      ...expressionData,
-      attachments: [...(expressionData.attachments || []), ...newAttachments]
-    });
+    setUploadLoading(true);
+    
+    try {
+      const uploadResult = await fileUploadService.uploadFiles(files);
+      
+      if (uploadResult.success && uploadResult.data?.files) {
+        const newAttachments = uploadResult.data.files.map(file => ({
+          fileId: file.fileId,
+          fileName: file.fileName,
+          type: 'FILE'
+        }));
+
+        setExpressionData({
+          ...expressionData,
+          attachments: [...(expressionData.attachments || []), ...newAttachments]
+        });
+        
+        console.log('Files uploaded successfully:', uploadResult.data.files);
+      } else {
+        throw new Error(uploadResult.message || 'Upload failed');
+      }
+    } catch (error) {
+      console.error('File upload error:', error);
+      alert(`File upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setUploadLoading(false);
+      // Clear the input so the same file can be selected again
+      if (event.target) {
+        event.target.value = '';
+      }
+    }
   };
 
   // Handle saving expression
@@ -426,13 +459,33 @@ const FeedbackDashboard = () => {
       {expression.attachments && expression.attachments.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-3">
           {expression.attachments.map((file, index) => (
-            <div
+            <button
               key={index}
-              className="flex items-center gap-1 px-2 py-1 bg-gray-100 rounded text-xs text-gray-600"
+              onClick={() => {
+                if (typeof file === 'object' && file.fileId) {
+                  // Use filepath if available, otherwise fall back to fileId
+                  const useFilePath = file.url && file.url.length > 0;
+                  const identifier = useFilePath ? file.url : file.fileId;
+                  
+                  if (fileDownloadService.canPreview(file.mimeType)) {
+                    fileDownloadService.viewFile(identifier, useFilePath);
+                  } else {
+                    fileDownloadService.downloadFile(identifier, file.fileName, useFilePath);
+                  }
+                }
+              }}
+              className="flex items-center gap-1 px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-xs text-gray-600 hover:text-gray-800 transition-colors cursor-pointer"
             >
-              <Paperclip className="w-3 h-3" />
-              {typeof file === 'string' ? file : file.fileName}
-            </div>
+              <span className="text-sm">
+                {typeof file === 'object' && file.mimeType 
+                  ? fileDownloadService.getFileIcon(file.mimeType)
+                  : '📎'
+                }
+              </span>
+              <span className="truncate max-w-20">
+                {typeof file === 'string' ? file : file.fileName}
+              </span>
+            </button>
           ))}
         </div>
       )}
@@ -581,15 +634,40 @@ const FeedbackDashboard = () => {
                 </label>
                 <div className="space-y-2">
                   {expression.attachments.map((file, index) => (
-                    <div
+                    <button
                       key={index}
-                      className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer"
+                      onClick={() => {
+                        if (typeof file === 'object' && file.fileId) {
+                          // Use filepath if available, otherwise fall back to fileId
+                          const useFilePath = file.url && file.url.length > 0;
+                          const identifier = useFilePath ? file.url : file.fileId;
+                          
+                          if (fileDownloadService.canPreview(file.mimeType)) {
+                            fileDownloadService.viewFile(identifier, useFilePath);
+                          } else {
+                            fileDownloadService.downloadFile(identifier, file.fileName, useFilePath);
+                          }
+                        }
+                      }}
+                      className="w-full flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors text-left"
                     >
-                      <Paperclip className="w-5 h-5 text-gray-600" />
-                      <span className="text-gray-700">
-                        {typeof file === 'string' ? file : file.fileName}
+                      <span className="text-xl">
+                        {typeof file === 'object' && file.mimeType 
+                          ? fileDownloadService.getFileIcon(file.mimeType)
+                          : '📎'
+                        }
                       </span>
-                    </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-gray-700 truncate">
+                          {typeof file === 'string' ? file : file.fileName}
+                        </p>
+                        {typeof file === 'object' && file.size && (
+                          <p className="text-xs text-gray-500">
+                            {(file.size / 1024).toFixed(1)} KB
+                          </p>
+                        )}
+                      </div>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -944,10 +1022,22 @@ const FeedbackDashboard = () => {
                 />
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full p-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 flex items-center justify-center gap-2 text-gray-600 hover:text-blue-600"
+                  disabled={uploadLoading}
+                  className={`w-full p-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 flex items-center justify-center gap-2 text-gray-600 hover:text-blue-600 ${
+                    uploadLoading ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
                 >
-                  <Paperclip className="w-5 h-5" />
-                  แนบไฟล์
+                  {uploadLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      กำลังอัปโหลด...
+                    </>
+                  ) : (
+                    <>
+                      <Paperclip className="w-5 h-5" />
+                      แนบไฟล์
+                    </>
+                  )}
                 </button>
                 {(expressionData.attachments?.length ?? 0) > 0 && (
                   <div className="mt-2 space-y-2">
