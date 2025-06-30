@@ -250,13 +250,23 @@ const FeedbackDashboard = () => {
   // Debug logging
   console.log('HomeComponent render - user:', user, 'userEmpId:', userEmpId, 'loading:', loading);
 
-  // Show loading if user data or expressions are loading
-  if (!user || !userEmpId || loading) {
+  // If no user and not loading, redirect to login
+  React.useEffect(() => {
+    if (!user && !loading) {
+      console.log('HomeComponent: No user found, redirecting to login');
+      window.location.href = '/login-og';
+    }
+  }, [user, loading]);
+
+  // Show loading if expressions are loading or if we're redirecting
+  if (loading || !user || !userEmpId) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <p className="mt-2 text-gray-600">กำลังโหลดข้อมูล...</p>
+          <p className="mt-2 text-gray-600">
+            {!user ? 'กำลังตรวจสอบการเข้าสู่ระบบ...' : 'กำลังโหลดข้อมูล...'}
+          </p>
           {/* Debug info in development */}
           {process.env.NODE_ENV === 'development' && (
             <div className="mt-4 text-sm text-gray-500">
