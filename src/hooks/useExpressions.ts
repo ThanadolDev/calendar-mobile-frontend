@@ -13,6 +13,7 @@ interface UseExpressionsState {
   expressions: Expression[]
   myExpressions: Expression[]
   loading: boolean
+  createLoading: boolean
   error: string | null
   stats: ExpressionStats
 }
@@ -36,6 +37,7 @@ export function useExpressions(empId?: string): UseExpressionsState & UseExpress
     expressions: [],
     myExpressions: [],
     loading: false,
+    createLoading: false,
     error: null,
     stats: {
       praise: 0,
