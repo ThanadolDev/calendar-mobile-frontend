@@ -47,7 +47,7 @@ describe('HomeComponent', () => {
     mockUseExpressions.mockReturnValue(mockExpressionsHook)
   })
 
-  it('should render loading state', () => {
+  it('should render loading state when checking authentication', () => {
     mockUseAuth.mockReturnValue({
       user: null,
       loading: true,
@@ -58,7 +58,28 @@ describe('HomeComponent', () => {
 
     render(<HomeComponent />)
     
-    expect(screen.getByText('กำลังโหลดข้อมูล')).toBeInTheDocument()
+    expect(screen.getByText('กำลังตรวจสอบการเข้าสู่ระบบ...')).toBeInTheDocument()
+  })
+
+  it('should render loading state when user exists but expressions loading', () => {
+    mockUseAuth.mockReturnValue({
+      user: mockUser,
+      loading: false,
+      login: jest.fn(),
+      logout: jest.fn(),
+      setUserInfo: jest.fn()
+    })
+
+    const mockExpressionsLoading = {
+      ...mockExpressionsHook,
+      loading: true
+    }
+
+    mockUseExpressions.mockReturnValue(mockExpressionsLoading)
+
+    render(<HomeComponent />)
+    
+    expect(screen.getByText('กำลังโหลดข้อมูล...')).toBeInTheDocument()
   })
 
   it('should redirect to login when no user', async () => {
@@ -93,10 +114,15 @@ describe('HomeComponent', () => {
     render(<HomeComponent />)
 
     // Should not show loading
-    expect(screen.queryByText('กำลังโหลดข้อมูล')).not.toBeInTheDocument()
+    expect(screen.queryByText('กำลังโหลดข้อมูล...')).not.toBeInTheDocument()
+    expect(screen.queryByText('กำลังตรวจสอบการเข้าสู่ระบบ...')).not.toBeInTheDocument()
     
     // Should call expressions hook with user ID
     expect(mockUseExpressions).toHaveBeenCalledWith('DEV001')
+    
+    // Should render main dashboard content
+    expect(screen.getByText('รายเดือน')).toBeInTheDocument()
+    expect(screen.getByText('รายปี')).toBeInTheDocument()
   })
 
   it('should display expressions data', () => {

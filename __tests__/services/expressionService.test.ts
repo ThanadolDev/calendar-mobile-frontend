@@ -1,5 +1,6 @@
 import expressionService from '../../src/services/expressionService'
 import ApiClient from '../../src/services/apiClient'
+import type { CreateExpressionRequest } from '../../src/types/expression'
 
 // Mock ApiClient
 jest.mock('../../src/services/apiClient', () => ({
