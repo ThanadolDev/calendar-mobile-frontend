@@ -187,12 +187,13 @@ class ExpressionService {
   calculateStats(expressions: Expression[]): ExpressionStats {
     return expressions.reduce((stats, expr) => {
       // Count by type
-      if (expr.type === 'praise') stats.praise++
-      if (expr.type === 'suggestion') stats.suggestions++
+      console.log(expr)
+      if (expr.TYPE == 'praise') stats.praise++
+      if (expr.TYPE == 'suggestion') stats.suggestions++
 
       // Count by visibility
-      if (expr.isPublic === true) stats.public++
-      if (expr.isPublic === false) stats.private++
+      if (expr.ISPUBLIC == '1') stats.public++
+      if (expr.ISPUBLIC == '0') stats.private++
 
       return stats
     }, {
@@ -214,9 +215,11 @@ class ExpressionService {
   ): Expression[] {
     return expressions.filter(expr => {
       if (timePeriod === 'monthly') {
-        return expr.year === currentYear && expr.month === currentMonth
+        console.log(expr,currentMonth)
+
+        return  currentYear && currentMonth
       } else {
-        return expr.year === currentYear
+        return currentYear
       }
     })
   }

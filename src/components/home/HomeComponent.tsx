@@ -140,13 +140,13 @@ const FeedbackDashboard = () => {
     let filtered = expressions;
 
     // Filter by time period
-    if (timePeriod === 'monthly') {
-      filtered = filtered.filter(exp =>
-        exp.month === currentMonth && exp.year === currentYear
-      );
-    } else {
-      filtered = filtered.filter(exp => exp.year === currentYear);
-    }
+    // if (timePeriod === 'monthly') {
+    //   filtered = filtered.filter(exp =>
+    //     exp.month === currentMonth && exp.year === currentYear
+    //   );
+    // } else {
+    //   filtered = filtered.filter(exp => exp.year === currentYear);
+    // }
 
     return filtered;
   }, [expressions, timePeriod, currentMonth, currentYear]);
@@ -154,13 +154,13 @@ const FeedbackDashboard = () => {
   const filteredMyExpressions = useMemo(() => {
     let filtered = myExpressions;
 
-    if (timePeriod === 'monthly') {
-      filtered = filtered.filter(exp =>
-        exp.month === currentMonth && exp.year === currentYear
-      );
-    } else {
-      filtered = filtered.filter(exp => exp.year === currentYear);
-    }
+    // if (timePeriod === 'monthly') {
+    //   filtered = filtered.filter(exp =>
+    //     exp.month === currentMonth && exp.year === currentYear
+    //   );
+    // } else {
+    //   filtered = filtered.filter(exp => exp.year === currentYear);
+    // }
 
     return filtered;
   }, [myExpressions, timePeriod, currentMonth, currentYear]);

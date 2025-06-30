@@ -37,10 +37,10 @@ export interface Expression {
   CANCEL_UID?: string
 
   // Transformed fields from backend
-  type: 'praise' | 'suggestion'
+  TYPE: 'praise' | 'suggestion'
   privacy?: 'public' | 'private'
   expressionStatus?: 'published' | 'draft'
-  isPublic?: boolean
+  ISPUBLIC?: '1' | '0'
   date: string
   time?: string
   month: number
