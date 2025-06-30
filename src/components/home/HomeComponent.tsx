@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+
 import {
   Plus,
   ThumbsUp,
@@ -12,7 +13,6 @@ import {
   Paperclip,
   Save,
   Send,
-  Archive,
   Edit3,
   Trash2,
   X,
@@ -20,7 +20,6 @@ import {
   ChevronRight,
   Heart,
   Lightbulb,
-  ArrowLeft,
   Clock,
   Loader2,
   AlertCircle
@@ -49,12 +48,9 @@ const FeedbackDashboard = () => {
     myExpressions,
     loading,
     error,
-    stats,
     createExpression,
     loadReceivedExpressions,
     loadSentExpressions,
-    updateExpression,
-    deleteExpression,
     clearError,
     calculateStatsForPeriod
   } = useExpressions(userEmpId);
@@ -64,10 +60,11 @@ const FeedbackDashboard = () => {
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [newExpressionOpen, setNewExpressionOpen] = useState(false);
-  const [selectedExpression, setSelectedExpression] = useState<(Expression & { 
-    from?: string; 
-    department?: string; 
-    position?: string; 
+
+  const [selectedExpression, setSelectedExpression] = useState<(Expression & {
+    from?: string;
+    department?: string;
+    position?: string;
     fullContent?: string;
     content?: string;
   }) | null>(null);
@@ -135,7 +132,7 @@ const FeedbackDashboard = () => {
     setCurrentYear(currentYear + direction);
   };
 
-  // Filter expressions based on time period  
+  // Filter expressions based on time period
   const filteredExpressions = useMemo(() => {
     let filtered = expressions;
 
@@ -178,7 +175,7 @@ const FeedbackDashboard = () => {
         year: currentYear,
         ...(timePeriod === 'monthly' && { month: currentMonth })
       };
-      
+
       loadReceivedExpressions(userEmpId, filters);
       loadSentExpressions(userEmpId, filters);
     }
@@ -187,12 +184,13 @@ const FeedbackDashboard = () => {
   // Handle file upload
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
+
     const newAttachments = files.map(file => ({
       fileId: `temp-${Date.now()}-${Math.random()}`, // Temporary ID for new files
       fileName: file.name,
       type: file.type || 'FILE'
     }));
-    
+
     setExpressionData({
       ...expressionData,
       attachments: [...(expressionData.attachments || []), ...newAttachments]
@@ -204,6 +202,7 @@ const FeedbackDashboard = () => {
     if (!expressionData.recipient || !expressionData.content) {
       // Note: Error handling is managed by the useExpressions hook
       alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+
       return;
     }
 
@@ -214,7 +213,7 @@ const FeedbackDashboard = () => {
       };
 
       await createExpression(newExpressionData);
-      
+
       // Close modal and reset form on success
       setNewExpressionOpen(false);
       setExpressionData({
@@ -233,6 +232,7 @@ const FeedbackDashboard = () => {
 
   const removeAttachment = (index: number) => {
     const newAttachments = (expressionData.attachments || []).filter((_, i) => i !== index);
+    
     setExpressionData({ ...expressionData, attachments: newAttachments });
   };
 
@@ -242,6 +242,7 @@ const FeedbackDashboard = () => {
       const timer = setTimeout(() => {
         clearError();
       }, 3000);
+
       return () => clearTimeout(timer);
     }
   }, [error, clearError]);
@@ -418,10 +419,10 @@ const FeedbackDashboard = () => {
   );
 
   interface ExpressionDetailModalProps {
-    expression: Expression & { 
-      from?: string; 
-      department?: string; 
-      position?: string; 
+    expression: Expression & {
+      from?: string;
+      department?: string;
+      position?: string;
       fullContent?: string;
       content?: string;
     } | null;

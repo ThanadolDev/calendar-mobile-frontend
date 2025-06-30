@@ -2,7 +2,6 @@ import ApiClient from './apiClient'
 import type {
   Expression,
   CreateExpressionRequest,
-  UpdateExpressionRequest,
   ExpressionFilters,
   ApiResponse,
   ExpressionListResponse,
@@ -22,6 +21,7 @@ class ExpressionService {
         this.basePath,
         data
       )
+
       return response
     } catch (error) {
       throw this.handleError(error)
@@ -36,6 +36,7 @@ class ExpressionService {
       const response = await ApiClient.get<ApiResponse<ExpressionListResponse>>(
         this.basePath
       )
+
       return response
     } catch (error) {
       throw this.handleError(error)
@@ -50,6 +51,7 @@ class ExpressionService {
       const response = await ApiClient.get<ApiResponse<ExpressionResponse>>(
         `${this.basePath}/${id}`
       )
+
       return response
     } catch (error) {
       throw this.handleError(error)
@@ -65,6 +67,7 @@ class ExpressionService {
         `${this.basePath}/${id}`,
         data
       )
+
       return response
     } catch (error) {
       throw this.handleError(error)
@@ -79,6 +82,7 @@ class ExpressionService {
       const response = await ApiClient.delete<ApiResponse<null>>(
         `${this.basePath}/${id}`
       )
+
       return response
     } catch (error) {
       throw this.handleError(error)
@@ -103,10 +107,11 @@ class ExpressionService {
       const url = `${this.basePath}/received/${empId}${queryString ? `?${queryString}` : ''}`
 
       const response = await ApiClient.get<ApiResponse<ExpressionListResponse>>(url)
-      
+
+
       // Debug: Log the response to see the actual data structure
       console.log('getReceivedExpressions response:', JSON.stringify(response, null, 2))
-      
+
       // Transform the data to ensure all required fields are present
       if (response.success && response.data?.expressions) {
         response.data.expressions = response.data.expressions.map(expr => ({
@@ -122,7 +127,7 @@ class ExpressionService {
           subject: expr.EXP_SUBJECT || expr.subject || 'No subject'
         }))
       }
-      
+
       return response
     } catch (error) {
       throw this.handleError(error)
@@ -147,10 +152,11 @@ class ExpressionService {
       const url = `${this.basePath}/sent/${empId}${queryString ? `?${queryString}` : ''}`
 
       const response = await ApiClient.get<ApiResponse<ExpressionListResponse>>(url)
-      
+
+
       // Debug: Log the response to see the actual data structure
       console.log('getSentExpressions response:', JSON.stringify(response, null, 2))
-      
+
       // Transform the data to ensure all required fields are present
       if (response.success && response.data?.expressions) {
         response.data.expressions = response.data.expressions.map(expr => ({
@@ -166,7 +172,7 @@ class ExpressionService {
           subject: expr.EXP_SUBJECT || expr.subject || 'No subject'
         }))
       }
-      
+
       return response
     } catch (error) {
       throw this.handleError(error)
