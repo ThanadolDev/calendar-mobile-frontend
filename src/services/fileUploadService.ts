@@ -157,6 +157,21 @@ class FileUploadService {
   validateFiles(files: File[]): { valid: boolean; errors: string[] } {
     const errors: string[] = []
     
+    // Check file count limits (1-10 files)
+    if (files.length === 0) {
+      errors.push('Please select at least one file')
+    } else if (files.length > 10) {
+      errors.push(`Too many files selected. Maximum allowed: 10, Selected: ${files.length}`)
+    }
+    
+    // Check total size (optional: could add total size limit)
+    const totalSize = files.reduce((sum, file) => sum + file.size, 0)
+    const maxTotalSize = 100 * 1024 * 1024 // 100MB total limit
+    if (totalSize > maxTotalSize) {
+      errors.push(`Total file size exceeds 100MB limit. Total size: ${(totalSize / 1024 / 1024).toFixed(2)}MB`)
+    }
+    
+    // Validate each individual file
     files.forEach(file => {
       const validation = this.validateFile(file)
       if (!validation.valid && validation.error) {

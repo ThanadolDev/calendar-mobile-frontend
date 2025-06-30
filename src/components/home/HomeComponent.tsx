@@ -54,6 +54,7 @@ const FeedbackDashboard = () => {
     expressions,
     myExpressions,
     loading,
+    createLoading,
     error,
     createExpression,
     loadReceivedExpressions,
@@ -215,6 +216,15 @@ const FeedbackDashboard = () => {
     const files = Array.from(event.target.files || []);
     
     if (files.length === 0) return;
+
+    // Check if adding these files would exceed the 10-file limit
+    const currentFileCount = expressionData.attachments?.length ?? 0;
+    const totalAfterUpload = currentFileCount + files.length;
+    
+    if (totalAfterUpload > 10) {
+      alert(`ไม่สามารถเพิ่มไฟล์ได้ เนื่องจากจะเกินจำนวนสูงสุด 10 ไฟล์\n(ปัจจุบัน: ${currentFileCount} ไฟล์, พยายามเพิ่ม: ${files.length} ไฟล์)`);
+      return;
+    }
 
     // Validate files
     const validation = fileUploadService.validateFiles(files);
@@ -1039,9 +1049,9 @@ const FeedbackDashboard = () => {
                 />
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={uploadLoading}
+                  disabled={uploadLoading || (expressionData.attachments?.length ?? 0) >= 10}
                   className={`w-full p-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 flex items-center justify-center gap-2 text-gray-600 hover:text-blue-600 ${
-                    uploadLoading ? 'opacity-50 cursor-not-allowed' : ''
+                    uploadLoading || (expressionData.attachments?.length ?? 0) >= 10 ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
                 >
                   {uploadLoading ? (
@@ -1052,10 +1062,13 @@ const FeedbackDashboard = () => {
                   ) : (
                     <>
                       <Paperclip className="w-5 h-5" />
-                      แนบไฟล์
+                      แนบไฟล์ ({(expressionData.attachments?.length ?? 0)}/10)
                     </>
                   )}
                 </button>
+                <p className="text-xs text-gray-500 mt-1">
+                  อัปโหลดได้สูงสุด 10 ไฟล์ ไฟล์ละไม่เกิน 10MB
+                </p>
                 {(expressionData.attachments?.length ?? 0) > 0 && (
                   <div className="mt-2 space-y-2">
                     {(expressionData.attachments || []).map((file, index) => (
@@ -1091,17 +1104,17 @@ const FeedbackDashboard = () => {
               <button
                 onClick={() => handleSaveExpression('draft')}
                 className="flex-1 py-2 px-4 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 flex items-center justify-center gap-2"
-                disabled={loading}
+                disabled={createLoading}
               >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                {createLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 บันทึก
               </button>
               <button
                 onClick={() => handleSaveExpression('published')}
                 className="flex-1 py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
-                disabled={loading}
+                disabled={createLoading}
               >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                {createLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 เผยแพร่
               </button>
             </div>
