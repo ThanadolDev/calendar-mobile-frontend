@@ -9,7 +9,9 @@ class ApiClient {
   private static _instance: ApiClient
 
   private constructor() {
+    console.log('ApiClient: Using API_BASE_URL:', API_BASE_URL)
     this.instance = axios.create({
+      baseURL: API_BASE_URL,
       timeout: 30000,
       headers: {
         'Content-Type': 'application/json'
@@ -24,6 +26,14 @@ class ApiClient {
         if (token) {
           config.headers.Authorization = `Bearer ${token}`
         }
+
+        // Debug logging
+        console.log('ApiClient request:', {
+          method: config.method?.toUpperCase(),
+          url: config.url,
+          baseURL: config.baseURL,
+          fullURL: `${config.baseURL || API_BASE_URL}${config.url}`
+        })
 
         return config
       },
