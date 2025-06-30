@@ -1,0 +1,27 @@
+BASEPATH=/handbookmanage
+
+# NEXT_PUBLIC_API_BASE_URL=http://localhost:18823/tooling-api
+# NEXT_PUBLIC_API_BASE_URL=http://192.168.55.37:18823/tooling-api
+# NEXT_PUBLIC_API_BASE_URL=https://api.kimpai.com/tooling-api
+
+# development,production
+MODE_TITLE=development
+
+# REACT_APP_URLMAIN_LOGIN='http://192.168.55.37:19916/auth-og'
+# REACT_APP_URLMAIN_LOGIN='http://localhost:19916/auth-og'
+# REACT_APP_BACKEND_LOGIN='http://192.168.55.37:7888'
+
+REACT_APP_URLMAIN_LOGIN=https://app.kimpai.com/auth-og
+REACT_APP_BACKEND_LOGIN=https://api.kimpai.com/api-login
+NEXT_PUBLIC_API_URL=https://api.kimpai.com/tooling-backend
+
+# Feature Toggles
+# Set to 'false' to disable role-based access control (default is true)
+NEXT_PUBLIC_ENABLE_RBAC=true
+
+# Set to 'false' to disable number formatting with commas (default is true)
+NEXT_PUBLIC_ENABLE_NUMBER_FORMATTING=true
+
+# Default role to use when role-based access is disabled
+# Can be 'Manager', 'User', 'Mod', or 'View'
+NEXT_PUBLIC_DEFAULT_ROLE=Manager

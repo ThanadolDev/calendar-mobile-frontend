@@ -80,6 +80,29 @@ const LoginOg = ({}: { mode: SystemMode }) => {
   const checkAuthentication = async () => {
     try {
       setIsProcessing(true)
+      
+      // Development mode: Create mock user session if no external auth URL is configured
+      if (!process.env.REACT_APP_URLMAIN_LOGIN) {
+        console.log('Development mode: Creating mock user session')
+        
+        const mockUser: AuthResponse = {
+          id: 'DEV001',
+          name: 'Development User',
+          email: 'dev@handbook.com',
+          image_id: '',
+          ORG_ID: 'ORG001',
+          accessToken: 'mock-access-token',
+          refreshToken: 'mock-refresh-token',
+          sessionId: 'mock-session-id',
+          role: 'Manager',
+          positionId: 'POS001'
+        }
+        
+        setUserInfo(mockUser)
+        router.replace('/home')
+        return
+      }
+      
       const params = new URLSearchParams(window.location.search)
       const urlToken = params.get('accessToken')
       const urlTokenRe = params.get('refreshToken')
@@ -169,22 +192,28 @@ const LoginOg = ({}: { mode: SystemMode }) => {
       else {
         console.log('Not authenticated, redirecting to login page')
 
-        router.replace(
-          `${process.env.REACT_APP_URLMAIN_LOGIN}/login?ogwebsite=${encodeURIComponent(currentUrl)}&redirectWebsite=${process.env.NEXT_PUBLIC_HOME_BASE_URL || window.location.href}`
-        )
+        // Only redirect to external login if URL is configured
+        if (process.env.REACT_APP_URLMAIN_LOGIN) {
+          router.replace(
+            `${process.env.REACT_APP_URLMAIN_LOGIN}/login?ogwebsite=${encodeURIComponent(currentUrl)}&redirectWebsite=${process.env.NEXT_PUBLIC_HOME_BASE_URL || window.location.href}`
+          )
+        } else {
+          // In development mode without external auth, show login form
+          setIsProcessing(false)
+        }
       }
     } catch (error) {
       console.error('Authentication error:', error)
       await logout()
 
-      // const params = new URLSearchParams(window.location.search)
-
-      // const redirectWebsite = params.get('redirectWebsite')
-      const currentUrl = window.location.origin + '/handbook/login-og'
-
-      router.replace(
-        `${process.env.REACT_APP_URLMAIN_LOGIN}/logout?ogwebsite=${currentUrl}&redirectWebsite=${process.env.NEXT_PUBLIC_HOME_BASE_URL}`
-      )
+      // Only redirect to external logout if URL is configured
+      if (process.env.REACT_APP_URLMAIN_LOGIN) {
+        const currentUrl = window.location.origin + '/handbook/login-og'
+        router.replace(
+          `${process.env.REACT_APP_URLMAIN_LOGIN}/logout?ogwebsite=${currentUrl}&redirectWebsite=${process.env.NEXT_PUBLIC_HOME_BASE_URL}`
+        )
+      }
+      // If no external auth, just stay on login page
     } finally {
       setIsProcessing(false)
     }
@@ -195,13 +224,45 @@ const LoginOg = ({}: { mode: SystemMode }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  const handleDevLogin = () => {
+    console.log('Development login clicked')
+    const mockUser: AuthResponse = {
+      id: 'DEV001',
+      name: 'Development User',
+      email: 'dev@handbook.com',
+      image_id: '',
+      ORG_ID: 'ORG001',
+      accessToken: 'mock-access-token',
+      refreshToken: 'mock-refresh-token',
+      sessionId: 'mock-session-id',
+      role: 'Manager',
+      positionId: 'POS001'
+    }
+    
+    setUserInfo(mockUser)
+    router.replace('/home')
+  }
+
   return (
     <div className='flex justify-center items-center h-screen'>
-      {isProcessing && (
+      {isProcessing ? (
         <div className='flex flex-col items-center'>
           <CircularProgress />
           <p className='mt-4'>Authenticating...</p>
         </div>
+      ) : (
+        !process.env.REACT_APP_URLMAIN_LOGIN && (
+          <div className='flex flex-col items-center space-y-4'>
+            <h1 className='text-2xl font-bold'>Handbook Development Login</h1>
+            <p className='text-gray-600'>Development mode - External authentication not configured</p>
+            <button 
+              onClick={handleDevLogin}
+              className='px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
+            >
+              Login as Development User
+            </button>
+          </div>
+        )
       )}
     </div>
   )

@@ -63,9 +63,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     if (typeof window !== 'undefined') {
       console.log('typeof window')
-      router.replace(
-        `${process.env.REACT_APP_URLMAIN_LOGIN}/logout?ogwebsite=${currentUrl}&redirectWebsite=${redirectUrl}`
-      )
+      
+      // Only redirect to external logout if URL is configured
+      if (process.env.REACT_APP_URLMAIN_LOGIN) {
+        router.replace(
+          `${process.env.REACT_APP_URLMAIN_LOGIN}/logout?ogwebsite=${currentUrl}&redirectWebsite=${redirectUrl}`
+        )
+      } else {
+        // Fallback: redirect to login page
+        router.replace('/login-og')
+      }
     }
   }
 
@@ -177,11 +184,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         // If not on a public route, redirect to login
         if (pathname && !publicRoutes.some(route => pathname.includes(route))) {
           console.log('If not on a public route, redirect to login')
-          router.replace(
-            `${process.env.REACT_APP_URLMAIN_LOGIN}/logout?ogwebsite=${currentUrl}&redirectWebsite=${redirectUrl}`
-
-            // `${process.env.REACT_APP_URLMAIN_LOGIN}/login?ogwebsite=${encodeURIComponent(currentUrl)}&redirectWebsite=${encodeURIComponent(redirectUrl)}`
-          )
+          
+          // Only redirect if login URL is properly configured
+          if (process.env.REACT_APP_URLMAIN_LOGIN) {
+            router.replace(
+              `${process.env.REACT_APP_URLMAIN_LOGIN}/logout?ogwebsite=${currentUrl}&redirectWebsite=${redirectUrl}`
+            )
+          } else {
+            // Fallback: redirect to login page instead of external service
+            router.replace('/login-og')
+          }
         }
 
         return
@@ -208,11 +220,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         // Redirect to login if not on a public route
         if (pathname && !publicRoutes.some(route => pathname.includes(route))) {
           console.log('Redirect to login if not on a public route')
-          router.replace(
-            `${process.env.REACT_APP_URLMAIN_LOGIN}/logout?ogwebsite=${currentUrl}&redirectWebsite=${redirectUrl}`
-
-            // `${process.env.REACT_APP_URLMAIN_LOGIN}/login?ogwebsite=${encodeURIComponent(currentUrl)}&redirectWebsite=${encodeURIComponent(redirectUrl)}`
-          )
+          
+          // Only redirect if login URL is properly configured
+          if (process.env.REACT_APP_URLMAIN_LOGIN) {
+            router.replace(
+              `${process.env.REACT_APP_URLMAIN_LOGIN}/logout?ogwebsite=${currentUrl}&redirectWebsite=${redirectUrl}`
+            )
+          } else {
+            // Fallback: redirect to login page instead of external service
+            router.replace('/login-og')
+          }
         }
       }
 
