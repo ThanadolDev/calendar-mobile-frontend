@@ -962,6 +962,7 @@ const FeedbackDashboard = () => {
                   }
                   placeholder="เลือกผู้รับ"
                   disabled={loading}
+                  excludeEmpId={userEmpId} // Exclude current user from selection
                 />
               </div>
 
