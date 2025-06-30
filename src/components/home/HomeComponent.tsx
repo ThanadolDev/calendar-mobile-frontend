@@ -208,7 +208,7 @@ const FeedbackDashboard = () => {
   // Handle file upload
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    
+
     if (files.length === 0) return;
 
     // Validate files
@@ -219,10 +219,10 @@ const FeedbackDashboard = () => {
     }
 
     setUploadLoading(true);
-    
+
     try {
       const uploadResult = await fileUploadService.uploadFiles(files);
-      
+
       if (uploadResult.success && uploadResult.data?.files) {
         const newAttachments = uploadResult.data.files.map(file => ({
           fileId: file.fileId,
@@ -234,7 +234,7 @@ const FeedbackDashboard = () => {
           ...expressionData,
           attachments: [...(expressionData.attachments || []), ...newAttachments]
         });
-        
+
         console.log('Files uploaded successfully:', uploadResult.data.files);
       } else {
         throw new Error(uploadResult.message || 'Upload failed');
@@ -430,23 +430,23 @@ const FeedbackDashboard = () => {
         <div className="flex items-center gap-2">
           <span
             className={`px-2 py-1 text-xs rounded-full ${
-              expression.type === 'praise'
+              expression.TYPE === 'praise'
                 ? 'bg-green-100 text-green-800'
                 : 'bg-orange-100 text-orange-800'
             }`}
           >
-            {expression.type === 'praise' ? 'ชื่นชม' : 'ต้องปรับปรุง'}
+            {expression.TYPE === 'praise' ? 'ชื่นชม' : 'ต้องปรับปรุง'}
           </span>
-          {expression.isPublic !== undefined && (
+          {expression.ISPUBLIC !== undefined && (
             <button
               className="p-1 text-gray-400 hover:text-gray-600"
-              aria-label={expression.isPublic ? 'ชื่นชม (ไม่ feedback)' : 'ต้องปรับปรุง (ไม่ feedback)'}
+              aria-label={expression.ISPUBLIC == '1' ? 'ชื่นชม (ไม่ feedback)' : 'ต้องปรับปรุง (ไม่ feedback)'}
             >
-              {expression.isPublic ? (
+              {/* {expression.ISPUBLIC == '1' ? (
                 <Eye className="w-4 h-4" />
               ) : (
                 <EyeOff className="w-4 h-4" />
-              )}
+              )} */}
             </button>
           )}
         </div>
@@ -466,7 +466,7 @@ const FeedbackDashboard = () => {
                   // Use filepath if available, otherwise fall back to fileId
                   const useFilePath = file.url && file.url.length > 0;
                   const identifier = useFilePath ? file.url : file.fileId;
-                  
+
                   // Always use viewFile to display files in browser (uses displayfile endpoint)
                   fileDownloadService.viewFile(identifier, useFilePath);
                 }
@@ -474,7 +474,7 @@ const FeedbackDashboard = () => {
               className="flex items-center gap-1 px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-xs text-gray-600 hover:text-gray-800 transition-colors cursor-pointer"
             >
               <span className="text-sm">
-                {typeof file === 'object' && file.mimeType 
+                {typeof file === 'object' && file.mimeType
                   ? fileDownloadService.getFileIcon(file.mimeType)
                   : '📎'
                 }
@@ -638,7 +638,7 @@ const FeedbackDashboard = () => {
                           // Use filepath if available, otherwise fall back to fileId
                           const useFilePath = file.url && file.url.length > 0;
                           const identifier = useFilePath ? file.url : file.fileId;
-                          
+
                           // Always use viewFile to display files in browser (uses displayfile endpoint)
                           fileDownloadService.viewFile(identifier, useFilePath);
                         }
@@ -646,7 +646,7 @@ const FeedbackDashboard = () => {
                       className="w-full flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors text-left"
                     >
                       <span className="text-xl">
-                        {typeof file === 'object' && file.mimeType 
+                        {typeof file === 'object' && file.mimeType
                           ? fileDownloadService.getFileIcon(file.mimeType)
                           : '📎'
                         }
