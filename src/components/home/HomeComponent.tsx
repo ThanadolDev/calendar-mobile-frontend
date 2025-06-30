@@ -467,11 +467,8 @@ const FeedbackDashboard = () => {
                   const useFilePath = file.url && file.url.length > 0;
                   const identifier = useFilePath ? file.url : file.fileId;
                   
-                  if (fileDownloadService.canPreview(file.mimeType)) {
-                    fileDownloadService.viewFile(identifier, useFilePath);
-                  } else {
-                    fileDownloadService.downloadFile(identifier, file.fileName, useFilePath);
-                  }
+                  // Always use viewFile to display files in browser (uses displayfile endpoint)
+                  fileDownloadService.viewFile(identifier, useFilePath);
                 }
               }}
               className="flex items-center gap-1 px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-xs text-gray-600 hover:text-gray-800 transition-colors cursor-pointer"
@@ -642,11 +639,8 @@ const FeedbackDashboard = () => {
                           const useFilePath = file.url && file.url.length > 0;
                           const identifier = useFilePath ? file.url : file.fileId;
                           
-                          if (fileDownloadService.canPreview(file.mimeType)) {
-                            fileDownloadService.viewFile(identifier, useFilePath);
-                          } else {
-                            fileDownloadService.downloadFile(identifier, file.fileName, useFilePath);
-                          }
+                          // Always use viewFile to display files in browser (uses displayfile endpoint)
+                          fileDownloadService.viewFile(identifier, useFilePath);
                         }
                       }}
                       className="w-full flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors text-left"

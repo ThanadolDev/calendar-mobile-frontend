@@ -2,27 +2,43 @@ class FileDownloadService {
   private readonly baseUrl = 'http://192.168.55.37:18814/fileserver'
 
   /**
-   * Get file download URL using file ID
+   * Get file display URL using file ID
    */
   getFileUrl(fileId: string): string {
+    return `${this.baseUrl}/displayfile/${fileId}`
+  }
+
+  /**
+   * Get file download URL using file ID
+   */
+  getFileDownloadUrl(fileId: string): string {
     return `${this.baseUrl}/download/${fileId}`
   }
 
   /**
-   * Get file URL using filepath (for files uploaded to our system)
+   * Get file display URL using filepath (for files uploaded to our system)
    */
   getFileUrlByPath(filepath: string): string {
     // Convert Windows filepath to URL path
     const urlPath = filepath.replace(/\\/g, '/').replace(/^\\+/, '')
-    return `${this.baseUrl}/serve/${encodeURIComponent(urlPath)}`
+    return `${this.baseUrl}/displayfile/${encodeURIComponent(urlPath)}`
   }
 
   /**
-   * Download file using file ID or filepath
+   * Get file download URL using filepath
+   */
+  getFileDownloadUrlByPath(filepath: string): string {
+    // Convert Windows filepath to URL path
+    const urlPath = filepath.replace(/\\/g, '/').replace(/^\\+/, '')
+    return `${this.baseUrl}/download/${encodeURIComponent(urlPath)}`
+  }
+
+  /**
+   * Download file using file ID or filepath (forces download)
    */
   async downloadFile(fileIdOrPath: string, fileName?: string, isFilePath: boolean = false): Promise<void> {
     try {
-      const url = isFilePath ? this.getFileUrlByPath(fileIdOrPath) : this.getFileUrl(fileIdOrPath)
+      const url = isFilePath ? this.getFileDownloadUrlByPath(fileIdOrPath) : this.getFileDownloadUrl(fileIdOrPath)
       
       // Create a temporary link and trigger download
       const link = document.createElement('a')
@@ -40,7 +56,7 @@ class FileDownloadService {
   }
 
   /**
-   * Open file in new tab using file ID or filepath
+   * Display/view file in new tab using file ID or filepath (uses displayfile endpoint)
    */
   viewFile(fileIdOrPath: string, isFilePath: boolean = false): void {
     const url = isFilePath ? this.getFileUrlByPath(fileIdOrPath) : this.getFileUrl(fileIdOrPath)
