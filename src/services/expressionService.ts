@@ -103,6 +103,10 @@ class ExpressionService {
       const url = `${this.basePath}/received/${empId}${queryString ? `?${queryString}` : ''}`
 
       const response = await ApiClient.get<ApiResponse<ExpressionListResponse>>(url)
+      
+      // Debug: Log the response to see the actual data structure
+      console.log('getReceivedExpressions response:', JSON.stringify(response, null, 2))
+      
       return response
     } catch (error) {
       throw this.handleError(error)
@@ -127,6 +131,10 @@ class ExpressionService {
       const url = `${this.basePath}/sent/${empId}${queryString ? `?${queryString}` : ''}`
 
       const response = await ApiClient.get<ApiResponse<ExpressionListResponse>>(url)
+      
+      // Debug: Log the response to see the actual data structure
+      console.log('getSentExpressions response:', JSON.stringify(response, null, 2))
+      
       return response
     } catch (error) {
       throw this.handleError(error)
