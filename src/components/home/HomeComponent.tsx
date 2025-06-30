@@ -283,6 +283,24 @@ const FeedbackDashboard = () => {
         privacy: 'public',
         status: 'draft'
       });
+
+      // Refresh the expressions data to show the new expression immediately
+      if (userEmpId) {
+        const filters = {
+          timePeriod,
+          year: currentYear,
+          ...(timePeriod === 'monthly' && { month: currentMonth })
+        };
+
+        // Reload both received and sent expressions in the background to ensure consistency
+        // Don't await here to make the UI feel more responsive
+        Promise.all([
+          loadReceivedExpressions(userEmpId, filters),
+          loadSentExpressions(userEmpId, filters)
+        ]).catch(error => {
+          console.error('Failed to refresh expressions after create:', error);
+        });
+      }
     } catch (error) {
       // Error is already handled by the hook
       console.error('Failed to save expression:', error);
@@ -962,6 +980,7 @@ const FeedbackDashboard = () => {
                   }
                   placeholder="เลือกผู้รับ"
                   disabled={loading}
+                  excludeEmpId={userEmpId} // Exclude current user from selection
                 />
               </div>
 

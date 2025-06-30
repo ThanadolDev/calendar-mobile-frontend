@@ -11,6 +11,7 @@ interface EmployeeDropdownProps {
   placeholder?: string
   disabled?: boolean
   className?: string
+  excludeEmpId?: string // Employee ID to exclude from the list (current user)
 }
 
 const EmployeeDropdown: React.FC<EmployeeDropdownProps> = ({
@@ -18,7 +19,8 @@ const EmployeeDropdown: React.FC<EmployeeDropdownProps> = ({
   onChange,
   placeholder = 'เลือกผู้รับ',
   disabled = false,
-  className = ''
+  className = '',
+  excludeEmpId
 }) => {
   const { employees, loading, getEmployeeById, searchEmployees } = useEmployees()
   const [isOpen, setIsOpen] = useState(false)
@@ -29,19 +31,27 @@ const EmployeeDropdown: React.FC<EmployeeDropdownProps> = ({
 
   const selectedEmployee = value ? getEmployeeById(value) : null
 
-  // Filter employees based on search term
+  // Filter employees based on search term and exclude current user
   useEffect(() => {
     const filterEmployees = async () => {
+      let results: Employee[] = []
+      
       if (searchTerm.trim()) {
-        const results = await searchEmployees(searchTerm)
-        setFilteredEmployees(results.slice(0, 50)) // Limit to 50 results for performance
+        results = await searchEmployees(searchTerm)
       } else {
-        setFilteredEmployees(employees.slice(0, 50)) // Show first 50 employees when no search
+        results = employees
       }
+      
+      // Exclude the specified employee ID (current user)
+      if (excludeEmpId) {
+        results = results.filter(emp => emp.empId !== excludeEmpId)
+      }
+      
+      setFilteredEmployees(results.slice(0, 50)) // Limit to 50 results for performance
     }
 
     filterEmployees()
-  }, [searchTerm, employees, searchEmployees])
+  }, [searchTerm, employees, searchEmployees, excludeEmpId])
 
   // Close dropdown when clicking outside
   useEffect(() => {
