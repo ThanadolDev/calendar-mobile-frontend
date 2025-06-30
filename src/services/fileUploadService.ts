@@ -24,7 +24,7 @@ class FileUploadService {
   /**
    * Upload single or multiple files
    */
-  async uploadFiles(files: File[]): Promise<UploadResponse> {
+  async uploadFiles(files: File[], onProgress?: (progress: number) => void): Promise<UploadResponse> {
     try {
       const formData = new FormData()
       
@@ -37,7 +37,13 @@ class FileUploadService {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
-        timeout: 30000, // 30 second timeout for file uploads
+        timeout: 60000, // 60 second timeout for file uploads
+        onUploadProgress: onProgress ? (progressEvent) => {
+          if (progressEvent.total) {
+            const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            onProgress(progress);
+          }
+        } : undefined,
       })
 
       // Transform the response to match our expected format
@@ -120,31 +126,56 @@ class FileUploadService {
    * Validate file before upload
    */
   validateFile(file: File): { valid: boolean; error?: string } {
+    // Check for empty files
+    if (file.size === 0) {
+      return {
+        valid: false,
+        error: `ไฟล์ว่างเปล่า: ${file.name}`
+      }
+    }
+
     // Check file size (10MB limit)
     const maxSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxSize) {
       return {
         valid: false,
-        error: `File size exceeds 10MB limit. File: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`
+        error: `ขนาดไฟล์เกิน 10MB: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`
       }
     }
 
-    // Check file type (allow common file types)
+    // Check file type with both MIME type and extension fallback
     const allowedTypes = [
-      'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-      'video/mp4', 'video/avi', 'video/mov', 'video/wmv', 'video/webm',
+      'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/tiff',
+      'video/mp4', 'video/avi', 'video/mov', 'video/wmv', 'video/webm', 'video/mkv',
       'application/pdf',
       'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
       'text/plain', 'text/csv',
-      'application/zip', 'application/x-rar-compressed',
+      'application/zip', 'application/x-rar-compressed', 'application/x-zip-compressed',
+      'application/json', 'application/xml'
     ]
 
-    if (!allowedTypes.includes(file.type)) {
+    const allowedExtensions = [
+      '.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.tiff',
+      '.mp4', '.avi', '.mov', '.wmv', '.webm', '.mkv',
+      '.pdf',
+      '.doc', '.docx',
+      '.xls', '.xlsx',
+      '.ppt', '.pptx',
+      '.txt', '.csv',
+      '.zip', '.rar',
+      '.json', '.xml'
+    ]
+
+    const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'))
+    const isValidMimeType = allowedTypes.includes(file.type)
+    const isValidExtension = allowedExtensions.includes(fileExtension)
+
+    if (!isValidMimeType && !isValidExtension) {
       return {
         valid: false,
-        error: `File type not allowed: ${file.type}. File: ${file.name}`
+        error: `ประเภทไฟล์ไม่ได้รับอนุญาต: ${file.name} (${file.type || fileExtension})`
       }
     }
 
@@ -154,21 +185,38 @@ class FileUploadService {
   /**
    * Validate multiple files
    */
-  validateFiles(files: File[]): { valid: boolean; errors: string[] } {
+  validateFiles(files: File[], existingAttachments: any[] = []): { valid: boolean; errors: string[] } {
     const errors: string[] = []
     
     // Check file count limits (1-10 files)
     if (files.length === 0) {
-      errors.push('Please select at least one file')
+      errors.push('กรุณาเลือกไฟล์อย่างน้อย 1 ไฟล์')
     } else if (files.length > 10) {
-      errors.push(`Too many files selected. Maximum allowed: 10, Selected: ${files.length}`)
+      errors.push(`เลือกไฟล์มากเกินไป สูงสุด 10 ไฟล์ (เลือก: ${files.length} ไฟล์)`)
     }
     
-    // Check total size (optional: could add total size limit)
+    // Check for duplicate file names within the selected files
+    const fileNames = files.map(file => file.name.toLowerCase())
+    const duplicateNames = fileNames.filter((name, index) => fileNames.indexOf(name) !== index)
+    if (duplicateNames.length > 0) {
+      errors.push(`พบไฟล์ชื่อซ้ำในการเลือก: ${[...new Set(duplicateNames)].join(', ')}`)
+    }
+    
+    // Check for duplicate file names with existing attachments
+    const existingNames = existingAttachments.map(att => 
+      typeof att === 'string' ? att.toLowerCase() : att.fileName?.toLowerCase()
+    ).filter(Boolean)
+    
+    const conflictingNames = fileNames.filter(name => existingNames.includes(name))
+    if (conflictingNames.length > 0) {
+      errors.push(`พบไฟล์ชื่อซ้ำกับไฟล์ที่มีอยู่: ${[...new Set(conflictingNames)].join(', ')}`)
+    }
+    
+    // Check total size (100MB total limit for all selected files)
     const totalSize = files.reduce((sum, file) => sum + file.size, 0)
     const maxTotalSize = 100 * 1024 * 1024 // 100MB total limit
     if (totalSize > maxTotalSize) {
-      errors.push(`Total file size exceeds 100MB limit. Total size: ${(totalSize / 1024 / 1024).toFixed(2)}MB`)
+      errors.push(`ขนาดไฟล์รวมเกิน 100MB (รวม: ${(totalSize / 1024 / 1024).toFixed(2)}MB)`)
     }
     
     // Validate each individual file

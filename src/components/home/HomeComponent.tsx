@@ -22,7 +22,11 @@ import {
   Lightbulb,
   Clock,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  FileText,
+  Image,
+  Video,
+  Archive
 } from 'lucide-react';
 
 import { useExpressions } from '../../hooks/useExpressions';
@@ -59,6 +63,8 @@ const FeedbackDashboard = () => {
     createExpression,
     loadReceivedExpressions,
     loadSentExpressions,
+    updateExpression,
+    deleteExpression,
     clearError,
     calculateStatsForPeriod
   } = useExpressions(userEmpId);
@@ -66,6 +72,7 @@ const FeedbackDashboard = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [timePeriod, setTimePeriod] = useState<'monthly' | 'yearly'>('monthly');
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+
   const [currentMonth, setCurrentMonth] = useState(() => {
     const month = new Date().getMonth();
     console.log('Initial month:', month);
@@ -74,6 +81,7 @@ const FeedbackDashboard = () => {
   const [newExpressionOpen, setNewExpressionOpen] = useState(false);
   const [periodLoading, setPeriodLoading] = useState(false);
   const [uploadLoading, setUploadLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const [selectedExpression, setSelectedExpression] = useState<(Expression & {
     from?: string;
@@ -82,6 +90,8 @@ const FeedbackDashboard = () => {
     fullContent?: string;
     content?: string;
   }) | null>(null);
+  
+  const [editingExpression, setEditingExpression] = useState<Expression | null>(null);
 
   const [expressionData, setExpressionData] = useState<CreateExpressionRequest>({
     type: 'praise',
@@ -95,6 +105,32 @@ const FeedbackDashboard = () => {
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Helper function to get file type icon
+  const getFileIcon = (fileName: string, mimeType?: string) => {
+    const extension = fileName.toLowerCase().substring(fileName.lastIndexOf('.'));
+    const mime = mimeType?.toLowerCase() || '';
+    
+    if (mime.startsWith('image/') || ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'].includes(extension)) {
+      return <Image className="w-4 h-4 text-blue-500" />;
+    }
+    if (mime.startsWith('video/') || ['.mp4', '.avi', '.mov', '.wmv', '.webm', '.mkv'].includes(extension)) {
+      return <Video className="w-4 h-4 text-red-500" />;
+    }
+    if (['.zip', '.rar', '.7z'].includes(extension) || mime.includes('zip') || mime.includes('rar')) {
+      return <Archive className="w-4 h-4 text-orange-500" />;
+    }
+    return <FileText className="w-4 h-4 text-gray-500" />;
+  };
+
+  // Helper function to format file size
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  };
 
   // Handle touch events
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -226,17 +262,26 @@ const FeedbackDashboard = () => {
       return;
     }
 
-    // Validate files
-    const validation = fileUploadService.validateFiles(files);
+    // Validate files (pass existing attachments to check for duplicates)
+    const validation = fileUploadService.validateFiles(files, expressionData.attachments || []);
     if (!validation.valid) {
-      alert(`File validation failed:\n${validation.errors.join('\n')}`);
+      // Create a more user-friendly error display
+      const errorMessage = validation.errors.join('\n• ');
+      alert(`ไม่สามารถอัปโหลดไฟล์ได้:\n• ${errorMessage}`);
+      // Clear the input
+      if (event.target) {
+        event.target.value = '';
+      }
       return;
     }
 
     setUploadLoading(true);
+    setUploadProgress(0);
     
     try {
-      const uploadResult = await fileUploadService.uploadFiles(files);
+      const uploadResult = await fileUploadService.uploadFiles(files, (progress) => {
+        setUploadProgress(progress);
+      });
       
       if (uploadResult.success && uploadResult.data?.files) {
         const newAttachments = uploadResult.data.files.map(file => ({
@@ -259,6 +304,7 @@ const FeedbackDashboard = () => {
       alert(`File upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setUploadLoading(false);
+      setUploadProgress(0);
       // Clear the input so the same file can be selected again
       if (event.target) {
         event.target.value = '';
@@ -314,6 +360,101 @@ const FeedbackDashboard = () => {
     } catch (error) {
       // Error is already handled by the hook
       console.error('Failed to save expression:', error);
+    }
+  };
+
+  // Handle editing a draft expression
+  const handleEditExpression = (expression: Expression) => {
+    setEditingExpression(expression);
+    setExpressionData({
+      type: expression.TYPE || 'praise',
+      recipient: expression.EXP_TO || '',
+      content: expression.EXP_DETAIL || '',
+      privacy: expression.EXP_KIND === 'X' ? 'public' : 'private',
+      status: 'draft',
+      attachments: expression.attachments || []
+    });
+    setNewExpressionOpen(true);
+  };
+
+  // Handle deleting a draft expression (moves to status 'F')
+  const handleDeleteExpression = async (expressionId: string) => {
+    if (!confirm('คุณต้องการลบร่างนี้หรือไม่?')) {
+      return;
+    }
+
+    try {
+      await deleteExpression(expressionId);
+      
+      // Refresh expressions after soft delete
+      if (userEmpId) {
+        const filters = {
+          timePeriod,
+          year: currentYear,
+          ...(timePeriod === 'monthly' && { month: currentMonth })
+        };
+        
+        loadSentExpressions(userEmpId, filters);
+      }
+    } catch (error) {
+      console.error('Failed to delete expression:', error);
+      alert('ไม่สามารถลบร่างได้ กรุณาลองใหม่อีกครั้ง');
+    }
+  };
+
+  // Handle updating an existing draft expression
+  const handleUpdateExpression = async (status: 'draft' | 'published') => {
+    if (!expressionData.recipient || !expressionData.content) {
+      alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+      return;
+    }
+
+    if (!editingExpression) {
+      // If not editing, create new expression
+      return handleSaveExpression(status);
+    }
+
+    try {
+      const updateData: Partial<CreateExpressionRequest> = {
+        type: expressionData.type,
+        recipient: expressionData.recipient,
+        content: expressionData.content,
+        privacy: expressionData.privacy,
+        status,
+        attachments: expressionData.attachments
+      };
+
+      await updateExpression(editingExpression.EXP_ID, updateData);
+
+      // Close modal and reset form on success
+      setNewExpressionOpen(false);
+      setEditingExpression(null);
+      setExpressionData({
+        type: 'praise',
+        recipient: '',
+        content: '',
+        attachments: [] as CreateExpressionRequest['attachments'],
+        privacy: 'public',
+        status: 'draft'
+      });
+
+      // Refresh expressions
+      if (userEmpId) {
+        const filters = {
+          timePeriod,
+          year: currentYear,
+          ...(timePeriod === 'monthly' && { month: currentMonth })
+        };
+
+        Promise.all([
+          loadReceivedExpressions(userEmpId, filters),
+          loadSentExpressions(userEmpId, filters)
+        ]).catch(error => {
+          console.error('Failed to refresh expressions after update:', error);
+        });
+      }
+    } catch (error) {
+      console.error('Failed to update expression:', error);
     }
   };
 
@@ -437,16 +578,32 @@ const FeedbackDashboard = () => {
       className={`bg-white rounded-lg p-4 shadow-sm border mb-3 ${
         clickable ? 'cursor-pointer hover:shadow-md transition-shadow' : ''
       }`}
-      onClick={clickable ? () => setSelectedExpression(expression) : undefined}
+      onClick={clickable ? () => {
+        // If it's a draft, open for editing instead of showing detail modal
+        if (expression.expressionStatus === 'draft' || expression.status === 'draft') {
+          handleEditExpression(expression);
+        } else {
+          setSelectedExpression(expression);
+        }
+      } : undefined}
       role={clickable ? "button" : undefined}
       tabIndex={clickable ? 0 : undefined}
       onKeyDown={clickable ? (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          setSelectedExpression(expression);
+          // If it's a draft, open for editing instead of showing detail modal
+          if (expression.expressionStatus === 'draft' || expression.status === 'draft') {
+            handleEditExpression(expression);
+          } else {
+            setSelectedExpression(expression);
+          }
         }
       } : undefined}
-      aria-label={clickable ? `ดูรายละเอียดความคิดเห็นจาก ${expression.from || expression.to}` : undefined}
+      aria-label={clickable ? (
+        (expression.expressionStatus === 'draft' || expression.status === 'draft') 
+          ? `แก้ไขร่างความคิดเห็น` 
+          : `ดูรายละเอียดความคิดเห็นจาก ${expression.from || expression.to}`
+      ) : undefined}
     >
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center">
@@ -522,20 +679,33 @@ const FeedbackDashboard = () => {
 
       {clickable && (
         <div className="text-xs text-blue-600 hover:text-blue-800">
-          คลิกเพื่อดูรายละเอียด →
+          {(expression.expressionStatus === 'draft' || expression.status === 'draft') 
+            ? 'คลิกเพื่อแก้ไข →' 
+            : 'คลิกเพื่อดูรายละเอียด →'
+          }
         </div>
       )}
 
-      {showActions && expression.status === 'draft' && (
+      {showActions && (expression.expressionStatus === 'draft' || expression.status === 'draft') && (
         <div className="flex justify-end gap-2 pt-2 border-t">
+          {/* Edit button - only for drafts */}
           <button
-            className="p-1 text-gray-400 hover:text-blue-600"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleEditExpression(expression);
+            }}
+            className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
             aria-label="แก้ไข"
           >
             <Edit3 className="w-4 h-4" />
           </button>
+          {/* Delete button - only for draft expressions */}
           <button
-            className="p-1 text-gray-400 hover:text-red-600"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDeleteExpression(expression.EXP_ID);
+            }}
+            className="p-1 text-gray-400 hover:text-red-600 transition-colors"
             aria-label="ลบ"
           >
             <Trash2 className="w-4 h-4" />
@@ -908,6 +1078,7 @@ const FeedbackDashboard = () => {
                     key={expression.EXP_ID}
                     expression={expression}
                     showActions={true}
+                    clickable={(expression.expressionStatus === 'draft' || expression.status === 'draft')}
                   />
                 ))
               )}
@@ -938,7 +1109,9 @@ const FeedbackDashboard = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end md:items-center justify-center">
           <div className="bg-white w-full h-full md:h-auto md:max-w-lg md:rounded-lg md:max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between p-4 border-b flex-shrink-0">
-              <h2 className="text-lg font-semibold">แสดงความคิดเห็นใหม่</h2>
+              <h2 className="text-lg font-semibold">
+                {editingExpression ? 'แก้ไขความคิดเห็น' : 'แสดงความคิดเห็นใหม่'}
+              </h2>
               <button
                 onClick={() => setNewExpressionOpen(false)}
                 className="text-gray-400 hover:text-gray-600"
@@ -1057,7 +1230,7 @@ const FeedbackDashboard = () => {
                   {uploadLoading ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      กำลังอัปโหลด...
+                      กำลังอัปโหลด... {uploadProgress > 0 && `${uploadProgress}%`}
                     </>
                   ) : (
                     <>
@@ -1071,23 +1244,39 @@ const FeedbackDashboard = () => {
                 </p>
                 {(expressionData.attachments?.length ?? 0) > 0 && (
                   <div className="mt-2 space-y-2">
-                    {(expressionData.attachments || []).map((file, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-2 bg-gray-100 rounded"
-                      >
-                        <span className="text-sm text-gray-700">
-                          {typeof file === 'string' ? file : file.fileName}
-                        </span>
-                        <button
-                          onClick={() => removeAttachment(index)}
-                          className="text-red-500 hover:text-red-700"
-                          aria-label={`ลบไฟล์ ${typeof file === 'string' ? file : file.fileName}`}
+                    {(expressionData.attachments || []).map((file, index) => {
+                      const fileName = typeof file === 'string' ? file : file.fileName;
+                      const fileSize = typeof file === 'object' && file.size ? file.size : null;
+                      const mimeType = typeof file === 'object' && file.mimeType ? file.mimeType : undefined;
+                      
+                      return (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
                         >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            {getFileIcon(fileName, mimeType)}
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium text-gray-900 truncate">
+                                {fileName}
+                              </div>
+                              {fileSize && (
+                                <div className="text-xs text-gray-500">
+                                  {formatFileSize(fileSize)}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => removeAttachment(index)}
+                            className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50"
+                            aria-label={`ลบไฟล์ ${fileName}`}
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -1095,22 +1284,33 @@ const FeedbackDashboard = () => {
 
             <div className="p-4 border-t bg-gray-50 flex gap-3 flex-shrink-0">
               <button
-                onClick={() => setNewExpressionOpen(false)}
+                onClick={() => {
+                  setNewExpressionOpen(false);
+                  setEditingExpression(null);
+                  setExpressionData({
+                    type: 'praise',
+                    recipient: '',
+                    content: '',
+                    attachments: [] as CreateExpressionRequest['attachments'],
+                    privacy: 'public',
+                    status: 'draft'
+                  });
+                }}
                 className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
                 disabled={loading}
               >
                 ยกเลิก
               </button>
               <button
-                onClick={() => handleSaveExpression('draft')}
+                onClick={() => editingExpression ? handleUpdateExpression('draft') : handleSaveExpression('draft')}
                 className="flex-1 py-2 px-4 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 flex items-center justify-center gap-2"
                 disabled={createLoading}
               >
                 {createLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                บันทึก
+                {editingExpression ? 'อัปเดต' : 'บันทึก'}
               </button>
               <button
-                onClick={() => handleSaveExpression('published')}
+                onClick={() => editingExpression ? handleUpdateExpression('published') : handleSaveExpression('published')}
                 className="flex-1 py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
                 disabled={createLoading}
               >

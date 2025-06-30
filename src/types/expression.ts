@@ -13,7 +13,7 @@ export interface CreateExpressionRequest {
   recipient: string
   content: string
   privacy: 'public' | 'private'
-  status: 'published' | 'draft'
+  status: 'published' | 'draft' // 'draft' maps to 'P', 'published' to 'T', 'deleted' to 'F' in backend
   attachments?: ExpressionAttachment[]
 }
 
@@ -43,7 +43,7 @@ export interface Expression {
   // Transformed fields from backend
   TYPE: 'praise' | 'suggestion'
   privacy?: 'public' | 'private'
-  expressionStatus?: 'published' | 'draft'
+  expressionStatus?: 'published' | 'draft' | 'deleted'
   ISPUBLIC?: '1' | '0'
   date: string
   time?: string
