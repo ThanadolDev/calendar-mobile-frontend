@@ -30,6 +30,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import type { CreateExpressionRequest, Expression } from '../../types/expression';
 import fileUploadService from '../../services/fileUploadService';
 import fileDownloadService from '../../services/fileDownloadService';
+import { useEmployees } from '../../hooks/useEmployees';
+import EmployeeDropdown from '../ui/EmployeeDropdown';
 
 // Constants
 const SWIPE_THRESHOLD = 50;
@@ -43,6 +45,9 @@ const FeedbackDashboard = () => {
   // Get authenticated user data
   const { user } = useAuth();
   const userEmpId = user?.id;
+
+  // Employee management
+  const { getEmployeeName } = useEmployees();
 
   // Use the expressions hook for API integration
   const {
@@ -422,7 +427,7 @@ const FeedbackDashboard = () => {
           </div>
           <div>
             <p className="font-medium text-sm text-gray-900">
-              {expression.CR_UID || expression.EXP_TO || expression.from || expression.to}
+              {getEmployeeName(expression.CR_UID || expression.EXP_TO || expression.from || expression.to || '')}
             </p>
             <p className="text-xs text-gray-500">{expression.date || expression.EXP_DATE}</p>
           </div>
@@ -577,7 +582,7 @@ const FeedbackDashboard = () => {
                 </div>
                 <div>
                   <p className="font-semibold text-gray-900">
-                    {expression.CR_UID || expression.from}
+                    {getEmployeeName(expression.CR_UID || expression.from || '')}
                   </p>
                   <p className="text-sm text-gray-600">{expression.department || 'แผนก'}</p>
                   <p className="text-sm text-gray-600">{expression.position || 'ตำแหน่ง'}</p>
@@ -950,14 +955,13 @@ const FeedbackDashboard = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   ถึง
                 </label>
-                <input
-                  type="text"
+                <EmployeeDropdown
                   value={expressionData.recipient}
-                  onChange={(e) =>
-                    setExpressionData({ ...expressionData, recipient: e.target.value })
+                  onChange={(empId) =>
+                    setExpressionData({ ...expressionData, recipient: empId })
                   }
                   placeholder="เลือกผู้รับ"
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  disabled={loading}
                 />
               </div>
 
