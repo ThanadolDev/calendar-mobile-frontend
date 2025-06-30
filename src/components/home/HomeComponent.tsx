@@ -247,6 +247,9 @@ const FeedbackDashboard = () => {
     }
   }, [error, clearError]);
 
+  // Debug logging
+  console.log('HomeComponent render - user:', user, 'userEmpId:', userEmpId, 'loading:', loading);
+
   // Show loading if user data or expressions are loading
   if (!user || !userEmpId || loading) {
     return (
@@ -254,6 +257,14 @@ const FeedbackDashboard = () => {
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           <p className="mt-2 text-gray-600">กำลังโหลดข้อมูล...</p>
+          {/* Debug info in development */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mt-4 text-sm text-gray-500">
+              <p>User: {user ? 'Available' : 'Not found'}</p>
+              <p>UserEmpId: {userEmpId || 'Not found'}</p>
+              <p>Loading: {loading ? 'True' : 'False'}</p>
+            </div>
+          )}
         </div>
       </div>
     );
