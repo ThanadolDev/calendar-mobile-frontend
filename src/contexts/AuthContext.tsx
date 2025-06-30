@@ -174,24 +174,29 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   // Authentication check and route protection
   useEffect(() => {
     const checkAuth = async () => {
+      console.log('AuthContext: Checking authentication for pathname:', pathname)
       const userInfo = getUserInfo()
+      console.log('AuthContext: UserInfo from storage:', userInfo)
 
       if (!userInfo) {
+        console.log('AuthContext: No user info found')
         setIsAuthenticated(false)
         setUser(null)
         setLoading(false)
 
         // If not on a public route, redirect to login
         if (pathname && !publicRoutes.some(route => pathname.includes(route))) {
-          console.log('If not on a public route, redirect to login')
+          console.log('AuthContext: Not on public route, redirecting to login. Pathname:', pathname)
           
           // Only redirect if login URL is properly configured
           if (process.env.REACT_APP_URLMAIN_LOGIN) {
+            console.log('AuthContext: Using external login URL')
             router.replace(
               `${process.env.REACT_APP_URLMAIN_LOGIN}/logout?ogwebsite=${currentUrl}&redirectWebsite=${redirectUrl}`
             )
           } else {
             // Fallback: redirect to login page instead of external service
+            console.log('AuthContext: Redirecting to /login-og')
             router.replace('/login-og')
           }
         }
