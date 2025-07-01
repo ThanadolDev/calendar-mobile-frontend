@@ -51,6 +51,10 @@ export function useExpressions(empId?: string): UseExpressionsState & UseExpress
     setState(prev => ({ ...prev, loading }))
   }, [])
 
+  const setCreateLoading = useCallback((createLoading: boolean) => {
+    setState(prev => ({ ...prev, createLoading }))
+  }, [])
+
   const setError = useCallback((error: string | null) => {
     setState(prev => ({ ...prev, error, loading: false }))
   }, [])
@@ -61,7 +65,7 @@ export function useExpressions(empId?: string): UseExpressionsState & UseExpress
 
   const createExpression = useCallback(async (data: CreateExpressionRequest) => {
     try {
-      setLoading(true)
+      setCreateLoading(true)
       clearError()
 
       const response = await expressionService.createExpression(data)
@@ -79,9 +83,9 @@ export function useExpressions(empId?: string): UseExpressionsState & UseExpress
       setError(error instanceof Error ? error.message : 'Failed to create expression')
       throw error
     } finally {
-      setLoading(false)
+      setCreateLoading(false)
     }
-  }, [setLoading, clearError, setError])
+  }, [setCreateLoading, clearError, setError])
 
   const loadReceivedExpressions = useCallback(async (empId: string, filters?: ExpressionFilters) => {
     try {
