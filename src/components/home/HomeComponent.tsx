@@ -75,9 +75,12 @@ const FeedbackDashboard = () => {
 
   const [currentMonth, setCurrentMonth] = useState(() => {
     const month = new Date().getMonth();
+
     console.log('Initial month:', month);
+
     return month;
   });
+
   const [newExpressionOpen, setNewExpressionOpen] = useState(false);
   const [periodLoading, setPeriodLoading] = useState(false);
   const [uploadLoading, setUploadLoading] = useState(false);
@@ -114,12 +117,15 @@ const FeedbackDashboard = () => {
     if (mime.startsWith('image/') || ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'].includes(extension)) {
       return <Image className="w-4 h-4 text-blue-500" />;
     }
+
     if (mime.startsWith('video/') || ['.mp4', '.avi', '.mov', '.wmv', '.webm', '.mkv'].includes(extension)) {
       return <Video className="w-4 h-4 text-red-500" />;
     }
+
     if (['.zip', '.rar', '.7z'].includes(extension) || mime.includes('zip') || mime.includes('rar')) {
       return <Archive className="w-4 h-4 text-orange-500" />;
     }
+
     return <FileText className="w-4 h-4 text-gray-500" />;
   };
 
@@ -129,6 +135,7 @@ const FeedbackDashboard = () => {
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
+
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   };
 
@@ -179,6 +186,7 @@ const FeedbackDashboard = () => {
     } else {
       // Safety check to ensure month is always valid
       const safeMonth = Math.max(0, Math.min(11, newMonth));
+
       setCurrentMonth(safeMonth);
     }
   };
@@ -259,19 +267,25 @@ const FeedbackDashboard = () => {
 
     if (totalAfterUpload > 10) {
       alert(`ไม่สามารถเพิ่มไฟล์ได้ เนื่องจากจะเกินจำนวนสูงสุด 10 ไฟล์\n(ปัจจุบัน: ${currentFileCount} ไฟล์, พยายามเพิ่ม: ${files.length} ไฟล์)`);
+
       return;
     }
 
     // Validate files (pass existing attachments to check for duplicates)
     const validation = fileUploadService.validateFiles(files, expressionData.attachments || []);
+
     if (!validation.valid) {
       // Create a more user-friendly error display
       const errorMessage = validation.errors.join('\n• ');
+
       alert(`ไม่สามารถอัปโหลดไฟล์ได้:\n• ${errorMessage}`);
+
       // Clear the input
+
       if (event.target) {
         event.target.value = '';
       }
+
       return;
     }
 
@@ -280,7 +294,6 @@ const FeedbackDashboard = () => {
     setUploadProgress(0);
 
     try {
-      const uploadResult = await fileUploadService.uploadFiles(files);
 
       const uploadResult = await fileUploadService.uploadFiles(files, (progress) => {
         setUploadProgress(progress);
@@ -308,10 +321,13 @@ const FeedbackDashboard = () => {
     } finally {
       setUploadLoading(false);
       setUploadProgress(0);
+
       // Clear the input so the same file can be selected again
+
       if (event.target) {
         event.target.value = '';
       }
+
     }
   };
 
@@ -409,6 +425,7 @@ const FeedbackDashboard = () => {
   const handleUpdateExpression = async (status: 'draft' | 'published') => {
     if (!expressionData.recipient || !expressionData.content) {
       alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+
       return;
     }
 
@@ -594,6 +611,7 @@ const FeedbackDashboard = () => {
       onKeyDown={clickable ? (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
+
           // If it's a draft, open for editing instead of showing detail modal
           if (expression.expressionStatus === 'draft' || expression.status === 'draft') {
             handleEditExpression(expression);
@@ -764,12 +782,12 @@ const FeedbackDashboard = () => {
             <div className="flex justify-center">
               <span
                 className={`px-4 py-2 text-sm rounded-full ${
-                  expression.type === 'praise'
+                  expression.TYPE === 'praise'
                     ? 'bg-green-100 text-green-800'
                     : 'bg-orange-100 text-orange-800'
                 }`}
               >
-                {expression.type === 'praise' ? 'ชื่นชม' : 'แนะนำ'}
+                {expression.TYPE === 'praise' ? 'ชื่นชม' : 'แนะนำ'}
               </span>
             </div>
 
@@ -812,9 +830,9 @@ const FeedbackDashboard = () => {
                 การเปิดเผย
               </label>
               <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
-                {expression.isPublic ? <Eye className="w-5 h-5 text-blue-600" /> : <EyeOff className="w-5 h-5 text-gray-600" />}
+                {expression.ISPUBLIC ? <Eye className="w-5 h-5 text-blue-600" /> : <EyeOff className="w-5 h-5 text-gray-600" />}
                 <span className="text-sm text-gray-700">
-                  {expression.isPublic ? 'เปิดเผย' : 'ไม่เปิดเผย'}
+                  {expression.ISPUBLIC ? 'เปิดเผย' : 'ไม่เปิดเผย'}
                 </span>
               </div>
             </div>
@@ -1081,7 +1099,7 @@ const FeedbackDashboard = () => {
                     key={expression.EXP_ID}
                     expression={expression}
                     showActions={true}
-                    clickable={(expression.expressionStatus === 'draft' || expression.status === 'draft')}
+                    clickable={(expression.expressionStatus === 'draft' || expression.STATUS === 'draft')}
                   />
                 ))
               )}
