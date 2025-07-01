@@ -80,11 +80,11 @@ const LoginOg = ({}: { mode: SystemMode }) => {
   const checkAuthentication = async () => {
     try {
       setIsProcessing(true)
-      
+
       // Development mode: Create mock user session if no external auth URL is configured
       if (!process.env.REACT_APP_URLMAIN_LOGIN) {
         console.log('Development mode: Creating mock user session')
-        
+
         const mockUser: AuthResponse = {
           id: 'DEV001',
           name: 'Development User',
@@ -97,19 +97,20 @@ const LoginOg = ({}: { mode: SystemMode }) => {
           role: 'Manager',
           positionId: 'POS001'
         }
-        
+
         setUserInfo(mockUser)
         router.replace('/home')
+
         return
       }
-      
+
       const params = new URLSearchParams(window.location.search)
       const urlToken = params.get('accessToken')
       const urlTokenRe = params.get('refreshToken')
       const sessionId = params.get('SESSION_ID')
 
       // const redirectWebsite = params.get('redirectWebsite')
-      const currentUrl = window.location.origin + '/handbook/login-og'
+      const currentUrl = window.location.origin + '/handbookmanage/login-og'
 
       // console.log(urlToken && urlTokenRe && sessionId)
       // window.alert(urlToken)
@@ -208,11 +209,13 @@ const LoginOg = ({}: { mode: SystemMode }) => {
 
       // Only redirect to external logout if URL is configured
       if (process.env.REACT_APP_URLMAIN_LOGIN) {
-        const currentUrl = window.location.origin + '/handbook/login-og'
+        const currentUrl = window.location.origin + '/handbookmanage/login-og'
+
         router.replace(
           `${process.env.REACT_APP_URLMAIN_LOGIN}/logout?ogwebsite=${currentUrl}&redirectWebsite=${process.env.NEXT_PUBLIC_HOME_BASE_URL}`
         )
       }
+
       // If no external auth, just stay on login page
     } finally {
       setIsProcessing(false)
@@ -226,6 +229,7 @@ const LoginOg = ({}: { mode: SystemMode }) => {
 
   const handleDevLogin = () => {
     console.log('Development login clicked')
+
     const mockUser: AuthResponse = {
       id: 'DEV001',
       name: 'Development User',
@@ -238,7 +242,7 @@ const LoginOg = ({}: { mode: SystemMode }) => {
       role: 'Manager',
       positionId: 'POS001'
     }
-    
+
     setUserInfo(mockUser)
     router.replace('/home')
   }
@@ -255,7 +259,7 @@ const LoginOg = ({}: { mode: SystemMode }) => {
           <div className='flex flex-col items-center space-y-4'>
             <h1 className='text-2xl font-bold'>Handbook Development Login</h1>
             <p className='text-gray-600'>Development mode - External authentication not configured</p>
-            <button 
+            <button
               onClick={handleDevLogin}
               className='px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
             >

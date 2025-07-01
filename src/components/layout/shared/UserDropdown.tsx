@@ -47,7 +47,7 @@ const UserDropdown = () => {
   const { settings } = useSettings()
 
   const anchorRef = useRef<HTMLDivElement>(null)
-  const currentUrl = `${window.location.origin}/toolingmanage/login-og`
+  const currentUrl = `${window.location.origin}/handbookmanage/login-og`
   const redirectUrl = window.location.href // ใช้ href เพื่อให้ได้ URL เต็มที่เปิดอยู่
 
   const handleDropdownOpen = () => {

@@ -53,7 +53,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const router = useRouter()
   const pathname = usePathname()
 
-  const currentUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/handbook/login-og`
+  const currentUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/handbookmanage/login-og`
   const redirectUrl = typeof window !== 'undefined' ? window.location.href : ''
 
   const logout = async () => {
@@ -63,7 +63,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     if (typeof window !== 'undefined') {
       console.log('typeof window')
-      
+
       // Only redirect to external logout if URL is configured
       if (process.env.REACT_APP_URLMAIN_LOGIN) {
         router.replace(
@@ -176,6 +176,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const checkAuth = async () => {
       console.log('AuthContext: Checking authentication for pathname:', pathname)
       const userInfo = getUserInfo()
+
       console.log('AuthContext: UserInfo from storage:', userInfo)
 
       if (!userInfo) {
@@ -187,7 +188,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         // If not on a public route, redirect to login
         if (pathname && !publicRoutes.some(route => pathname.includes(route))) {
           console.log('AuthContext: Not on public route, redirecting to login. Pathname:', pathname)
-          
+
           // Only redirect if login URL is properly configured
           if (process.env.REACT_APP_URLMAIN_LOGIN) {
             console.log('AuthContext: Using external login URL')
@@ -225,7 +226,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         // Redirect to login if not on a public route
         if (pathname && !publicRoutes.some(route => pathname.includes(route))) {
           console.log('Redirect to login if not on a public route')
-          
+
           // Only redirect if login URL is properly configured
           if (process.env.REACT_APP_URLMAIN_LOGIN) {
             router.replace(

@@ -1,4 +1,6 @@
+
 import { useState, useEffect, useCallback, useMemo } from 'react'
+
 import employeeService from '../services/employeeService'
 import type { Employee } from '../types/employee'
 
@@ -72,6 +74,7 @@ export function useEmployees(): UseEmployeesState & UseEmployeesActions {
       }
     } catch (error) {
       console.error('Employee search error:', error)
+
       return []
     }
   }, [state.employees])
@@ -79,9 +82,11 @@ export function useEmployees(): UseEmployeesState & UseEmployeesActions {
   // Memoized lookup functions
   const employeeMap = useMemo(() => {
     const map = new Map<string, Employee>()
+
     state.employees.forEach(emp => {
       map.set(emp.empId, emp)
     })
+
     return map
   }, [state.employees])
 
@@ -91,6 +96,7 @@ export function useEmployees(): UseEmployeesState & UseEmployeesActions {
 
   const getEmployeeName = useCallback((empId: string): string => {
     const employee = employeeMap.get(empId)
+
     return employee ? employee.fullName : empId
   }, [employeeMap])
 

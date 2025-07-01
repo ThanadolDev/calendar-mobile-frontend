@@ -27,7 +27,7 @@ class FileUploadService {
   async uploadFiles(files: File[], onProgress?: (progress: number) => void): Promise<UploadResponse> {
     try {
       const formData = new FormData()
-      
+
       // Add all files to form data with key 'upload'
       files.forEach((file) => {
         formData.append('upload', file)
@@ -41,6 +41,7 @@ class FileUploadService {
         onUploadProgress: onProgress ? (progressEvent) => {
           if (progressEvent.total) {
             const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+
             onProgress(progress);
           }
         } : undefined,
@@ -60,7 +61,7 @@ class FileUploadService {
       }
     } catch (error) {
       console.error('File upload error:', error)
-      
+
       if (axios.isAxiosError(error)) {
         return {
           success: false,
@@ -68,7 +69,7 @@ class FileUploadService {
           error: error.response?.data?.error || error.message
         }
       }
-      
+
       return {
         success: false,
         message: 'An unexpected error occurred during upload',
@@ -112,6 +113,7 @@ class FileUploadService {
     } else {
       // Fallback: create file info from original files with generated IDs
       console.warn('Unexpected server response format:', serverResponse)
+
       return originalFiles.map((file, index) => ({
         fileId: `${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
         fileName: file.name,
@@ -136,6 +138,7 @@ class FileUploadService {
 
     // Check file size (10MB limit)
     const maxSize = 10 * 1024 * 1024; // 10MB
+
     if (file.size > maxSize) {
       return {
         valid: false,
@@ -187,41 +190,45 @@ class FileUploadService {
    */
   validateFiles(files: File[], existingAttachments: any[] = []): { valid: boolean; errors: string[] } {
     const errors: string[] = []
-    
+
     // Check file count limits (1-10 files)
     if (files.length === 0) {
       errors.push('กรุณาเลือกไฟล์อย่างน้อย 1 ไฟล์')
     } else if (files.length > 10) {
       errors.push(`เลือกไฟล์มากเกินไป สูงสุด 10 ไฟล์ (เลือก: ${files.length} ไฟล์)`)
     }
-    
+
     // Check for duplicate file names within the selected files
     const fileNames = files.map(file => file.name.toLowerCase())
     const duplicateNames = fileNames.filter((name, index) => fileNames.indexOf(name) !== index)
+
     if (duplicateNames.length > 0) {
       errors.push(`พบไฟล์ชื่อซ้ำในการเลือก: ${[...new Set(duplicateNames)].join(', ')}`)
     }
-    
+
     // Check for duplicate file names with existing attachments
-    const existingNames = existingAttachments.map(att => 
+    const existingNames = existingAttachments.map(att =>
       typeof att === 'string' ? att.toLowerCase() : att.fileName?.toLowerCase()
     ).filter(Boolean)
-    
+
     const conflictingNames = fileNames.filter(name => existingNames.includes(name))
+
     if (conflictingNames.length > 0) {
       errors.push(`พบไฟล์ชื่อซ้ำกับไฟล์ที่มีอยู่: ${[...new Set(conflictingNames)].join(', ')}`)
     }
-    
+
     // Check total size (100MB total limit for all selected files)
     const totalSize = files.reduce((sum, file) => sum + file.size, 0)
-    const maxTotalSize = 100 * 1024 * 1024 // 100MB total limit
+    const maxTotalSize = 100 * 1024 * 1024 // 100MB total
+
     if (totalSize > maxTotalSize) {
       errors.push(`ขนาดไฟล์รวมเกิน 100MB (รวม: ${(totalSize / 1024 / 1024).toFixed(2)}MB)`)
     }
-    
+
     // Validate each individual file
     files.forEach(file => {
       const validation = this.validateFile(file)
+
       if (!validation.valid && validation.error) {
         errors.push(validation.error)
       }

@@ -102,35 +102,37 @@ const Navigation = (props: Props) => {
     // Sidebar Vertical Menu
     // <></>
 
-    <VerticalNav
-      customStyles={navigationCustomStyles(verticalNavOptions, theme)}
-      collapsedWidth={71}
-      backgroundColor='var(--mui-palette-background-paper)'
-      // eslint-disable-next-line lines-around-comment
-      // The following condition adds the data-mui-color-scheme='dark' attribute to the VerticalNav component
-      // when semiDark is enabled and the mode or systemMode is light
-      {...(isSemiDark &&
-        !isDark && {
-          'data-mui-color-scheme': 'dark'
-        })}
-    >
-      {/* Nav Header including Logo & nav toggle icons  */}
-      <NavHeader>
-        <Link href='/home'>
-          <Logo />
-        </Link>
-        {!(isCollapsed && !isHovered) && (
-          <NavCollapseIcons
-            lockedIcon={<i className='tabler-circle-dot text-xl' />}
-            unlockedIcon={<i className='tabler-circle text-xl' />}
-            closeIcon={<i className='tabler-x text-xl' />}
-            onClick={() => updateSettings({ layout: !isCollapsed ? 'collapsed' : 'vertical' })}
-          />
-        )}
-      </NavHeader>
-      <StyledBoxForShadow ref={shadowRef} />
-      <VerticalMenu scrollMenu={scrollMenu} />
-    </VerticalNav>
+    // <VerticalNav
+    //   customStyles={navigationCustomStyles(verticalNavOptions, theme)}
+    //   collapsedWidth={71}
+    //   backgroundColor='var(--mui-palette-background-paper)'
+    //   // eslint-disable-next-line lines-around-comment
+    //   // The following condition adds the data-mui-color-scheme='dark' attribute to the VerticalNav component
+    //   // when semiDark is enabled and the mode or systemMode is light
+    //   {...(isSemiDark &&
+    //     !isDark && {
+    //       'data-mui-color-scheme': 'dark'
+    //     })}
+    // >
+    //   {/* Nav Header including Logo & nav toggle icons  */}
+    //   <NavHeader>
+    //     <Link href='/home'>
+    //       <Logo />
+    //     </Link>
+    //     {!(isCollapsed && !isHovered) && (
+    //       <NavCollapseIcons
+    //         lockedIcon={<i className='tabler-circle-dot text-xl' />}
+    //         unlockedIcon={<i className='tabler-circle text-xl' />}
+    //         closeIcon={<i className='tabler-x text-xl' />}
+    //         onClick={() => updateSettings({ layout: !isCollapsed ? 'collapsed' : 'vertical' })}
+    //       />
+    //     )}
+    //   </NavHeader>
+    //   <StyledBoxForShadow ref={shadowRef} />
+    //   <VerticalMenu scrollMenu={scrollMenu} />
+    // </VerticalNav>
+    <>
+    </>
   )
 }
 

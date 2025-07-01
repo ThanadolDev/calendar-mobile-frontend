@@ -21,6 +21,7 @@ class FileDownloadService {
   getFileUrlByPath(filepath: string): string {
     // Convert Windows filepath to URL path
     const urlPath = filepath.replace(/\\/g, '/').replace(/^\\+/, '')
+
     return `${this.baseUrl}/displayfile/${encodeURIComponent(urlPath)}`
   }
 
@@ -30,6 +31,7 @@ class FileDownloadService {
   getFileDownloadUrlByPath(filepath: string): string {
     // Convert Windows filepath to URL path
     const urlPath = filepath.replace(/\\/g, '/').replace(/^\\+/, '')
+
     return `${this.baseUrl}/download/${encodeURIComponent(urlPath)}`
   }
 
@@ -39,13 +41,14 @@ class FileDownloadService {
   async downloadFile(fileIdOrPath: string, fileName?: string, isFilePath: boolean = false): Promise<void> {
     try {
       const url = isFilePath ? this.getFileDownloadUrlByPath(fileIdOrPath) : this.getFileDownloadUrl(fileIdOrPath)
-      
+
       // Create a temporary link and trigger download
       const link = document.createElement('a')
+
       link.href = url
       link.download = fileName || 'download'
       link.target = '_blank'
-      
+
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -60,6 +63,7 @@ class FileDownloadService {
    */
   viewFile(fileIdOrPath: string, isFilePath: boolean = false): void {
     const url = isFilePath ? this.getFileUrlByPath(fileIdOrPath) : this.getFileUrl(fileIdOrPath)
+
     window.open(url, '_blank')
   }
 
@@ -68,14 +72,14 @@ class FileDownloadService {
    */
   canPreview(mimeType?: string): boolean {
     if (!mimeType) return false
-    
+
     const previewableTypes = [
       'image/jpeg', 'image/png', 'image/gif', 'image/webp',
       'video/mp4', 'video/webm',
       'application/pdf',
       'text/plain'
     ]
-    
+
     return previewableTypes.includes(mimeType)
   }
 
@@ -84,7 +88,7 @@ class FileDownloadService {
    */
   getFileIcon(mimeType?: string): string {
     if (!mimeType) return '📄'
-    
+
     if (mimeType.startsWith('image/')) return '🖼️'
     if (mimeType.startsWith('video/')) return '🎬'
     if (mimeType.includes('pdf')) return '📕'
@@ -93,7 +97,7 @@ class FileDownloadService {
     if (mimeType.includes('powerpoint') || mimeType.includes('presentation')) return '📽️'
     if (mimeType.includes('zip') || mimeType.includes('rar')) return '🗜️'
     if (mimeType.startsWith('text/')) return '📄'
-    
+
     return '📎'
   }
 }

@@ -20,7 +20,7 @@ const MoreComponent = () => {
   const handleUserLogout = async () => {
     clearUserInfo()
 
-    const currentUrl = `${window.location.origin}/toolingmanage/login-og`
+    const currentUrl = `${window.location.origin}/handbookmanage/login-og`
     const redirectUrl = window.location.href // ใช้ href เพื่อให้ได้ URL เต็มที่เปิดอยู่
 
     console.log('currentUrl=', currentUrl)

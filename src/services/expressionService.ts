@@ -46,17 +46,17 @@ class ExpressionService {
   /**
    * Get single expression by ID
    */
-  async getExpression(id: string): Promise<ApiResponse<ExpressionResponse>> {
-    try {
-      const response = await ApiClient.get<ApiResponse<ExpressionResponse>>(
-        `${this.basePath}/${id}`
-      )
+  // async getExpression(id: string): Promise<ApiResponse<ExpressionResponse>> {
+  //   try {
+  //     const response = await ApiClient.get<ApiResponse<ExpressionResponse>>(
+  //       `${this.basePath}/${id}`
+  //     )
 
-      return response
-    } catch (error) {
-      throw this.handleError(error)
-    }
-  }
+  //     return response
+  //   } catch (error) {
+  //     throw this.handleError(error)
+  //   }
+  // }
 
   /**
    * Update expression
@@ -116,15 +116,18 @@ class ExpressionService {
       if (response.success && response.data?.expressions) {
         response.data.expressions = response.data.expressions.map(expr => ({
           ...expr,
+
           // Ensure content fields are available with fallbacks
-          EXP_DETAIL: expr.EXP_DETAIL || expr.content || 'No content available',
-          EXP_SUBJECT: expr.EXP_SUBJECT || expr.subject || 'No subject',
+          EXP_DETAIL: expr.EXP_DETAIL  || 'No content available',
+          EXP_SUBJECT: expr.EXP_SUBJECT  || 'No subject',
+
           // Ensure date fields are properly formatted
-          date: expr.date || expr.EXP_DATE_STR || new Date(expr.EXP_DATE).toISOString().split('T')[0],
+          date: expr.date  || new Date(expr.EXP_DATE).toISOString().split('T')[0],
           time: expr.time || new Date(expr.EXP_DATE).toTimeString().slice(0, 5),
+
           // Ensure other required fields
-          content: expr.EXP_DETAIL || expr.content || 'No content available',
-          subject: expr.EXP_SUBJECT || expr.subject || 'No subject'
+          content: expr.EXP_DETAIL || 'No content available',
+          subject: expr.EXP_SUBJECT  || 'No subject'
         }))
       }
 
@@ -151,6 +154,7 @@ class ExpressionService {
       const queryString = params.toString()
       const url = `${this.basePath}/sent/${empId}${queryString ? `?${queryString}` : ''}`
 
+      console.log(url)
       const response = await ApiClient.get<ApiResponse<ExpressionListResponse>>(url)
 
 
@@ -164,14 +168,16 @@ class ExpressionService {
 
           // Ensure content fields are available with fallbacks
 
-          EXP_DETAIL: expr.EXP_DETAIL || expr.content || 'No content available',
-          EXP_SUBJECT: expr.EXP_SUBJECT || expr.subject || 'No subject',
+          EXP_DETAIL: expr.EXP_DETAIL  || 'No content available',
+          EXP_SUBJECT: expr.EXP_SUBJECT || 'No subject',
+
           // Ensure date fields are properly formatted
-          date: expr.date || expr.EXP_DATE_STR || new Date(expr.EXP_DATE).toISOString().split('T')[0],
+          date: expr.date  || new Date(expr.EXP_DATE).toISOString().split('T')[0],
           time: expr.time || new Date(expr.EXP_DATE).toTimeString().slice(0, 5),
+
           // Ensure other required fields
-          content: expr.EXP_DETAIL || expr.content || 'No content available',
-          subject: expr.EXP_SUBJECT || expr.subject || 'No subject'
+          content: expr.EXP_DETAIL  || 'No content available',
+          subject: expr.EXP_SUBJECT  || 'No subject'
         }))
       }
 

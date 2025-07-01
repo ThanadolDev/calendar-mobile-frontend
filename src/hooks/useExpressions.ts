@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 
 import expressionService from '../services/expressionService'
 import type {
@@ -32,7 +32,7 @@ interface UseExpressionsActions {
   ) => ExpressionStats
 }
 
-export function useExpressions(empId?: string): UseExpressionsState & UseExpressionsActions {
+export function useExpressions(): UseExpressionsState & UseExpressionsActions {
   const [state, setState] = useState<UseExpressionsState>({
     expressions: [],
     myExpressions: [],
@@ -196,12 +196,12 @@ export function useExpressions(empId?: string): UseExpressionsState & UseExpress
   }, [state.expressions])
 
   // Auto-load data when empId changes
-  useEffect(() => {
-    if (empId) {
-      loadReceivedExpressions(empId)
-      loadSentExpressions(empId)
-    }
-  }, [empId, loadReceivedExpressions, loadSentExpressions])
+  // useEffect(() => {
+  //   if (empId) {
+  //     loadReceivedExpressions(empId)
+  //     loadSentExpressions(empId)
+  //   }
+  // }, [empId, loadReceivedExpressions, loadSentExpressions])
 
   return {
     ...state,

@@ -1,6 +1,5 @@
 import ApiClient from './apiClient'
 import type {
-  Employee,
   ApiResponse,
   EmployeeListResponse,
   EmployeeResponse
@@ -17,6 +16,7 @@ class EmployeeService {
       const response = await ApiClient.get<ApiResponse<EmployeeListResponse>>(
         this.basePath
       )
+
       return response
     } catch (error) {
       throw this.handleError(error)
@@ -31,6 +31,7 @@ class EmployeeService {
       const response = await ApiClient.get<ApiResponse<EmployeeResponse>>(
         `${this.basePath}/${empId}`
       )
+
       return response
     } catch (error) {
       throw this.handleError(error)
@@ -45,6 +46,7 @@ class EmployeeService {
       const response = await ApiClient.get<ApiResponse<EmployeeListResponse>>(
         `${this.basePath}/search?q=${encodeURIComponent(searchTerm)}`
       )
+
       return response
     } catch (error) {
       throw this.handleError(error)
@@ -57,12 +59,15 @@ class EmployeeService {
   async getEmployeeName(empId: string): Promise<string> {
     try {
       const response = await this.getEmployee(empId)
+
       if (response.success && response.data.employee) {
         return response.data.employee.fullName
       }
+
       return empId // fallback to empId if not found
     } catch (error) {
       console.warn(`Could not fetch name for employee ${empId}:`, error)
+
       return empId // fallback to empId on error
     }
   }

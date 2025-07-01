@@ -1,7 +1,9 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
+
 import { Search, ChevronDown, User, X } from 'lucide-react'
+
 import { useEmployees } from '../../hooks/useEmployees'
 import type { Employee } from '../../types/employee'
 
@@ -35,18 +37,18 @@ const EmployeeDropdown: React.FC<EmployeeDropdownProps> = ({
   useEffect(() => {
     const filterEmployees = async () => {
       let results: Employee[] = []
-      
+
       if (searchTerm.trim()) {
         results = await searchEmployees(searchTerm)
       } else {
         results = employees
       }
-      
+
       // Exclude the specified employee ID (current user)
       if (excludeEmpId) {
         results = results.filter(emp => emp.empId !== excludeEmpId)
       }
-      
+
       setFilteredEmployees(results.slice(0, 50)) // Limit to 50 results for performance
     }
 
@@ -63,6 +65,7 @@ const EmployeeDropdown: React.FC<EmployeeDropdownProps> = ({
     }
 
     document.addEventListener('mousedown', handleClickOutside)
+
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
@@ -88,6 +91,7 @@ const EmployeeDropdown: React.FC<EmployeeDropdownProps> = ({
   const handleToggle = () => {
     if (disabled) return
     setIsOpen(!isOpen)
+
     if (!isOpen) {
       setSearchTerm('')
     }
@@ -101,7 +105,7 @@ const EmployeeDropdown: React.FC<EmployeeDropdownProps> = ({
         onClick={handleToggle}
         disabled={disabled}
         className={`
-          w-full p-3 border border-gray-300 rounded-lg text-left 
+          w-full p-3 border border-gray-300 rounded-lg text-left
           focus:ring-2 focus:ring-blue-500 focus:border-blue-500
           flex items-center justify-between
           ${disabled ? 'bg-gray-100 cursor-not-allowed' : 'bg-white hover:border-gray-400 cursor-pointer'}
@@ -116,13 +120,13 @@ const EmployeeDropdown: React.FC<EmployeeDropdownProps> = ({
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           {selectedEmployee && !disabled && (
-            <X 
-              className="w-4 h-4 text-gray-400 hover:text-gray-600" 
+            <X
+              className="w-4 h-4 text-gray-400 hover:text-gray-600"
               onClick={handleClear}
             />
           )}
-          <ChevronDown 
-            className={`w-5 h-5 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} 
+          <ChevronDown
+            className={`w-5 h-5 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
           />
         </div>
       </button>

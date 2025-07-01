@@ -11,7 +11,7 @@ const useRedirect = (userData: AuthResponse | null) => {
     console.log('useEffect=', userData)
 
     if (!userData) {
-      const currentUrl = window.location.origin + '/handbook/login-og'
+      const currentUrl = window.location.origin + '/handbookmanage/login-og'
       const redirectUrl = window.location.href // ใช้ href เพื่อให้ได้ URL เต็มที่เปิดอยู่
 
       console.log('currentUrl=', currentUrl)
