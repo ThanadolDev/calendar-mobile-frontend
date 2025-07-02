@@ -6,6 +6,7 @@ export interface ExpressionAttachment {
   size?: number
   mimeType?: string
   url?: string
+  isExisting?: boolean // Flag to indicate if this is an existing file (don't re-upload)
 }
 
 export interface CreateExpressionRequest {

@@ -79,8 +79,9 @@ class ExpressionService {
    */
   async deleteExpression(id: string): Promise<ApiResponse<null>> {
     try {
-      const response = await ApiClient.delete<ApiResponse<null>>(
-        `${this.basePath}/${id}`
+      const response = await ApiClient.post<ApiResponse<null>>(
+        `${this.basePath}/${id}`,
+        {} // Empty body for the POST request
       )
 
       return response

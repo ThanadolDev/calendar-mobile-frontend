@@ -208,15 +208,15 @@ const FeedbackDashboard = () => {
 
     if (timePeriod === 'monthly') {
       if (isLeftSwipe) {
-        navigateMonth(1)
-      } else if (isRightSwipe) {
         navigateMonth(-1)
+      } else if (isRightSwipe) {
+        navigateMonth(1)
       }
     } else {
       if (isLeftSwipe) {
-        navigateYear(1)
-      } else if (isRightSwipe) {
         navigateYear(-1)
+      } else if (isRightSwipe) {
+        navigateYear(1)
       }
     }
   }
@@ -228,23 +228,27 @@ const FeedbackDashboard = () => {
 
     console.log('navigateMonth - current:', currentMonth, 'direction:', direction, 'newMonth:', newMonth)
 
-    if (newMonth > 11) {
-      setCurrentMonth(0)
-      setCurrentYear(currentYear + 1)
-    } else if (newMonth < 0) {
-      setCurrentMonth(11)
-      setCurrentYear(currentYear - 1)
-    } else {
-      // Safety check to ensure month is always valid
-      const safeMonth = Math.max(0, Math.min(11, newMonth))
-
-      setCurrentMonth(safeMonth)
-    }
+    // Use React.startTransition to ensure state updates are batched properly
+    React.startTransition(() => {
+      if (newMonth > 11) {
+        setCurrentMonth(0)
+        setCurrentYear(currentYear + 1)
+      } else if (newMonth < 0) {
+        setCurrentMonth(11)
+        setCurrentYear(currentYear - 1)
+      } else {
+        // Safety check to ensure month is always valid
+        const safeMonth = Math.max(0, Math.min(11, newMonth))
+        setCurrentMonth(safeMonth)
+      }
+    })
   }
 
   const navigateYear = (direction: number) => {
     setPeriodLoading(true)
-    setCurrentYear(currentYear + direction)
+    React.startTransition(() => {
+      setCurrentYear(currentYear + direction)
+    })
   }
 
    const PublishConfirmationModal = () => {
@@ -429,7 +433,8 @@ const FeedbackDashboard = () => {
           fileId: file.fileId,
           fileName: file.fileName,
           type: 'FILE',
-          mimeType: files.find(f => f.name === file.fileName)?.type
+          mimeType: files.find(f => f.name === file.fileName)?.type,
+          isExisting: false // Mark as new file
         }))
 
         setExpressionData({
@@ -515,7 +520,11 @@ const FeedbackDashboard = () => {
       content: expression.EXP_DETAIL || '',
       privacy: expression.EXP_KIND === 'X' ? 'public' : 'private',
       status: 'draft',
-      attachments: expression.attachments || []
+      // Mark existing attachments so we don't re-upload them
+      attachments: (expression.attachments || []).map(att => ({
+        ...att,
+        isExisting: true // Flag to indicate this is an existing file
+      }))
     })
     setNewExpressionOpen(true)
   }
@@ -559,13 +568,22 @@ const FeedbackDashboard = () => {
     }
 
     try {
+      // Separate existing attachments from new ones
+      const existingAttachments = (expressionData.attachments || []).filter(att => 
+        typeof att === 'object' && att.isExisting
+      ).map(att => {
+        // Remove the isExisting flag before sending to backend
+        const { isExisting, ...cleanAtt } = att
+        return cleanAtt
+      })
+
       const updateData: Partial<CreateExpressionRequest> = {
         type: expressionData.type,
         recipient: expressionData.recipient,
         content: expressionData.content,
         privacy: expressionData.privacy,
         status,
-        attachments: expressionData.attachments
+        attachments: existingAttachments // Only send existing attachments
       }
 
       await updateExpression(editingExpression.EXP_ID, updateData)
