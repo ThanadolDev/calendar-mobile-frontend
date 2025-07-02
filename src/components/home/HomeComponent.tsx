@@ -109,6 +109,7 @@ const FeedbackDashboard = () => {
   const [periodLoading, setPeriodLoading] = useState(false)
   const [uploadLoading, setUploadLoading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
+  const [showPublishConfirmation, setShowPublishConfirmation] = useState(false)
 
   const [selectedExpression, setSelectedExpression] = useState<
     | (Expression & {
@@ -143,46 +144,6 @@ const FeedbackDashboard = () => {
 
     return mime.startsWith('image/') || ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'].includes(extension)
   }
-
-  // Helper function to get file type icon or thumbnail
-  // const getFilePreview = (file: any) => {
-  //   const fileName = typeof file === 'string' ? file : file.fileName
-  //   const mimeType = typeof file === 'object' && file.mimeType ? file.mimeType : undefined
-  //   const fileId = typeof file === 'object' && file.fileId ? file.fileId : null
-
-  //   const extension = fileName.toLowerCase().substring(fileName.lastIndexOf('.'))
-  //   const mime = mimeType?.toLowerCase() || ''
-
-  //   // Show thumbnail for images
-  //   if (isImageFile(fileName, mimeType) && fileId) {
-  //     return (
-  //       <img
-  //         src={`http://192.168.55.37:18814/fileserver/displaythumb/${fileId}`}
-  //         alt={fileName}
-  //         className='w-8 h-8 object-cover rounded border'
-  //         onError={e => {
-  //                               e.currentTarget.style.display = 'none'
-  //                               const nextSibling = e.currentTarget.nextElementSibling as HTMLElement
-
-  //                               if (nextSibling) {
-  //                                 nextSibling.style.display = 'block'
-  //                               }
-  //                             }}
-  //       />
-  //     )
-  //   }
-
-  //   // Icons for non-images
-  //   if (mime.startsWith('video/') || ['.mp4', '.avi', '.mov', '.wmv', '.webm', '.mkv'].includes(extension)) {
-  //     return <Video className='w-6 h-6 text-red-600' />
-  //   }
-
-  //   if (extension === '.pdf' || mime === 'application/pdf') {
-  //     return <FileText className='w-6 h-6 text-red-600' />
-  //   }
-
-  //   return <FileText className='w-6 h-6 text-gray-700' />
-  // }
 
   // Helper function to get file type icon (fallback)
   const getFileIcon = (fileName: string, mimeType?: string) => {
@@ -284,6 +245,67 @@ const FeedbackDashboard = () => {
   const navigateYear = (direction: number) => {
     setPeriodLoading(true)
     setCurrentYear(currentYear + direction)
+  }
+
+   const PublishConfirmationModal = () => {
+    if (!showPublishConfirmation) return null
+
+    return (
+      <div className='fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4'>
+        <div className='bg-white rounded-lg max-w-sm w-full shadow-2xl border-2 border-gray-300'>
+          <div className='p-6'>
+            <div className='flex items-center justify-center mb-4'>
+              <div className='w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center'>
+                <AlertCircle className='w-6 h-6 text-blue-600' />
+              </div>
+            </div>
+
+            <h3 className='text-lg font-bold text-gray-900 text-center mb-2'>
+              ยืนยันการเผยแพร่
+            </h3>
+
+            <p className='text-sm text-gray-700 text-center mb-6 leading-relaxed'>
+              คุณต้องการเผยแพร่ความคิดเห็นนี้หรือไม่?
+            </p>
+
+            <div className='flex gap-3'>
+              <button
+                onClick={() => setShowPublishConfirmation(false)}
+                className='flex-1 py-3 px-4 border-2 border-gray-400 rounded-lg !text-gray-800 hover:!bg-gray-100 font-semibold transition-colors !bg-white'
+                style={{ backgroundColor: '#ffffff', color: '#1f2937' }}
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={() => {
+                  setShowPublishConfirmation(false)
+
+                  // Proceed with the actual publish action
+
+                  if (editingExpression) {
+                    handleUpdateExpression('published')
+                  } else {
+                    handleSaveExpression('published')
+                  }
+                }}
+                className='flex-1 py-3 px-4 !bg-blue-600 !text-white rounded-lg hover:!bg-blue-700 font-semibold transition-colors border-2 border-blue-600 hover:border-blue-700'
+                style={{ backgroundColor: '#2563eb', color: '#ffffff' }}
+                disabled={createLoading}
+              >
+                {createLoading ? (
+                  <div className='flex items-center justify-center gap-2'>
+                    <Loader2 className='w-4 h-4 animate-spin' />
+                    กำลังเผยแพร่...
+                  </div>
+                ) : (
+                  'ยืนยันเผยแพร่'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   // Filter expressions based on time period
@@ -498,9 +520,9 @@ const FeedbackDashboard = () => {
     setNewExpressionOpen(true)
   }
 
-  // Handle deleting a draft expression (moves to status 'F')
+  // Handle deleting an expression (moves to status 'F' or soft delete)
   const handleDeleteExpression = async (expressionId: string) => {
-    if (!confirm('คุณต้องการลบร่างนี้หรือไม่?')) {
+    if (!confirm('คุณต้องการลบความคิดเห็นนี้หรือไม่?')) {
       return
     }
 
@@ -519,11 +541,11 @@ const FeedbackDashboard = () => {
       }
     } catch (error) {
       console.error('Failed to delete expression:', error)
-      alert('ไม่สามารถลบร่างได้ กรุณาลองใหม่อีกครั้ง')
+      alert('ไม่สามารถลบความคิดเห็นได้ กรุณาลองใหม่อีกครั้ง')
     }
   }
 
-  // Handle updating an existing draft expression
+  // Handle updating an existing expression
   const handleUpdateExpression = async (status: 'draft' | 'published') => {
     if (!expressionData.recipient || !expressionData.content) {
       alert('กรุณากรอกข้อมูลให้ครบถ้วน')
@@ -638,19 +660,19 @@ const FeedbackDashboard = () => {
     textColor: string
   }
 
-  const StatCard = ({ title, value, icon: Icon, bgColor, textColor }: StatCardProps) => (
-    <div className='bg-white rounded-lg p-4 shadow-md border-2 border-gray-200'>
-      <div className='flex items-start justify-between'>
-        <div className='flex-1 pr-2'>
-          <p className='text-sm text-gray-800 font-medium mb-1 leading-tight min-h-[2.5rem] flex items-end'>{title}</p>
-          <p className={`text-2xl font-bold ${textColor}`}>{value}</p>
-        </div>
-        <div className={`p-3 rounded-full ${bgColor} flex-shrink-0 shadow-sm`}>
-          <Icon className={`w-6 h-6 ${textColor}`} />
-        </div>
+const StatCard = ({ title, value, icon: Icon, bgColor, textColor }: StatCardProps) => (
+  <div className='bg-white rounded-lg p-4 shadow-md border-2 border-gray-200'>
+    <div className='flex items-start justify-between'>
+      <div className='flex-1 pr-2'>
+        <p className='text-sm text-gray-800 font-medium mb-1 leading-tight min-h-[2.5rem] flex items-end'>{title}</p>
+        <p className={`text-2xl font-bold ${textColor}`}>{value}</p>
+      </div>
+      <div className={`w-12 h-12 rounded-full ${bgColor} flex-shrink-0 shadow-sm flex items-center justify-center`}>
+        <Icon className={`w-6 h-6 ${textColor}`} />
       </div>
     </div>
-  )
+  </div>
+)
 
   const StatCardSkeleton = () => (
     <div className='bg-white rounded-lg p-4 shadow-md border-2 border-gray-200 animate-pulse'>
@@ -708,12 +730,12 @@ const FeedbackDashboard = () => {
       onClick={
         clickable
           ? () => {
-              // If it's a draft, open for editing instead of showing detail modal
-              if (expression.expressionStatus === 'draft' || expression.status === 'draft') {
-                handleEditExpression(expression)
-              } else {
-                setSelectedExpression(expression)
-              }
+              // If it's a draft or if we're in the "My Expressions" tab, open for editing
+             if (expression.expressionStatus === 'draft' || expression.status === 'draft') {
+              handleEditExpression(expression)
+            } else {
+              setSelectedExpression(expression)
+            }
             }
           : undefined
       }
@@ -725,20 +747,20 @@ const FeedbackDashboard = () => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault()
 
-                // If it's a draft, open for editing instead of showing detail modal
+                // If it's a draft or if we're in the "My Expressions" tab, open for editing
                 if (expression.expressionStatus === 'draft' || expression.status === 'draft') {
-                  handleEditExpression(expression)
-                } else {
-                  setSelectedExpression(expression)
-                }
+              handleEditExpression(expression)
+            } else {
+              setSelectedExpression(expression)
+            }
               }
             }
           : undefined
       }
       aria-label={
         clickable
-          ? expression.expressionStatus === 'draft' || expression.status === 'draft'
-            ? `แก้ไขร่างความคิดเห็น`
+          ? expression.expressionStatus === 'draft' || expression.status === 'draft' || (activeTab === 1 && showActions)
+            ? `แก้ไขความคิดเห็น`
             : `ดูรายละเอียดความคิดเห็นจาก ${expression.from || expression.to}`
           : undefined
       }
@@ -828,8 +850,8 @@ const FeedbackDashboard = () => {
           {expression.attachments.length > 2 && (
             <button
               onClick={() => {
-                // If it's a draft, open for editing instead of showing detail modal
-                if (expression.expressionStatus === 'draft' || expression.status === 'draft') {
+                // If it's a draft or if we're in the "My Expressions" tab, open for editing
+                if (expression.expressionStatus === 'draft' || expression.status === 'draft' || (activeTab === 1 && showActions)) {
                   handleEditExpression(expression)
                 } else {
                   setSelectedExpression(expression)
@@ -844,34 +866,27 @@ const FeedbackDashboard = () => {
         </div>
       )}
 
-      {clickable && (
-        <div className='text-xs text-blue-700 hover:text-blue-900 font-semibold'>
-          {expression.expressionStatus === 'draft' || expression.status === 'draft'
-            ? 'คลิกเพื่อแก้ไข →'
-            : 'คลิกเพื่อดูรายละเอียด →'}
-        </div>
-      )}
-
-      {showActions && (expression.expressionStatus === 'draft' || expression.status === 'draft') && (
+      {/* Show action buttons for my expressions - updated condition */}
+      {showActions && activeTab === 1 && (
         <div className='flex justify-end gap-2 pt-2 border-t border-gray-200'>
-          {/* Edit button - only for drafts */}
+          {/* Edit button - show for all my expressions */}
           <button
             onClick={e => {
               e.stopPropagation()
               handleEditExpression(expression)
             }}
-            className='p-2 text-gray-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors border border-gray-300 hover:border-blue-300'
+            className='w-10 h-10 text-gray-600 bg-white hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors border border-gray-300 hover:border-blue-300'
             aria-label='แก้ไข'
           >
             <Edit3 className='w-4 h-4' />
           </button>
-          {/* Delete button - only for draft expressions */}
+          {/* Delete button - show for all my expressions */}
           <button
             onClick={e => {
               e.stopPropagation()
               handleDeleteExpression(expression.EXP_ID)
             }}
-            className='p-2 text-gray-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors border border-gray-300 hover:border-red-300'
+            className='w-10 h-10 text-gray-600 bg-white hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors border border-gray-300 hover:border-red-300'
             aria-label='ลบ'
           >
             <Trash2 className='w-4 h-4' />
@@ -1265,9 +1280,6 @@ const FeedbackDashboard = () => {
                     key={expression.EXP_ID}
                     expression={expression}
                     showActions={true}
-                    
-                    // clickable={expression.expressionStatus === 'draft' || expression.STATUS === 'draft'}
-
                     showRecipient={true} // Show recipient name (EXP_TO)
                     clickable={true}
                   />
@@ -1512,6 +1524,7 @@ const FeedbackDashboard = () => {
                 onClick={() => {
                   setNewExpressionOpen(false)
                   setEditingExpression(null)
+                   setShowPublishConfirmation(false)
                   setExpressionData({
                     type: 'praise',
                     recipient: '',
@@ -1528,9 +1541,7 @@ const FeedbackDashboard = () => {
                 ยกเลิก
               </button>
               <button
-                onClick={() =>
-                  editingExpression ? handleUpdateExpression('published') : handleSaveExpression('published')
-                }
+                onClick={() => setShowPublishConfirmation(true)}
                 className='flex-1 py-3 px-4 !bg-blue-600 !text-white rounded-lg hover:!bg-blue-700 flex items-center justify-center gap-2 font-semibold transition-colors border-2 border-blue-600 hover:border-blue-700'
                 style={{ backgroundColor: '#2563eb', color: '#ffffff' }}
                 disabled={createLoading}
@@ -1542,6 +1553,8 @@ const FeedbackDashboard = () => {
           </div>
         </div>
       )}
+
+        <PublishConfirmationModal />
     </div>
   )
 }
