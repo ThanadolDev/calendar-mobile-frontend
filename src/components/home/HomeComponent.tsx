@@ -24,7 +24,7 @@ import {
   AlertCircle,
   FileText,
   Image,
-  Video,
+  Video
 } from 'lucide-react'
 
 import { useExpressions } from '../../hooks/useExpressions'
@@ -774,7 +774,8 @@ const FeedbackDashboard = () => {
 
       {expression.attachments && expression.attachments.length > 0 && (
         <div className='flex flex-wrap gap-2 mb-3'>
-          {expression.attachments.map((file, index) => (
+          {/* Show first 2 attachments */}
+          {expression.attachments.slice(0, 2).map((file, index) => (
             <button
               key={index}
               onClick={() => {
@@ -803,13 +804,13 @@ const FeedbackDashboard = () => {
                       alt={file.fileName}
                       className='w-6 h-6 object-cover rounded border'
                       onError={e => {
-                                e.currentTarget.style.display = 'none'
-                                const nextSibling = e.currentTarget.nextElementSibling as HTMLElement
+                        e.currentTarget.style.display = 'none'
+                        const nextSibling = e.currentTarget.nextElementSibling as HTMLElement
 
-                                if (nextSibling) {
-                                  nextSibling.style.display = 'block'
-                                }
-                              }}
+                        if (nextSibling) {
+                          nextSibling.style.display = 'block'
+                        }
+                      }}
                     />
                     <span className='hidden'>{getFileIcon(file.fileName, file.mimeType)}</span>
                   </>
@@ -822,6 +823,24 @@ const FeedbackDashboard = () => {
               </div>
             </button>
           ))}
+
+          {/* Show +X indicator if there are more than 2 attachments */}
+          {expression.attachments.length > 2 && (
+            <button
+              onClick={() => {
+                // If it's a draft, open for editing instead of showing detail modal
+                if (expression.expressionStatus === 'draft' || expression.status === 'draft') {
+                  handleEditExpression(expression)
+                } else {
+                  setSelectedExpression(expression)
+                }
+              }}
+              className='flex items-center gap-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded-lg text-xs text-gray-600 hover:text-gray-800 transition-colors cursor-pointer font-medium'
+            >
+              <span className='text-sm'>+{expression.attachments.length - 2}</span>
+              <span className='text-xs'>ไฟล์เพิ่มเติม</span>
+            </button>
+          )}
         </div>
       )}
 
@@ -1166,7 +1185,7 @@ const FeedbackDashboard = () => {
       </div>
 
       {/* Tabs */}
-      <div className='mx-4 mb-4 bg-white rounded-lg shadow-md border-2 border-gray-200'>
+      <div className=' mb-4 bg-white rounded-lg shadow-md border-2 border-gray-200'>
         <div className='flex border-b-2 border-gray-200'>
           <button
             onClick={() => setActiveTab(0)}
@@ -1200,7 +1219,7 @@ const FeedbackDashboard = () => {
           </button>
         </div>
 
-        <div className='p-4'>
+        <div className='p-2'>
           {activeTab === 0 && (
             <div>
               <h3 className='text-lg font-bold mb-4 text-gray-900'>ความคิดเห็นที่ได้รับ</h3>
@@ -1246,7 +1265,7 @@ const FeedbackDashboard = () => {
                     key={expression.EXP_ID}
                     expression={expression}
                     showActions={true}
-
+                    
                     // clickable={expression.expressionStatus === 'draft' || expression.STATUS === 'draft'}
 
                     showRecipient={true} // Show recipient name (EXP_TO)
@@ -1452,13 +1471,13 @@ const FeedbackDashboard = () => {
                                     alt={fileName}
                                     className='w-8 h-8 object-cover rounded border'
                                     onError={e => {
-                                e.currentTarget.style.display = 'none'
-                                const nextSibling = e.currentTarget.nextElementSibling as HTMLElement
+                                      e.currentTarget.style.display = 'none'
+                                      const nextSibling = e.currentTarget.nextElementSibling as HTMLElement
 
-                                if (nextSibling) {
-                                  nextSibling.style.display = 'block'
-                                }
-                              }}
+                                      if (nextSibling) {
+                                        nextSibling.style.display = 'block'
+                                      }
+                                    }}
                                   />
                                   <span className='hidden'>{getFileIcon(fileName, mimeType)}</span>
                                 </>
