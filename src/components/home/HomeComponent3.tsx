@@ -836,7 +836,7 @@ const FeedbackDashboard = () => {
 
     return (
       <div
-        className={`bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 cursor-pointer transform hover:scale-105 active:scale-95 ${
+        className={`bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 cursor-pointer transform hover:scale-105 active:scale-95 ${
           disabled ? 'opacity-50 cursor-not-allowed hover:scale-100 active:scale-100' : ''
         }`}
         onClick={!disabled ? onClick : undefined}
@@ -1272,7 +1272,7 @@ const FeedbackDashboard = () => {
 
       {/* Time Period Toggle */}
       <div className='p-4 bg-white border-b-2 border-gray-200 shadow-sm'>
-        <div className='flex rounded-lg border-2 border-gray-300 overflow-hidden shadow-sm'>
+        <div className='flex rounded-lg  overflow-hidden shadow-sm'>
           <button
             onClick={() => {
               setPeriodLoading(true)
