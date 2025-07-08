@@ -1,4 +1,4 @@
-import HomeComponent from '@/components/home/HomeComponent'
+import HomeComponent from '@/components/home/HomeComponent3'
 
 import { AuthProvider } from '@/contexts/AuthContext'
 
