@@ -782,69 +782,319 @@ const FeedbackDashboard = () => {
     if (!isOpen) return null
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg max-w-4xl w-full max-h-[80vh] flex flex-col">
-          <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-            <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
+      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end md:items-center justify-center">
+        <div className="bg-white w-full h-full md:h-auto md:max-w-lg md:rounded-lg md:max-h-[90vh] flex flex-col border-2 border-gray-300 shadow-2xl">
+          <div className="flex items-center justify-between p-4 border-b-2 border-gray-200 flex-shrink-0 bg-gray-50">
+            <h2 className="text-lg font-bold text-gray-900">{title}</h2>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              className="!text-gray-600 hover:!text-gray-900 hover:!bg-gray-200 p-2 rounded-lg transition-colors"
+              style={{ color: '#4b5563', backgroundColor: 'transparent' }}
+              aria-label="ปิด"
             >
-              <X className="w-5 h-5" />
+              <X className="w-6 h-6" />
             </button>
           </div>
           
-          <div className="p-6 border-b border-gray-200">
+          <div className="p-4 border-b-2 border-gray-200 flex-shrink-0">
             <div className="relative">
               <input
                 type="text"
                 placeholder="ค้นหาตามชื่อพนักงานหรือประเภท..."
                 value={searchTerm}
                 onChange={(e) => onSearchChange(e.target.value)}
-                className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-2 pl-10 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white placeholder-gray-500 font-medium shadow-sm"
               />
               <MessageSquare className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {loading ? (
               <div className="flex justify-center py-8">
                 <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
               </div>
             ) : expressions.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                ไม่พบข้อมูล
+              <div className="text-center py-12 text-gray-600">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <MessageSquare className="w-8 h-8 text-gray-400" />
+                </div>
+                <p className="text-lg font-medium text-gray-700">ไม่พบข้อมูล</p>
+                <p className="text-sm text-gray-500 mt-1">ไม่มีความคิดเห็นในหมวดหมู่นี้</p>
               </div>
             ) : (
-              <div className="grid gap-4">
-                {expressions.map((expression) => (
-                  <div
-                    key={expression.EXP_ID}
-                    className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer"
-                    onClick={() => onExpressionClick?.(expression)}
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${
-                        expression.TYPE === 'praise' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-orange-100 text-orange-800'
-                      }`}>
+              expressions.map((expression) => (
+                <div
+                  key={expression.EXP_ID}
+                  className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 cursor-pointer hover:shadow-md hover:border-blue-200 transition-all duration-200"
+                  onClick={() => onExpressionClick?.(expression)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      onExpressionClick?.(expression)
+                    }
+                  }}
+                  aria-label={`ดูรายละเอียดความคิดเห็นจาก ${getEmployeeName(expression.CR_UID)}`}
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center">
+                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3 border-2 border-blue-200">
+                        <User className="w-5 h-5 text-blue-700" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-sm text-gray-900">
+                          {getEmployeeName(activeTab === 0 ? expression.CR_UID || '' : expression.EXP_TO || '')}
+                        </p>
+                        <p className="text-xs text-gray-700 font-medium">{expression.EXP_DATE}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                          expression.TYPE === 'praise'
+                            ? 'bg-green-100 text-green-800 border border-green-300'
+                            : 'bg-orange-100 text-orange-800 border border-orange-300'
+                        }`}
+                      >
                         {expression.TYPE === 'praise' ? 'ชื่นชม' : 'ต้องปรับปรุง'}
                       </span>
-                      <span className="text-xs text-gray-500">
-                        {expression.EXP_DATE}
-                      </span>
-                    </div>
-                    <p className="text-gray-900 mb-2">{expression.EXP_DETAIL}</p>
-                    <div className="flex justify-between items-center text-sm text-gray-600">
-                      <span>โดย: {getEmployeeName(expression.CR_UID)}</span>
-                      <span>ถึง: {getEmployeeName(expression.EXP_TO)}</span>
+                      {expression.EXP_KIND === 'H' && (
+                        <EyeOff className="w-4 h-4 text-gray-400" title="ส่วนตัว" />
+                      )}
                     </div>
                   </div>
-                ))}
+
+                  <p className="text-sm text-gray-800 mb-3 line-clamp-2 leading-relaxed">
+                    {expression.EXP_DETAIL}
+                  </p>
+
+                  {expression.attachments && expression.attachments.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {/* Show first 2 attachments */}
+                      {expression.attachments.slice(0, 2).map((file, index) => (
+                        <button
+                          key={index}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            if (typeof file === 'object' && file.fileId) {
+                              const useFilePath = Boolean(file.url && file.url.length > 0)
+                              const identifier = useFilePath ? file.url : file.fileId
+
+                              if (identifier) {
+                                fileDownloadService.viewFile(identifier, useFilePath)
+                              }
+                            }
+                          }}
+                          className="flex items-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg text-xs text-gray-800 hover:text-gray-900 transition-colors cursor-pointer font-medium"
+                        >
+                          <div className="flex items-center gap-1">
+                            {isImageFile(
+                              typeof file === 'string' ? file : file.fileName,
+                              typeof file === 'object' ? file.mimeType : undefined
+                            ) &&
+                            typeof file === 'object' &&
+                            file.fileId ? (
+                              <>
+                                <img
+                                  src={`http://192.168.55.37:18814/fileserver/displaythumb/${file.fileId}`}
+                                  alt={file.fileName}
+                                  className="w-6 h-6 object-cover rounded border"
+                                  onError={e => {
+                                    e.currentTarget.style.display = 'none'
+                                    const nextSibling = e.currentTarget.nextElementSibling as HTMLElement
+                                    if (nextSibling) {
+                                      nextSibling.style.display = 'block'
+                                    }
+                                  }}
+                                />
+                                <span className="hidden">{getFileIcon(file.fileName, file.mimeType)}</span>
+                              </>
+                            ) : (
+                              <span className="text-sm">
+                                {typeof file === 'object' && file.mimeType ? getFileIcon(file.fileName, file.mimeType) : '📎'}
+                              </span>
+                            )}
+                            <span className="truncate max-w-20">{typeof file === 'string' ? file : file.fileName}</span>
+                          </div>
+                        </button>
+                      ))}
+
+                      {/* Show +X indicator if there are more than 2 attachments */}
+                      {expression.attachments.length > 2 && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onExpressionClick?.(expression)
+                          }}
+                          className="flex items-center gap-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded-lg text-xs text-gray-600 hover:text-gray-800 transition-colors cursor-pointer font-medium"
+                        >
+                          <span className="text-sm">+{expression.attachments.length - 2}</span>
+                          <span className="text-xs">ไฟล์เพิ่มเติม</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Expression Detail Modal Component (from HomeComponent)
+  interface ExpressionDetailModalProps {
+    expression:
+      | (Expression & {
+          from?: string
+          department?: string
+          position?: string
+          fullContent?: string
+          content?: string
+        })
+      | null
+    onClose: () => void
+  }
+
+  const ExpressionDetailModal = ({ expression, onClose }: ExpressionDetailModalProps) => {
+    if (!expression) return null
+
+    return (
+      <div className='fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end md:items-center justify-center'>
+        <div className='bg-white w-full h-full md:h-auto md:max-w-lg md:rounded-lg md:max-h-[90vh] flex flex-col border-2 border-gray-300 shadow-2xl'>
+          <div className='flex items-center justify-between p-4 border-b-2 border-gray-200 flex-shrink-0 bg-gray-50'>
+            <h2 className='text-lg font-bold text-gray-900'>รายละเอียดความคิดเห็น</h2>
+            <button
+              onClick={onClose}
+              className='!text-gray-600 hover:!text-gray-900 hover:!bg-gray-200 p-2 rounded-lg transition-colors'
+              style={{ color: '#4b5563', backgroundColor: 'transparent' }}
+              aria-label='ปิด'
+            >
+              <X className='w-6 h-6' />
+            </button>
+          </div>
+
+          <div className='p-4 space-y-4 flex-1 overflow-y-auto'>
+            <div className='flex justify-center'>
+              <span
+                className={`px-4 py-2 text-sm font-semibold rounded-full border-2 ${
+                  expression.TYPE === 'praise'
+                    ? 'bg-green-100 text-green-800 border-green-300'
+                    : 'bg-orange-100 text-orange-800 border-orange-300'
+                }`}
+              >
+                {expression.TYPE === 'praise' ? 'ชื่นชม' : 'ต้องปรับปรุง'}
+              </span>
+            </div>
+
+            <div>
+              <label className='block text-sm font-bold text-gray-800 mb-2'>จาก</label>
+              <div className='flex items-center gap-3 p-3 bg-gray-50 rounded-lg border-2 border-gray-200'>
+                <div>
+                  <p className='font-bold text-gray-900'>{getEmployeeName(expression.CR_UID)}</p>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className='block text-sm font-bold text-gray-800 mb-2'>วันที่และเวลา</label>
+              <div className='flex items-center gap-4 p-3 bg-gray-50 rounded-lg text-sm text-gray-800 border-2 border-gray-200'>
+                <div className='flex items-center gap-1'>
+                  <Calendar className='w-4 h-4 text-blue-600' />
+                  <span className='font-medium'>{expression.date || expression.EXP_DATE}</span>
+                </div>
+                <div className='flex items-center gap-1'>
+                  <Clock className='w-4 h-4 text-blue-600' />
+                  <span className='font-medium'>{expression.time || ''}</span>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className='block text-sm font-bold text-gray-800 mb-2'>เนื้อหา</label>
+              <div className='p-4 bg-gray-50 rounded-lg border-2 border-gray-200'>
+                <p className='text-gray-800 leading-relaxed font-medium'>
+                  {expression.EXP_DETAIL || expression.fullContent || expression.content}
+                </p>
+              </div>
+            </div>
+
+            {expression.attachments && expression.attachments.length > 0 && (
+              <div>
+                <label className='block text-sm font-bold text-gray-800 mb-2'>ไฟล์แนบ</label>
+                <div className='space-y-2'>
+                  {expression.attachments.map((file, index) => (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        if (typeof file === 'object' && file.fileId) {
+                          const useFilePath = Boolean(file.url && file.url.length > 0)
+                          const identifier = useFilePath ? file.url : file.fileId
+
+                          if (identifier) {
+                            fileDownloadService.viewFile(identifier, useFilePath)
+                          }
+                        }
+                      }}
+                      className='flex items-center gap-3 px-4 py-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg text-sm text-gray-800 hover:text-gray-900 transition-colors cursor-pointer w-full'
+                    >
+                      <div className='flex-shrink-0'>
+                        {isImageFile(
+                          typeof file === 'string' ? file : file.fileName,
+                          typeof file === 'object' ? file.mimeType : undefined
+                        ) &&
+                        typeof file === 'object' &&
+                        file.fileId ? (
+                          <>
+                            <img
+                              src={`http://192.168.55.37:18814/fileserver/displaythumb/${file.fileId}`}
+                              alt={file.fileName}
+                              className='w-12 h-12 object-cover rounded border'
+                              onError={e => {
+                                e.currentTarget.style.display = 'none'
+                                const nextSibling = e.currentTarget.nextElementSibling as HTMLElement
+
+                                if (nextSibling) {
+                                  nextSibling.style.display = 'block'
+                                }
+                              }}
+                            />
+                            <span className='hidden text-xl'>
+                              {getFileIcon(file.fileName, file.mimeType)}
+                            </span>
+                          </>
+                        ) : (
+                          <span className='text-xl'>
+                            {getFileIcon(file.fileName, file.mimeType)}
+                          </span>
+                        )}
+                      </div>
+                      <div className='flex-1 min-w-0 text-left'>
+                        <p className='text-gray-800 truncate font-medium'>
+                          {typeof file === 'string' ? file : file.fileName}
+                        </p>
+                        {typeof file === 'object' && file.size && (
+                          <p className='text-xs text-gray-600 font-medium'>{formatFileSize(file.size)}</p>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
+          </div>
+
+          <div className='p-4 border-t-2 border-gray-200 bg-gray-50 flex-shrink-0'>
+            <button
+              onClick={onClose}
+              className='w-full py-3 px-4 !bg-blue-600 !text-white rounded-lg hover:!bg-blue-700 transition-colors font-semibold border-2 border-blue-600 hover:border-blue-700'
+              style={{ backgroundColor: '#2563eb', color: '#ffffff' }}
+            >
+              ปิด
+            </button>
           </div>
         </div>
       </div>
@@ -1025,6 +1275,11 @@ const FeedbackDashboard = () => {
           onSearchChange={setSearchTerm}
           onExpressionClick={(expression) => setSelectedExpression(expression)}
         />
+
+        {/* Expression Detail Modal */}
+        {selectedExpression && (
+          <ExpressionDetailModal expression={selectedExpression} onClose={() => setSelectedExpression(null)} />
+        )}
 
         {/* New Expression Modal - Reusing from original HomeComponent */}
         {newExpressionOpen && (
