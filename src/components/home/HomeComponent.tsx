@@ -682,35 +682,33 @@ const FeedbackDashboard = () => {
   }
 
 const StatCard = ({ title, value, icon: Icon, bgColor, textColor }: StatCardProps) => (
-  <div className='bg-white rounded-lg p-4 shadow-md border-2 border-gray-200'>
-    <div className='flex items-start justify-between'>
-      <div className='flex-1 pr-2'>
-        <p className='text-sm text-gray-800 font-medium mb-1 leading-tight min-h-[2.5rem] flex items-end'>{title}</p>
-        <p className={`text-2xl font-bold ${textColor}`}>{value}</p>
+  <div className='bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200'>
+    <div className='flex flex-col items-center text-center space-y-3'>
+      <div className={`w-16 h-16 rounded-full ${bgColor} flex items-center justify-center shadow-sm`}>
+        <Icon className={`w-8 h-8 ${textColor}`} />
       </div>
-      <div className={`w-12 h-12 rounded-full ${bgColor} flex-shrink-0 shadow-sm flex items-center justify-center`}>
-        <Icon className={`w-6 h-6 ${textColor}`} />
+      <div>
+        <p className={`text-3xl font-bold ${textColor} mb-1`}>{value}</p>
+        <p className='text-sm text-gray-700 font-medium leading-tight'>{title}</p>
       </div>
     </div>
   </div>
 )
 
   const StatCardSkeleton = () => (
-    <div className='bg-white rounded-lg p-4 shadow-md border-2 border-gray-200 animate-pulse'>
-      <div className='flex items-center justify-between'>
+    <div className='bg-white rounded-2xl p-6 shadow-sm border border-gray-100 animate-pulse'>
+      <div className='flex flex-col items-center text-center space-y-3'>
+        <div className='w-16 h-16 rounded-full bg-gray-200'></div>
         <div>
-          <div className='h-4 bg-gray-300 rounded w-20 mb-2'></div>
-          <div className='h-8 bg-gray-300 rounded w-8'></div>
-        </div>
-        <div className='p-3 rounded-full bg-gray-200'>
-          <div className='w-6 h-6 bg-gray-300 rounded'></div>
+          <div className='h-8 bg-gray-300 rounded w-12 mb-2'></div>
+          <div className='h-4 bg-gray-300 rounded w-20'></div>
         </div>
       </div>
     </div>
   )
 
   const ExpressionCardSkeleton = () => (
-    <div className='bg-white rounded-lg p-4 shadow-md border-2 border-gray-200 mb-3 animate-pulse'>
+    <div className='bg-white rounded-2xl p-4 shadow-sm border border-gray-100 animate-pulse'>
       <div className='flex items-start justify-between mb-3'>
         <div className='flex items-center'>
           <div className='w-10 h-10 bg-gray-200 rounded-full mr-3'></div>
@@ -745,8 +743,8 @@ const StatCard = ({ title, value, icon: Icon, bgColor, textColor }: StatCardProp
     showRecipient = false
   }: ExpressionCardProps) => (
     <div
-      className={`bg-white rounded-lg p-4 shadow-md border-2 border-gray-200 mb-3 ${
-        clickable ? 'cursor-pointer hover:shadow-lg hover:border-blue-300 transition-all duration-200' : ''
+      className={`bg-white rounded-2xl p-4 shadow-sm border border-gray-100 ${
+        clickable ? 'cursor-pointer hover:shadow-md hover:border-blue-200 transition-all duration-200' : ''
       }`}
       onClick={
         clickable
@@ -1095,7 +1093,7 @@ const StatCard = ({ title, value, icon: Icon, bgColor, textColor }: StatCardProp
     <div className='min-h-screen bg-gray-100'>
       {/* Error Message */}
       {error && (
-        <div className='mx-4 mt-4 p-4 bg-red-50 border-2 border-red-300 text-red-800 rounded-lg flex items-center gap-2 shadow-md'>
+        <div className='mx-4 mt-4 p-4 bg-red-50 border border-red-200 text-red-800 rounded-xl flex items-center gap-2 shadow-sm'>
           <AlertCircle className='w-5 h-5' />
           <span className='font-medium'>{error}</span>
         </div>
@@ -1140,38 +1138,39 @@ const StatCard = ({ title, value, icon: Icon, bgColor, textColor }: StatCardProp
           </button>
         </div>
 
-        <div
-          className='mt-3 flex items-center justify-between bg-gray-50 rounded-lg p-4 border-2 border-gray-200'
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-        >
-          <button
-            onClick={() => (timePeriod == 'monthly' ? navigateMonth(-1) : navigateYear(-1))}
-            className='p-3 hover:!bg-white rounded-full transition-colors border border-gray-300 hover:border-gray-400 !bg-gray-50 !text-gray-700'
-            style={{ backgroundColor: '#f9fafb', color: '#374151' }}
-            aria-label={timePeriod == 'monthly' ? 'เดือนก่อนหน้า' : 'ปีก่อนหน้า'}
+        {/* Month/Year Navigation */}
+        <div className='px-4 pb-4'>
+          <div
+            className='bg-gray-50 rounded-xl p-4 flex items-center justify-between'
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
           >
-            <ChevronLeft className='w-5 h-5 text-gray-700' />
-          </button>
+            <button
+              onClick={() => (timePeriod === 'monthly' ? navigateMonth(-1) : navigateYear(-1))}
+              className='p-3 hover:bg-white rounded-full transition-colors border border-gray-200 hover:border-gray-300 shadow-sm'
+              aria-label={timePeriod === 'monthly' ? 'เดือนก่อนหน้า' : 'ปีก่อนหน้า'}
+            >
+              <ChevronLeft className='w-5 h-5 text-gray-600' />
+            </button>
 
-          <div className='text-center'>
-            <p className='text-lg font-bold text-gray-900'>
-              {timePeriod === 'monthly' ? `${MONTH_NAMES[currentMonth]} ${currentYear + 543}` : `${currentYear + 543}`}
-            </p>
-            <p className='text-xs text-gray-700 mt-1 font-medium'>
-              {timePeriod === 'monthly' ? 'เลื่อนซ้าย-ขวาเพื่อเปลี่ยนเดือน' : 'เลื่อนซ้าย-ขวาเพื่อเปลี่ยนปี'}
-            </p>
+            <div className='text-center'>
+              <p className='text-xl font-bold text-gray-900'>
+                {timePeriod === 'monthly' ? `${MONTH_NAMES[currentMonth]} ${currentYear + 543}` : `${currentYear + 543}`}
+              </p>
+              <p className='text-sm text-gray-600 mt-1'>
+                {timePeriod === 'monthly' ? 'เลื่อนซ้าย-ขวาเพื่อเปลี่ยนเดือน' : 'เลื่อนซ้าย-ขวาเพื่อเปลี่ยนปี'}
+              </p>
+            </div>
+
+            <button
+              onClick={() => (timePeriod === 'monthly' ? navigateMonth(1) : navigateYear(1))}
+              className='p-3 hover:bg-white rounded-full transition-colors border border-gray-200 hover:border-gray-300 shadow-sm'
+              aria-label={timePeriod === 'monthly' ? 'เดือนถัดไป' : 'ปีถัดไป'}
+            >
+              <ChevronRight className='w-5 h-5 text-gray-600' />
+            </button>
           </div>
-
-          <button
-            onClick={() => (timePeriod === 'monthly' ? navigateMonth(1) : navigateYear(1))}
-            className='p-3 hover:!bg-white rounded-full transition-colors border border-gray-300 hover:border-gray-400 !bg-gray-50 !text-gray-700'
-            style={{ backgroundColor: '#f9fafb', color: '#374151' }}
-            aria-label={timePeriod === 'monthly' ? 'เดือนถัดไป' : 'ปีถัดไป'}
-          >
-            <ChevronRight className='w-5 h-5 text-gray-700' />
-          </button>
         </div>
       </div>
 
@@ -1198,8 +1197,8 @@ const StatCard = ({ title, value, icon: Icon, bgColor, textColor }: StatCardProp
                 title='ต้องปรับปรุง'
                 value={currentStats.suggestions}
                 icon={MessageSquare}
-                bgColor='bg-orange-100'
-                textColor='text-orange-700'
+                bgColor='bg-red-100'
+                textColor='text-red-700'
               />
               <StatCard
                 title='ชื่นชม (ทั้งหมด)'
@@ -1212,99 +1211,103 @@ const StatCard = ({ title, value, icon: Icon, bgColor, textColor }: StatCardProp
                 title='ต้องปรับปรุง (ทั้งหมด)'
                 value={currentStats.private}
                 icon={EyeOff}
-                bgColor='bg-gray-100'
-                textColor='text-gray-700'
+                bgColor='bg-purple-100'
+                textColor='text-purple-700'
               />
             </>
           )}
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className=' mb-4 bg-white rounded-lg shadow-md border-2 border-gray-200'>
-        <div className='flex border-b-2 border-gray-200'>
-          <button
-            onClick={() => setActiveTab(0)}
-            className={`flex-1 py-4 px-4 text-sm font-semibold transition-colors ${
-              activeTab === 0
-                ? '!text-blue-700 border-b-2 border-blue-600 !bg-blue-50'
-                : '!text-gray-700 hover:!text-gray-900 hover:!bg-gray-50'
-            }`}
-            style={
-              activeTab === 0
-                ? { color: '#1d4ed8', backgroundColor: '#eff6ff' }
-                : { color: '#374151', backgroundColor: '#ffffff' }
-            }
-          >
-            ที่ได้รับ ({filteredExpressions.length})
-          </button>
-          <button
-            onClick={() => setActiveTab(1)}
-            className={`flex-1 py-4 px-4 text-sm font-semibold transition-colors ${
-              activeTab === 1
-                ? '!text-blue-700 border-b-2 border-blue-600 !bg-blue-50'
-                : '!text-gray-700 hover:!text-gray-900 hover:!bg-gray-50'
-            }`}
-            style={
-              activeTab === 1
-                ? { color: '#1d4ed8', backgroundColor: '#eff6ff' }
-                : { color: '#374151', backgroundColor: '#ffffff' }
-            }
-          >
-            ที่แสดงความคิดเห็น ({filteredMyExpressions.length})
-          </button>
+      {/* Content Tabs */}
+      <div className='mx-4 mb-4'>
+        {/* Tab Buttons */}
+        <div className='bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden'>
+          <div className='flex'>
+            <button
+              onClick={() => setActiveTab(0)}
+              className={`flex-1 py-4 px-6 text-base font-semibold transition-all duration-200 ${
+                activeTab === 0
+                  ? 'bg-blue-500 text-white shadow-sm'
+                  : 'bg-white text-gray-700 hover:bg-blue-50'
+              }`}
+            >
+              ที่ได้รับ ({filteredExpressions.length})
+            </button>
+            <button
+              onClick={() => setActiveTab(1)}
+              className={`flex-1 py-4 px-6 text-base font-semibold transition-all duration-200 ${
+                activeTab === 1
+                  ? 'bg-blue-500 text-white shadow-sm'
+                  : 'bg-white text-gray-700 hover:bg-blue-50'
+              }`}
+            >
+              ความคิดเห็น ({filteredMyExpressions.length})
+            </button>
+          </div>
         </div>
 
-        <div className='p-2'>
+        {/* Tab Content */}
+        <div className='mt-4 bg-white rounded-2xl shadow-sm border border-gray-100 p-4'>
           {activeTab === 0 && (
             <div>
-              <h3 className='text-lg font-bold mb-4 text-gray-900'>ความคิดเห็นที่ได้รับ</h3>
               {periodLoading ? (
-                <>
+                <div className='space-y-3'>
                   <ExpressionCardSkeleton />
                   <ExpressionCardSkeleton />
                   <ExpressionCardSkeleton />
-                </>
+                </div>
               ) : filteredExpressions.length === 0 ? (
-                <div className='text-center py-8 text-gray-600 bg-gray-50 rounded-lg border-2 border-gray-200'>
-                  <p className='font-medium'>ไม่มีความคิดเห็นในช่วงเวลานี้</p>
+                <div className='text-center py-12 text-gray-600'>
+                  <div className='w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4'>
+                    <MessageSquare className='w-8 h-8 text-gray-400' />
+                  </div>
+                  <p className='text-lg font-medium text-gray-700'>ไม่มีความคิดเห็นในช่วงเวลานี้</p>
+                  <p className='text-sm text-gray-500 mt-1'>ความคิดเห็นที่ได้รับจะแสดงที่นี่</p>
                 </div>
               ) : (
-                filteredExpressions.map(expression => (
-                  <ExpressionCard
-                    key={expression.EXP_ID}
-                    expression={expression}
-                    clickable={true}
-                    showRecipient={false} // Show sender name (CR_UID)
-                  />
-                ))
+                <div className='space-y-3'>
+                  {filteredExpressions.map(expression => (
+                    <ExpressionCard
+                      key={expression.EXP_ID}
+                      expression={expression}
+                      clickable={true}
+                      showRecipient={false}
+                    />
+                  ))}
+                </div>
               )}
             </div>
           )}
 
           {activeTab === 1 && (
             <div>
-              <h3 className='text-lg font-bold mb-4 text-gray-900'>ความคิดเห็นที่แสดง</h3>
               {periodLoading ? (
-                <>
+                <div className='space-y-3'>
                   <ExpressionCardSkeleton />
                   <ExpressionCardSkeleton />
                   <ExpressionCardSkeleton />
-                </>
+                </div>
               ) : filteredMyExpressions.length === 0 ? (
-                <div className='text-center py-8 text-gray-600 bg-gray-50 rounded-lg border-2 border-gray-200'>
-                  <p className='font-medium'>ไม่มีความคิดเห็นในช่วงเวลานี้</p>
+                <div className='text-center py-12 text-gray-600'>
+                  <div className='w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4'>
+                    <Edit3 className='w-8 h-8 text-gray-400' />
+                  </div>
+                  <p className='text-lg font-medium text-gray-700'>ยังไม่มีความคิดเห็น</p>
+                  <p className='text-sm text-gray-500 mt-1'>แตะปุ่ม + เพื่อเริ่มแสดงความคิดเห็น</p>
                 </div>
               ) : (
-                filteredMyExpressions.map(expression => (
-                  <ExpressionCard
-                    key={expression.EXP_ID}
-                    expression={expression}
-                    showActions={true}
-                    showRecipient={true} // Show recipient name (EXP_TO)
-                    clickable={true}
-                  />
-                ))
+                <div className='space-y-3'>
+                  {filteredMyExpressions.map(expression => (
+                    <ExpressionCard
+                      key={expression.EXP_ID}
+                      expression={expression}
+                      showActions={true}
+                      showRecipient={true}
+                      clickable={true}
+                    />
+                  ))}
+                </div>
               )}
             </div>
           )}
@@ -1314,11 +1317,10 @@ const StatCard = ({ title, value, icon: Icon, bgColor, textColor }: StatCardProp
       {/* Floating Action Button */}
       <button
         onClick={() => setNewExpressionOpen(true)}
-        className='fixed bottom-6 right-6 w-16 h-16 !bg-blue-600 !text-white rounded-full shadow-lg hover:!bg-blue-700 flex items-center justify-center transition-all duration-200 hover:scale-105 border-2 border-blue-600 hover:border-blue-700'
-        style={{ backgroundColor: '#2563eb', color: '#ffffff' }}
+        className='fixed bottom-6 right-6 w-14 h-14 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600 flex items-center justify-center transition-all duration-200 hover:scale-105 border border-blue-400'
         aria-label='แสดงความคิดเห็นใหม่'
       >
-        <Plus className='w-7 h-7' />
+        <Plus className='w-6 h-6' />
       </button>
 
       {/* Expression Detail Modal */}
