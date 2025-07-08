@@ -208,15 +208,15 @@ const FeedbackDashboard = () => {
 
     if (timePeriod === 'monthly') {
       if (isLeftSwipe) {
-        navigateMonth(-1)
-      } else if (isRightSwipe) {
         navigateMonth(1)
+      } else if (isRightSwipe) {
+        navigateMonth(-1)
       }
     } else {
       if (isLeftSwipe) {
-        navigateYear(-1)
-      } else if (isRightSwipe) {
         navigateYear(1)
+      } else if (isRightSwipe) {
+        navigateYear(-1)
       }
     }
   }
@@ -239,6 +239,7 @@ const FeedbackDashboard = () => {
       } else {
         // Safety check to ensure month is always valid
         const safeMonth = Math.max(0, Math.min(11, newMonth))
+
         setCurrentMonth(safeMonth)
       }
     })
@@ -520,7 +521,7 @@ const FeedbackDashboard = () => {
       content: expression.EXP_DETAIL || '',
       privacy: expression.EXP_KIND === 'X' ? 'public' : 'private',
       status: 'draft',
-      // Mark existing attachments so we don't re-upload them
+
       attachments: (expression.attachments || []).map(att => ({
         ...att,
         isExisting: true // Flag to indicate this is an existing file
@@ -569,11 +570,13 @@ const FeedbackDashboard = () => {
 
     try {
       // Separate existing attachments from new ones
-      const existingAttachments = (expressionData.attachments || []).filter(att => 
+      const existingAttachments = (expressionData.attachments || []).filter(att =>
         typeof att === 'object' && att.isExisting
       ).map(att => {
         // Remove the isExisting flag before sending to backend
+
         const { isExisting, ...cleanAtt } = att
+
         return cleanAtt
       })
 
@@ -583,7 +586,7 @@ const FeedbackDashboard = () => {
         content: expressionData.content,
         privacy: expressionData.privacy,
         status,
-        attachments: existingAttachments // Only send existing attachments
+        attachments: existingAttachments
       }
 
       await updateExpression(editingExpression.EXP_ID, updateData)
@@ -1144,10 +1147,10 @@ const StatCard = ({ title, value, icon: Icon, bgColor, textColor }: StatCardProp
           onTouchEnd={handleTouchEnd}
         >
           <button
-            onClick={() => (timePeriod === 'monthly' ? navigateMonth(-1) : navigateYear(-1))}
+            onClick={() => (timePeriod == 'monthly' ? navigateMonth(-1) : navigateYear(-1))}
             className='p-3 hover:!bg-white rounded-full transition-colors border border-gray-300 hover:border-gray-400 !bg-gray-50 !text-gray-700'
             style={{ backgroundColor: '#f9fafb', color: '#374151' }}
-            aria-label={timePeriod === 'monthly' ? 'เดือนก่อนหน้า' : 'ปีก่อนหน้า'}
+            aria-label={timePeriod == 'monthly' ? 'เดือนก่อนหน้า' : 'ปีก่อนหน้า'}
           >
             <ChevronLeft className='w-5 h-5 text-gray-700' />
           </button>
@@ -1524,7 +1527,7 @@ const StatCard = ({ title, value, icon: Icon, bgColor, textColor }: StatCardProp
                           </div>
                           <button
                             onClick={() => removeAttachment(index)}
-                            className='text-red-600 hover:text-red-800 p-2 rounded-lg hover:bg-red-50 transition-colors border border-red-300 hover:border-red-400'
+                            className='text-red-600 hover:text-red-800 bg-white p-2 rounded-lg hover:bg-red-50 transition-colors border border-red-300 hover:border-red-400'
                             aria-label={`ลบไฟล์ ${fileName}`}
                           >
                             <X className='w-4 h-4' />
