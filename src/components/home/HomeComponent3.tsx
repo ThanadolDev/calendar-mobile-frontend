@@ -93,18 +93,22 @@ const FeedbackDashboard = () => {
     loadSentExpressions,
     updateExpression,
     deleteExpression,
-    clearError,
-    calculateStatsForPeriod
+    clearError
   } = useExpressions()
 
   // New flow state management
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
+
   const [currentMonth, setCurrentMonth] = useState(() => {
     const month = new Date().getMonth()
+
     console.log('Initial month:', month, new Date())
+
     return month
   })
+
   const [timePeriod, setTimePeriod] = useState<'monthly' | 'yearly'>('monthly')
+
   const [activeTab, setActiveTab] = useState(0)
   const [periodLoading, setPeriodLoading] = useState(false)
   const [uploadLoading, setUploadLoading] = useState(false)
@@ -158,6 +162,7 @@ const FeedbackDashboard = () => {
   const isImageFile = (fileName: string, mimeType?: string) => {
     const extension = fileName.toLowerCase().substring(fileName.lastIndexOf('.'))
     const mime = mimeType?.toLowerCase() || ''
+
     return mime.startsWith('image/') || ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'].includes(extension)
   }
 
@@ -187,6 +192,7 @@ const FeedbackDashboard = () => {
     const k = 1024
     const sizes = ['B', 'KB', 'MB', 'GB']
     const i = Math.floor(Math.log(bytes) / Math.log(k))
+
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
   }
 
@@ -200,7 +206,9 @@ const FeedbackDashboard = () => {
       if (mimeType === allowedMime || allowedExtensions.includes(extension)) {
         return true
       }
+
     }
+
     return false
   }
 
@@ -253,6 +261,7 @@ const FeedbackDashboard = () => {
       } else {
         // Safety check to ensure month is always valid
         const safeMonth = Math.max(0, Math.min(11, newMonth))
+
         setCurrentMonth(safeMonth)
       }
     })
@@ -297,6 +306,7 @@ const FeedbackDashboard = () => {
               <button
                 onClick={() => {
                   setShowPublishConfirmation(false)
+
                   if (editingExpression) {
                     handleUpdateExpression('published')
                   } else {
@@ -324,15 +334,15 @@ const FeedbackDashboard = () => {
   }
 
   // Filter expressions based on time period
-  const filteredExpressions = useMemo(() => {
-    const filtered = expressions
-    return filtered
-  }, [expressions, timePeriod, currentMonth, currentYear])
+  // const filteredExpressions = useMemo(() => {
+  //   const filtered = expressions
+  //   return filtered
+  // }, [expressions, timePeriod, currentMonth, currentYear])
 
-  const filteredMyExpressions = useMemo(() => {
-    const filtered = myExpressions
-    return filtered
-  }, [myExpressions, timePeriod, currentMonth, currentYear])
+  // const filteredMyExpressions = useMemo(() => {
+  //   const filtered = myExpressions
+  //   return filtered
+  // }, [myExpressions, timePeriod, currentMonth, currentYear])
 
   // Calculate stats for current time period based on active tab
   const currentStats = useMemo(() => {
@@ -354,9 +364,9 @@ const FeedbackDashboard = () => {
   }, [expressions, myExpressions, activeTab])
 
   // Calculate statistics for new flow (keeping for backward compatibility)
-  const stats = useMemo(() => {
-    return currentStats
-  }, [currentStats])
+  // const stats = useMemo(() => {
+  //   return currentStats
+  // }, [currentStats])
 
   // Filter expressions for modal
   const filteredExpressionsForModal = useMemo(() => {
@@ -384,6 +394,7 @@ const FeedbackDashboard = () => {
     // Apply search filter
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase()
+
       baseExpressions = baseExpressions.filter(exp =>
         getEmployeeName(exp.CR_UID)?.toLowerCase().includes(searchLower) ||
         getEmployeeName(exp.EXP_TO)?.toLowerCase().includes(searchLower) ||
@@ -433,6 +444,7 @@ const FeedbackDashboard = () => {
       if (event.target) {
         event.target.value = ''
       }
+
       return
     }
 
@@ -444,6 +456,7 @@ const FeedbackDashboard = () => {
       alert(
         `ไม่สามารถเพิ่มไฟล์ได้ เนื่องจากจะเกินจำนวนสูงสุด 10 ไฟล์\n(ปัจจุบัน: ${currentFileCount} ไฟล์, พยายามเพิ่ม: ${files.length} ไฟล์)`
       )
+
       return
     }
 
@@ -453,11 +466,13 @@ const FeedbackDashboard = () => {
     if (!validation.valid) {
       // Create a more user-friendly error display
       const errorMessage = validation.errors.join('\n• ')
+
       alert(`ไม่สามารถอัปโหลดไฟล์ได้:\n• ${errorMessage}`)
 
       if (event.target) {
         event.target.value = ''
       }
+
       return
     }
 
@@ -504,6 +519,7 @@ const FeedbackDashboard = () => {
   const handleSaveExpression = async (status: 'draft' | 'published') => {
     if (!expressionData.recipient || !expressionData.content) {
       alert('กรุณากรอกข้อมูลให้ครบถ้วน')
+
       return
     }
 
@@ -591,6 +607,7 @@ const FeedbackDashboard = () => {
   const handleUpdateExpression = async (status: 'draft' | 'published') => {
     if (!expressionData.recipient || !expressionData.content) {
       alert('กรุณากรอกข้อมูลให้ครบถ้วน')
+
       return
     }
 
@@ -604,8 +621,12 @@ const FeedbackDashboard = () => {
         typeof att === 'object' && att.isExisting
       ).map(att => {
         // Remove the isExisting flag before sending to backend
+
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { isExisting, ...cleanAtt } = att
+
         return cleanAtt
+
       })
 
       // Get new attachments (files uploaded during edit)
@@ -660,6 +681,7 @@ const FeedbackDashboard = () => {
 
   const removeAttachment = (index: number) => {
     const newAttachments = (expressionData.attachments || []).filter((_, i) => i !== index)
+
     setExpressionData({ ...expressionData, attachments: newAttachments })
   }
 
@@ -731,6 +753,7 @@ const FeedbackDashboard = () => {
       const timer = setTimeout(() => {
         clearError()
       }, 3000)
+
       return () => clearTimeout(timer)
     }
   }, [error, clearError])
@@ -962,7 +985,7 @@ const FeedbackDashboard = () => {
                         {expression.TYPE === 'praise' ? 'ชื่นชม' : 'ต้องปรับปรุง'}
                       </span>
                       {expression.EXP_KIND === 'H' && (
-                        <EyeOff className="w-4 h-4 text-gray-400" title="ส่วนตัว" />
+                        <EyeOff className="w-4 h-4 text-gray-400"  />
                       )}
                     </div>
                   </div>
@@ -979,6 +1002,7 @@ const FeedbackDashboard = () => {
                           key={index}
                           onClick={(e) => {
                             e.stopPropagation()
+
                             if (typeof file === 'object' && file.fileId) {
                               const useFilePath = Boolean(file.url && file.url.length > 0)
                               const identifier = useFilePath ? file.url : file.fileId
@@ -1005,6 +1029,7 @@ const FeedbackDashboard = () => {
                                   onError={e => {
                                     e.currentTarget.style.display = 'none'
                                     const nextSibling = e.currentTarget.nextElementSibling as HTMLElement
+
                                     if (nextSibling) {
                                       nextSibling.style.display = 'block'
                                     }
@@ -1699,12 +1724,14 @@ const FeedbackDashboard = () => {
                                         onError={e => {
                                           e.currentTarget.style.display = 'none'
                                           const nextSibling = e.currentTarget.nextElementSibling as HTMLElement
+
                                           if (nextSibling) {
                                             nextSibling.style.display = 'block'
                                           }
                                         }}
                                       />
                                     ) : (
+
                                       /* New files: use local preview or fallback to icon */
                                       fileUrl ? (
                                         <img
@@ -1714,6 +1741,7 @@ const FeedbackDashboard = () => {
                                           onError={e => {
                                             e.currentTarget.style.display = 'none'
                                             const nextSibling = e.currentTarget.nextElementSibling as HTMLElement
+
                                             if (nextSibling) {
                                               nextSibling.style.display = 'block'
                                             }

@@ -575,6 +575,7 @@ const FeedbackDashboard = () => {
       ).map(att => {
         // Remove the isExisting flag before sending to backend
 
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { isExisting, ...cleanAtt } = att
 
         return cleanAtt

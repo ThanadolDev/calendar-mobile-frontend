@@ -69,9 +69,9 @@ export function useExpressions(): UseExpressionsState & UseExpressionsActions {
     setState(prev => ({ ...prev, deleteLoading }))
   }, [])
 
-  const setStatsLoading = useCallback((statsLoading: boolean) => {
-    setState(prev => ({ ...prev, statsLoading }))
-  }, [])
+  // const setStatsLoading = useCallback((statsLoading: boolean) => {
+  //   setState(prev => ({ ...prev, statsLoading }))
+  // }, [])
 
   const setError = useCallback((error: string | null) => {
     setState(prev => ({ ...prev, error, loading: false }))

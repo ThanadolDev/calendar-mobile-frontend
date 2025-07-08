@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable padding-line-between-statements */
+/* eslint-disable newline-before-return */
 'use client'
 
 import React, { useState, useRef, useEffect, useMemo } from 'react'
@@ -325,6 +328,7 @@ const FeedbackDashboard = () => {
       const timer = setTimeout(() => {
         clearError()
       }, 3000)
+
       return () => clearTimeout(timer)
     }
   }, [error, clearError])
