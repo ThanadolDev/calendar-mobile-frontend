@@ -327,19 +327,29 @@ const FeedbackDashboard = () => {
     return filtered
   }, [myExpressions, timePeriod, currentMonth, currentYear])
 
-  // Calculate stats for current time period
+  // Calculate stats for current time period based on active tab
   const currentStats = useMemo(() => {
-    return calculateStatsForPeriod(timePeriod, currentYear, currentMonth)
-  }, [calculateStatsForPeriod, timePeriod, currentYear, currentMonth])
+    const baseExpressions = activeTab === 0 ? expressions : myExpressions
+    
+    // Calculate stats based on current expressions and active tab
+    // Backend uses: TYPE='praise'/'suggestion' and EXP_KIND='X'(public)/'H'(private)
+    const praisePublic = baseExpressions.filter(exp => exp.TYPE === 'praise' && exp.EXP_KIND === 'X').length
+    const praisePrivate = baseExpressions.filter(exp => exp.TYPE === 'praise' && exp.EXP_KIND === 'H').length
+    const suggestionsPublic = baseExpressions.filter(exp => exp.TYPE === 'suggestion' && exp.EXP_KIND === 'X').length
+    const suggestionsPrivate = baseExpressions.filter(exp => exp.TYPE === 'suggestion' && exp.EXP_KIND === 'H').length
 
-  // Calculate statistics for new flow
-  const stats = useMemo(() => {
-    if (timePeriod === 'monthly') {
-      return calculateStatsForPeriod(currentYear, currentMonth)
-    } else {
-      return calculateStatsForPeriod(currentYear)
+    return {
+      praise: praisePublic,
+      suggestions: suggestionsPublic,
+      private: praisePrivate,
+      public: suggestionsPrivate
     }
-  }, [calculateStatsForPeriod, currentYear, currentMonth, timePeriod])
+  }, [expressions, myExpressions, activeTab])
+
+  // Calculate statistics for new flow (keeping for backward compatibility)
+  const stats = useMemo(() => {
+    return currentStats
+  }, [currentStats])
 
   // Filter expressions for modal
   const filteredExpressionsForModal = useMemo(() => {
@@ -348,6 +358,7 @@ const FeedbackDashboard = () => {
     let baseExpressions = activeTab === 0 ? expressions : myExpressions
     
     // Filter by type and visibility
+    // Backend uses: TYPE='praise'/'suggestion' and EXP_KIND='X'(public)/'H'(private)
     switch (expressionListModal.type) {
       case 'all_good':
         baseExpressions = baseExpressions.filter(exp => exp.TYPE === 'praise' && exp.EXP_KIND === 'X')
@@ -356,10 +367,10 @@ const FeedbackDashboard = () => {
         baseExpressions = baseExpressions.filter(exp => exp.TYPE === 'suggestion' && exp.EXP_KIND === 'X')
         break
       case 'private_good':
-        baseExpressions = baseExpressions.filter(exp => exp.TYPE === 'praise' && exp.EXP_KIND !== 'X')
+        baseExpressions = baseExpressions.filter(exp => exp.TYPE === 'praise' && exp.EXP_KIND === 'H')
         break
       case 'private_improve':
-        baseExpressions = baseExpressions.filter(exp => exp.TYPE === 'suggestion' && exp.EXP_KIND !== 'X')
+        baseExpressions = baseExpressions.filter(exp => exp.TYPE === 'suggestion' && exp.EXP_KIND === 'H')
         break
     }
 
