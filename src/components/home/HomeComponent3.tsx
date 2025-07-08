@@ -1404,7 +1404,7 @@ const FeedbackDashboard = () => {
         </div>
 
         {/* Stats Cards Grid - 2x2 Layout */}
-        <div className='grid grid-cols-2 gap-6 sm:gap-8 mb-12'>
+        <div className='grid grid-cols-2 gap-6 sm:gap-8 mb-2'>
           <StatCard
             title="ชื่นชม (สาธารณะ)"
             value={currentStats.praise || 0}
@@ -1446,13 +1446,13 @@ const FeedbackDashboard = () => {
         </div>
 
         {/* Enhanced Add Expression Button */}
-        <div className='bg-white rounded-2xl shadow-lg border border-gray-200 p-12 mb-12'>
+        <div className='bg-white rounded-2xl shadow-lg border border-gray-200 p-4 '>
           <div className='text-center'>
-            <div className='w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg'>
+            {/* <div className='w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg'>
               <Plus className='w-10 h-10 text-white' />
             </div>
             <h3 className='text-2xl font-bold text-gray-900 mb-4'>แสดงความคิดเห็น</h3>
-            <p className='text-lg text-gray-600 mb-8'>แบ่งปันความคิดเห็นหรือข้อเสนอแนะของคุณ</p>
+            <p className='text-lg text-gray-600 mb-8'>แบ่งปันความคิดเห็นหรือข้อเสนอแนะของคุณ</p> */}
             <button
               onClick={() => setNewExpressionOpen(true)}
               disabled={isAnyLoading}
@@ -1748,7 +1748,7 @@ const FeedbackDashboard = () => {
                             </div>
                             <button
                               onClick={() => removeAttachment(index)}
-                              className='text-red-600 hover:text-red-800 p-2 rounded-lg hover:bg-red-50 transition-colors border border-red-300 hover:border-red-400'
+                              className='text-red-600 hover:text-red-800 bg-white w-12 h-12 p-2 rounded-lg hover:bg-red-50 transition-colors border border-red-300 hover:border-red-400'
                               aria-label={`ลบไฟล์ ${fileName}`}
                             >
                               <X className='w-4 h-4' />
