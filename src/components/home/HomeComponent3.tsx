@@ -760,8 +760,8 @@ const FeedbackDashboard = () => {
 
     return (
       <div 
-        className={`bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200 cursor-pointer ${
-          disabled ? 'opacity-50' : ''
+        className={`bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 cursor-pointer transform hover:scale-105 active:scale-95 ${
+          disabled ? 'opacity-50 cursor-not-allowed hover:scale-100 active:scale-100' : ''
         }`}
         onClick={!disabled ? onClick : undefined}
       >
