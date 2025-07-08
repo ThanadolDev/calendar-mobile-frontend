@@ -43,3 +43,53 @@ export const isNumericColumn = (key: string): boolean => {
 
   return numericColumns.includes(key)
 }
+
+/**
+ * Formats a date string or Date object to Thai locale format
+ * @param dateInput The date to format (string, Date, or null/undefined)
+ * @returns Formatted date string or empty string if invalid
+ */
+export const formatDate = (dateInput: string | Date | null | undefined): string => {
+  if (!dateInput) return ''
+  
+  try {
+    const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput
+    
+    // Check if the date is valid
+    if (isNaN(date.getTime())) return ''
+    
+    // Format to Thai locale (dd/mm/yyyy)
+    return date.toLocaleDateString('th-TH', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    })
+  } catch (error) {
+    return ''
+  }
+}
+
+/**
+ * Formats a time string or Date object to display time only
+ * @param dateInput The date/time to format (string, Date, or null/undefined)
+ * @returns Formatted time string (HH:MM) or empty string if invalid
+ */
+export const formatTime = (dateInput: string | Date | null | undefined): string => {
+  if (!dateInput) return ''
+  
+  try {
+    const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput
+    
+    // Check if the date is valid
+    if (isNaN(date.getTime())) return ''
+    
+    // Format to HH:MM
+    return date.toLocaleTimeString('th-TH', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    })
+  } catch (error) {
+    return ''
+  }
+}

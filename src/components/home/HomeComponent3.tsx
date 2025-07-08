@@ -34,6 +34,7 @@ import fileUploadService from '../../services/fileUploadService'
 import fileDownloadService from '../../services/fileDownloadService'
 import { useEmployees } from '../../hooks/useEmployees'
 import EmployeeDropdown from '../ui/EmployeeDropdown'
+import { formatDate, formatTime } from '../../utils/formatters'
 
 // Constants
 const SWIPE_THRESHOLD = 50
@@ -1004,11 +1005,11 @@ const FeedbackDashboard = () => {
               <div className='flex items-center gap-4 p-3 bg-gray-50 rounded-lg text-sm text-gray-800 border-2 border-gray-200'>
                 <div className='flex items-center gap-1'>
                   <Calendar className='w-4 h-4 text-blue-600' />
-                  <span className='font-medium'>{expression.date || expression.EXP_DATE}</span>
+                  <span className='font-medium'>{formatDate(expression.date || expression.EXP_DATE)}</span>
                 </div>
                 <div className='flex items-center gap-1'>
                   <Clock className='w-4 h-4 text-blue-600' />
-                  <span className='font-medium'>{expression.time || ''}</span>
+                  <span className='font-medium'>{formatTime(expression.EXP_DATE) || expression.time || ''}</span>
                 </div>
               </div>
             </div>
@@ -1213,8 +1214,8 @@ const FeedbackDashboard = () => {
           </div>
         </div>
 
-        {/* Stats Cards Grid */}
-        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8'>
+        {/* Stats Cards Grid - 2x2 Layout */}
+        <div className='grid grid-cols-2 gap-4 sm:gap-6 mb-8'>
           <StatCard
             title="ชื่นชม (สาธารณะ)"
             value={currentStats.praise || 0}
@@ -1251,15 +1252,20 @@ const FeedbackDashboard = () => {
           />
         </div>
 
-        {/* Add Button */}
-        <div className='bg-white rounded-2xl shadow-sm border border-gray-100 p-6'>
-          <div className='flex justify-center'>
+        {/* Enhanced Add Expression Button */}
+        <div className='bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl shadow-lg border-2 border-blue-200 p-8 mb-8'>
+          <div className='text-center'>
+            <div className='w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg'>
+              <Plus className='w-8 h-8 text-white' />
+            </div>
+            <h3 className='text-xl font-bold text-gray-900 mb-2'>แสดงความคิดเห็น</h3>
+            <p className='text-gray-600 mb-6'>แบ่งปันความคิดเห็นหรือข้อเสนอแนะของคุณ</p>
             <button 
               onClick={() => setNewExpressionOpen(true)}
-              className='flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors'
+              className='inline-flex items-center space-x-3 bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
             >
-              <Plus className='w-5 h-5' />
-              <span>เพิ่มความคิดเห็น</span>
+              <Plus className='w-6 h-6' />
+              <span className='text-lg'>เพิ่มความคิดเห็นใหม่</span>
             </button>
           </div>
         </div>
