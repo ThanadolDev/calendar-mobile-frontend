@@ -946,7 +946,9 @@ const FeedbackDashboard = () => {
                         <p className="font-semibold text-sm text-gray-900">
                           {getEmployeeName(activeTab === 0 ? expression.CR_UID || '' : expression.EXP_TO || '')}
                         </p>
-                        <p className="text-xs text-gray-700 font-medium">{expression.EXP_DATE}</p>
+                        <p className="text-xs text-gray-700 font-medium">
+                          {formatDate(expression.EXP_DATE)} {formatTime(expression.EXP_DATE)}
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
