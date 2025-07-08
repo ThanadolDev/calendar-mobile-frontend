@@ -1219,7 +1219,7 @@ const FeedbackDashboard = () => {
                   : 'bg-white text-gray-700 hover:bg-blue-50'
               }`}
             >
-              ที่ได้รับ ({loading ? (
+              ที่ได้รับ ({loading || periodLoading ? (
                 <span className="inline-block w-4 h-4 bg-current opacity-50 rounded animate-pulse"></span>
               ) : (
                 filteredExpressions.length
@@ -1233,7 +1233,7 @@ const FeedbackDashboard = () => {
                   : 'bg-white text-gray-700 hover:bg-blue-50'
               }`}
             >
-              ความคิดเห็น ({loading ? (
+              ความคิดเห็น ({loading || periodLoading ? (
                 <span className="inline-block w-4 h-4 bg-current opacity-50 rounded animate-pulse"></span>
               ) : (
                 filteredMyExpressions.length
@@ -1251,7 +1251,7 @@ const FeedbackDashboard = () => {
             bgColor="bg-green-100"
             textColor="text-green-600"
             onClick={() => handleCardClick('all_good')}
-            loading={loading}
+            loading={loading || periodLoading}
           />
           <StatCard
             title="ต้องปรับปรุง (สาธารณะ)"
@@ -1260,7 +1260,7 @@ const FeedbackDashboard = () => {
             bgColor="bg-orange-100"
             textColor="text-orange-600"
             onClick={() => handleCardClick('all_improve')}
-            loading={loading}
+            loading={loading || periodLoading}
           />
           <StatCard
             title="ชื่นชม (ส่วนตัว)"
@@ -1270,7 +1270,7 @@ const FeedbackDashboard = () => {
             textColor="text-pink-600"
             onClick={() => handleCardClick('private_good')}
             disabled={isPrivateCardDisabled}
-            loading={loading}
+            loading={loading || periodLoading}
           />
           <StatCard
             title="ต้องปรับปรุง (ส่วนตัว)"
@@ -1280,7 +1280,7 @@ const FeedbackDashboard = () => {
             textColor="text-purple-600"
             onClick={() => handleCardClick('private_improve')}
             disabled={isPrivateCardDisabled}
-            loading={loading}
+            loading={loading || periodLoading}
           />
         </div>
 
