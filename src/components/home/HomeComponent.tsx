@@ -208,15 +208,15 @@ const FeedbackDashboard = () => {
 
     if (timePeriod === 'monthly') {
       if (isLeftSwipe) {
-        navigateMonth(-1)
-      } else if (isRightSwipe) {
         navigateMonth(1)
+      } else if (isRightSwipe) {
+        navigateMonth(-1)
       }
     } else {
       if (isLeftSwipe) {
-        navigateYear(-1)
-      } else if (isRightSwipe) {
         navigateYear(1)
+      } else if (isRightSwipe) {
+        navigateYear(-1)
       }
     }
   }
@@ -239,6 +239,7 @@ const FeedbackDashboard = () => {
       } else {
         // Safety check to ensure month is always valid
         const safeMonth = Math.max(0, Math.min(11, newMonth))
+
         setCurrentMonth(safeMonth)
       }
     })
@@ -520,7 +521,7 @@ const FeedbackDashboard = () => {
       content: expression.EXP_DETAIL || '',
       privacy: expression.EXP_KIND === 'X' ? 'public' : 'private',
       status: 'draft',
-      // Mark existing attachments so we don't re-upload them
+
       attachments: (expression.attachments || []).map(att => ({
         ...att,
         isExisting: true // Flag to indicate this is an existing file
@@ -569,11 +570,13 @@ const FeedbackDashboard = () => {
 
     try {
       // Separate existing attachments from new ones
-      const existingAttachments = (expressionData.attachments || []).filter(att => 
+      const existingAttachments = (expressionData.attachments || []).filter(att =>
         typeof att === 'object' && att.isExisting
       ).map(att => {
         // Remove the isExisting flag before sending to backend
+
         const { isExisting, ...cleanAtt } = att
+
         return cleanAtt
       })
 
@@ -583,7 +586,7 @@ const FeedbackDashboard = () => {
         content: expressionData.content,
         privacy: expressionData.privacy,
         status,
-        attachments: existingAttachments // Only send existing attachments
+        attachments: existingAttachments
       }
 
       await updateExpression(editingExpression.EXP_ID, updateData)
@@ -1096,40 +1099,43 @@ const StatCard = ({ title, value, icon: Icon, bgColor, textColor }: StatCardProp
         </div>
       )}
 
-      {/* Header Section */}
-      <div className='bg-white shadow-sm'>
-        {/* Time Period Toggle */}
-        <div className='p-4'>
-          <div className='flex rounded-xl overflow-hidden shadow-sm border border-gray-200'>
-            <button
-              onClick={() => {
-                setPeriodLoading(true)
-                setTimePeriod('monthly')
-              }}
-              className={`flex-1 py-4 px-6 text-base font-semibold transition-all duration-200 ${
-                timePeriod === 'monthly' 
-                  ? 'bg-blue-500 text-white shadow-sm' 
-                  : 'bg-gray-50 text-gray-700 hover:bg-blue-50'
-              }`}
-              disabled={periodLoading}
-            >
-              รายเดือน
-            </button>
-            <button
-              onClick={() => {
-                setPeriodLoading(true)
-                setTimePeriod('yearly')
-              }}
-              className={`flex-1 py-4 px-6 text-base font-semibold transition-all duration-200 ${
-                timePeriod === 'yearly' 
-                  ? 'bg-blue-500 text-white shadow-sm' 
-                  : 'bg-gray-50 text-gray-700 hover:bg-blue-50'
-              }`}
-              disabled={periodLoading}
-            >
-              รายปี
-            </button>
-          </div>
+      {/* Time Period Toggle */}
+      <div className='p-4 bg-white border-b-2 border-gray-200 shadow-sm'>
+        <div className='flex rounded-lg border-2 border-gray-300 overflow-hidden shadow-sm'>
+          <button
+            onClick={() => {
+              setPeriodLoading(true)
+              setTimePeriod('monthly')
+            }}
+            className={`flex-1 py-3 px-4 text-sm font-semibold transition-colors ${
+              timePeriod === 'monthly' ? '!bg-blue-600 !text-white' : '!bg-white !text-gray-800 hover:!bg-blue-50'
+            }`}
+            disabled={periodLoading}
+            style={
+              timePeriod === 'monthly'
+                ? { backgroundColor: '#2563eb', color: '#ffffff' }
+                : { backgroundColor: '#ffffff', color: '#1f2937' }
+            }
+          >
+            รายเดือน
+          </button>
+          <button
+            onClick={() => {
+              setPeriodLoading(true)
+              setTimePeriod('yearly')
+            }}
+            className={`flex-1 py-3 px-4 text-sm font-semibold transition-colors ${
+              timePeriod === 'yearly' ? '!bg-blue-600 !text-white' : '!bg-white !text-gray-800 hover:!bg-blue-50'
+            }`}
+            disabled={periodLoading}
+            style={
+              timePeriod === 'yearly'
+                ? { backgroundColor: '#2563eb', color: '#ffffff' }
+                : { backgroundColor: '#ffffff', color: '#1f2937' }
+            }
+          >
+            รายปี
+          </button>
         </div>
 
         {/* Month/Year Navigation */}
@@ -1523,7 +1529,7 @@ const StatCard = ({ title, value, icon: Icon, bgColor, textColor }: StatCardProp
                           </div>
                           <button
                             onClick={() => removeAttachment(index)}
-                            className='text-red-600 hover:text-red-800 p-2 rounded-lg hover:bg-red-50 transition-colors border border-red-300 hover:border-red-400'
+                            className='text-red-600 hover:text-red-800 bg-white p-2 rounded-lg hover:bg-red-50 transition-colors border border-red-300 hover:border-red-400'
                             aria-label={`ลบไฟล์ ${fileName}`}
                           >
                             <X className='w-4 h-4' />
