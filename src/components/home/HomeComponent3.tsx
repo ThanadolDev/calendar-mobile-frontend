@@ -109,12 +109,12 @@ const FeedbackDashboard = () => {
   const [periodLoading, setPeriodLoading] = useState(false)
   const [uploadLoading, setUploadLoading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
-  
+
   // Combined loading state for better UX
   const isAnyLoading = loading || createLoading || updateLoading || deleteLoading || statsLoading || periodLoading || uploadLoading
   const [showPublishConfirmation, setShowPublishConfirmation] = useState(false)
   const [newExpressionOpen, setNewExpressionOpen] = useState(false)
-  
+
   const [selectedExpression, setSelectedExpression] = useState<
     | (Expression & {
         from?: string
@@ -147,7 +147,7 @@ const FeedbackDashboard = () => {
     type: null,
     title: ''
   })
-  
+
   const [searchTerm, setSearchTerm] = useState('')
 
   const touchStartX = useRef(0)
@@ -337,7 +337,7 @@ const FeedbackDashboard = () => {
   // Calculate stats for current time period based on active tab
   const currentStats = useMemo(() => {
     const baseExpressions = activeTab === 0 ? expressions : myExpressions
-    
+
     // Calculate stats based on current expressions and active tab
     // Backend uses: TYPE='praise'/'suggestion' and EXP_KIND='X'(public)/'H'(private)
     const praisePublic = baseExpressions.filter(exp => exp.TYPE === 'praise' && exp.EXP_KIND === 'X').length
@@ -361,9 +361,9 @@ const FeedbackDashboard = () => {
   // Filter expressions for modal
   const filteredExpressionsForModal = useMemo(() => {
     if (!expressionListModal.type) return []
-    
+
     let baseExpressions = activeTab === 0 ? expressions : myExpressions
-    
+
     // Filter by type and visibility
     // Backend uses: TYPE='praise'/'suggestion' and EXP_KIND='X'(public)/'H'(private)
     switch (expressionListModal.type) {
@@ -384,7 +384,7 @@ const FeedbackDashboard = () => {
     // Apply search filter
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase()
-      baseExpressions = baseExpressions.filter(exp => 
+      baseExpressions = baseExpressions.filter(exp =>
         getEmployeeName(exp.CR_UID)?.toLowerCase().includes(searchLower) ||
         getEmployeeName(exp.EXP_TO)?.toLowerCase().includes(searchLower) ||
         exp.TYPE?.toLowerCase().includes(searchLower) ||
@@ -546,46 +546,46 @@ const FeedbackDashboard = () => {
   }
 
   // Handle editing a draft expression
-  const handleEditExpression = (expression: Expression) => {
-    setEditingExpression(expression)
-    setExpressionData({
-      type: expression.TYPE || 'praise',
-      recipient: expression.EXP_TO || '',
-      content: expression.EXP_DETAIL || '',
-      privacy: expression.EXP_KIND === 'X' ? 'public' : 'private',
-      status: 'draft',
-      // Mark existing attachments so we don't re-upload them
-      attachments: (expression.attachments || []).map(att => ({
-        ...att,
-        isExisting: true // Flag to indicate this is an existing file
-      }))
-    })
-    setNewExpressionOpen(true)
-  }
+  // const handleEditExpression = (expression: Expression) => {
+  //   setEditingExpression(expression)
+  //   setExpressionData({
+  //     type: expression.TYPE || 'praise',
+  //     recipient: expression.EXP_TO || '',
+  //     content: expression.EXP_DETAIL || '',
+  //     privacy: expression.EXP_KIND === 'X' ? 'public' : 'private',
+  //     status: 'draft',
+  //     // Mark existing attachments so we don't re-upload them
+  //     attachments: (expression.attachments || []).map(att => ({
+  //       ...att,
+  //       isExisting: true // Flag to indicate this is an existing file
+  //     }))
+  //   })
+  //   setNewExpressionOpen(true)
+  // }
 
   // Handle deleting an expression (moves to status 'F' or soft delete)
-  const handleDeleteExpression = async (expressionId: string) => {
-    if (!confirm('คุณต้องการลบความคิดเห็นนี้หรือไม่?')) {
-      return
-    }
+  // const handleDeleteExpression = async (expressionId: string) => {
+  //   if (!confirm('คุณต้องการลบความคิดเห็นนี้หรือไม่?')) {
+  //     return
+  //   }
 
-    try {
-      await deleteExpression(expressionId)
+  //   try {
+  //     await deleteExpression(expressionId)
 
-      // Refresh expressions after soft delete
-      if (userEmpId) {
-        const filters = {
-          timePeriod,
-          year: currentYear,
-          ...(timePeriod === 'monthly' && { month: currentMonth })
-        }
-        loadSentExpressions(userEmpId, filters)
-      }
-    } catch (error) {
-      console.error('Failed to delete expression:', error)
-      alert('ไม่สามารถลบความคิดเห็นได้ กรุณาลองใหม่อีกครั้ง')
-    }
-  }
+  //     // Refresh expressions after soft delete
+  //     if (userEmpId) {
+  //       const filters = {
+  //         timePeriod,
+  //         year: currentYear,
+  //         ...(timePeriod === 'monthly' && { month: currentMonth })
+  //       }
+  //       loadSentExpressions(userEmpId, filters)
+  //     }
+  //   } catch (error) {
+  //     console.error('Failed to delete expression:', error)
+  //     alert('ไม่สามารถลบความคิดเห็นได้ กรุณาลองใหม่อีกครั้ง')
+  //   }
+  // }
 
   // Handle updating an existing expression
   const handleUpdateExpression = async (status: 'draft' | 'published') => {
@@ -600,7 +600,7 @@ const FeedbackDashboard = () => {
 
     try {
       // Separate existing attachments from new ones
-      const existingAttachments = (expressionData.attachments || []).filter(att => 
+      const existingAttachments = (expressionData.attachments || []).filter(att =>
         typeof att === 'object' && att.isExisting
       ).map(att => {
         // Remove the isExisting flag before sending to backend
@@ -609,7 +609,7 @@ const FeedbackDashboard = () => {
       })
 
       // Get new attachments (files uploaded during edit)
-      const newAttachments = (expressionData.attachments || []).filter(att => 
+      const newAttachments = (expressionData.attachments || []).filter(att =>
         typeof att === 'object' && !att.isExisting
       )
 
@@ -672,7 +672,7 @@ const FeedbackDashboard = () => {
       title: ''
     })
     setSearchTerm('')
-    
+
     setEditingExpression(expression)
     setExpressionData({
       type: expression.TYPE || 'praise',
@@ -823,7 +823,7 @@ const FeedbackDashboard = () => {
     }
 
     return (
-      <div 
+      <div
         className={`bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 cursor-pointer transform hover:scale-105 active:scale-95 ${
           disabled ? 'opacity-50 cursor-not-allowed hover:scale-100 active:scale-100' : ''
         }`}
@@ -882,7 +882,7 @@ const FeedbackDashboard = () => {
               <X className="w-6 h-6" />
             </button>
           </div>
-          
+
           <div className="p-4 border-b-2 border-gray-200 flex-shrink-0">
             <div className="relative">
               <input
@@ -1306,7 +1306,7 @@ const FeedbackDashboard = () => {
             <button
               onClick={() => (timePeriod === 'monthly' ? navigateMonth(-1) : navigateYear(-1))}
               disabled={periodLoading || loading}
-              className={`w-12 h-12 flex items-center justify-center hover:bg-gray-50 rounded-full transition-all duration-200 border border-gray-200 hover:border-gray-300 shadow-sm hover:shadow-md ${
+              className={`w-12 h-12 flex bg-white items-center justify-center hover:bg-gray-50 rounded-full transition-all duration-200 border border-gray-200 hover:border-gray-300 shadow-sm hover:shadow-md ${
                 periodLoading || loading ? 'opacity-50 cursor-not-allowed' : 'active:scale-95'
               }`}
               aria-label={timePeriod === 'monthly' ? 'เดือนก่อนหน้า' : 'ปีก่อนหน้า'}
@@ -1330,7 +1330,7 @@ const FeedbackDashboard = () => {
                 )}
               </p>
               <p className='text-sm text-gray-600 mt-1'>
-                {periodLoading || loading ? 'กรุณารอสักครู่...' : 
+                {periodLoading || loading ? 'กรุณารอสักครู่...' :
                   timePeriod === 'monthly' ? 'เลื่อนซ้าย-ขวาเพื่อเปลี่ยนเดือน' : 'เลื่อนซ้าย-ขวาเพื่อเปลี่ยนปี'
                 }
               </p>
@@ -1339,7 +1339,7 @@ const FeedbackDashboard = () => {
             <button
               onClick={() => (timePeriod === 'monthly' ? navigateMonth(1) : navigateYear(1))}
               disabled={periodLoading || loading}
-              className={`w-12 h-12 flex items-center justify-center hover:bg-gray-50 rounded-full transition-all duration-200 border border-gray-200 hover:border-gray-300 shadow-sm hover:shadow-md ${
+              className={`w-12 h-12 flex items-center justify-center bg-white hover:bg-gray-50 rounded-full transition-all duration-200 border border-gray-200 hover:border-gray-300 shadow-sm hover:shadow-md ${
                 periodLoading || loading ? 'opacity-50 cursor-not-allowed' : 'active:scale-95'
               }`}
               aria-label={timePeriod === 'monthly' ? 'เดือนถัดไป' : 'ปีถัดไป'}
@@ -1354,37 +1354,39 @@ const FeedbackDashboard = () => {
         </div>
       </div>
 
-      <div className='max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-12'>
+      <div className='max-w-7xl mx-auto px-6 sm:px-8 lg:px-6 py-6'>
         {/* Tab Selector */}
-        <div className='bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-12'>
+        <div className='bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-6'>
           <div className='flex'>
             <button
               onClick={() => setActiveTab(0)}
-              className={`flex-1 py-6 px-8 text-lg font-semibold transition-all duration-200 ${
+              className={`flex-1 py-4 px-4 text-lg font-semibold transition-all duration-200 ${
                 activeTab === 0
                   ? 'bg-blue-500 text-white shadow-sm'
                   : 'bg-white text-gray-700 hover:bg-blue-50'
               }`}
             >
-              ที่ได้รับ ({loading || periodLoading ? (
+              ที่ได้รับ
+              {/* ({loading || periodLoading ? (
                 <span className="inline-block w-4 h-4 bg-current opacity-50 rounded animate-pulse"></span>
               ) : (
                 filteredExpressions.length
-              )})
+              )}) */}
             </button>
             <button
               onClick={() => setActiveTab(1)}
-              className={`flex-1 py-6 px-8 text-lg font-semibold transition-all duration-200 ${
+              className={`flex-1 py-4 px-4 text-lg font-semibold transition-all duration-200 ${
                 activeTab === 1
                   ? 'bg-blue-500 text-white shadow-sm'
                   : 'bg-white text-gray-700 hover:bg-blue-50'
               }`}
             >
-              ความคิดเห็น ({loading || periodLoading ? (
+              ความคิดเห็น
+              {/* ({loading || periodLoading ? (
                 <span className="inline-block w-4 h-4 bg-current opacity-50 rounded animate-pulse"></span>
               ) : (
                 filteredMyExpressions.length
-              )})
+              )}) */}
             </button>
           </div>
         </div>
@@ -1439,7 +1441,7 @@ const FeedbackDashboard = () => {
             </div>
             <h3 className='text-2xl font-bold text-gray-900 mb-4'>แสดงความคิดเห็น</h3>
             <p className='text-lg text-gray-600 mb-8'>แบ่งปันความคิดเห็นหรือข้อเสนอแนะของคุณ</p>
-            <button 
+            <button
               onClick={() => setNewExpressionOpen(true)}
               disabled={isAnyLoading}
               className={`inline-flex items-center space-x-4 bg-blue-600 hover:bg-blue-700 text-white px-10 py-5 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 ${
@@ -1664,8 +1666,8 @@ const FeedbackDashboard = () => {
                           <div
                             key={index}
                             className={`flex items-center justify-between p-3 rounded-lg border-2 ${
-                              isExisting 
-                                ? 'bg-blue-50 border-blue-200' 
+                              isExisting
+                                ? 'bg-blue-50 border-blue-200'
                                 : 'bg-green-50 border-green-200'
                             }`}
                           >
