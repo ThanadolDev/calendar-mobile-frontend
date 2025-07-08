@@ -263,8 +263,8 @@ const FeedbackDashboard = () => {
     if (!showPublishConfirmation) return null
 
     return (
-      <div className='fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4'>
-        <div className='bg-white rounded-lg max-w-sm w-full shadow-2xl border-2 border-gray-300'>
+      <div className='fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4 animate-in fade-in duration-300'>
+        <div className='bg-white rounded-lg max-w-sm w-full shadow-2xl border-2 border-gray-300 animate-in zoom-in-95 duration-300'>
           <div className='p-6'>
             <div className='flex items-center justify-center mb-4'>
               <div className='w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center'>
@@ -803,8 +803,8 @@ const FeedbackDashboard = () => {
     if (!isOpen) return null
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end md:items-center justify-center">
-        <div className="bg-white w-full h-full md:h-auto md:max-w-lg md:rounded-lg md:max-h-[90vh] flex flex-col border-2 border-gray-300 shadow-2xl">
+      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end md:items-center justify-center animate-in fade-in duration-300">
+        <div className="bg-white w-full h-full md:h-auto md:max-w-lg md:rounded-lg md:max-h-[90vh] flex flex-col border-2 border-gray-300 shadow-2xl animate-in slide-in-from-bottom-4 md:slide-in-from-bottom-0 md:zoom-in-95 duration-300">
           <div className="flex items-center justify-between p-4 border-b-2 border-gray-200 flex-shrink-0 bg-gray-50">
             <h2 className="text-lg font-bold text-gray-900">{title}</h2>
             <button
@@ -984,8 +984,8 @@ const FeedbackDashboard = () => {
     if (!expression) return null
 
     return (
-      <div className='fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end md:items-center justify-center'>
-        <div className='bg-white w-full h-full md:h-auto md:max-w-lg md:rounded-lg md:max-h-[90vh] flex flex-col border-2 border-gray-300 shadow-2xl'>
+      <div className='fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end md:items-center justify-center animate-in fade-in duration-300'>
+        <div className='bg-white w-full h-full md:h-auto md:max-w-lg md:rounded-lg md:max-h-[90vh] flex flex-col border-2 border-gray-300 shadow-2xl animate-in slide-in-from-bottom-4 md:slide-in-from-bottom-0 md:zoom-in-95 duration-300'>
           <div className='flex items-center justify-between p-4 border-b-2 border-gray-200 flex-shrink-0 bg-gray-50'>
             <h2 className='text-lg font-bold text-gray-900'>รายละเอียดความคิดเห็น</h2>
             <button
@@ -1174,14 +1174,14 @@ const FeedbackDashboard = () => {
         {/* Month/Year Navigation */}
         <div className='mt-4'>
           <div
-            className='bg-gray-50 rounded-xl p-4 flex items-center justify-between'
+            className='bg-white rounded-xl p-4 flex items-center justify-between border border-gray-200 shadow-sm'
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
           >
             <button
               onClick={() => (timePeriod === 'monthly' ? navigateMonth(-1) : navigateYear(-1))}
-              className='p-3 hover:bg-white rounded-full transition-colors border border-gray-200 hover:border-gray-300 shadow-sm'
+              className='p-3 hover:bg-gray-50 rounded-full transition-colors border border-gray-200 hover:border-gray-300 shadow-sm'
               aria-label={timePeriod === 'monthly' ? 'เดือนก่อนหน้า' : 'ปีก่อนหน้า'}
             >
               <ChevronLeft className='w-5 h-5 text-gray-600' />
@@ -1198,7 +1198,7 @@ const FeedbackDashboard = () => {
 
             <button
               onClick={() => (timePeriod === 'monthly' ? navigateMonth(1) : navigateYear(1))}
-              className='p-3 hover:bg-white rounded-full transition-colors border border-gray-200 hover:border-gray-300 shadow-sm'
+              className='p-3 hover:bg-gray-50 rounded-full transition-colors border border-gray-200 hover:border-gray-300 shadow-sm'
               aria-label={timePeriod === 'monthly' ? 'เดือนถัดไป' : 'ปีถัดไป'}
             >
               <ChevronRight className='w-5 h-5 text-gray-600' />
@@ -1285,7 +1285,7 @@ const FeedbackDashboard = () => {
         </div>
 
         {/* Enhanced Add Expression Button */}
-        <div className='bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl shadow-lg border-2 border-blue-200 p-8 mb-8'>
+        <div className='bg-white rounded-2xl shadow-lg border border-gray-200 p-8 mb-8'>
           <div className='text-center'>
             <div className='w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg'>
               <Plus className='w-8 h-8 text-white' />
@@ -1321,8 +1321,8 @@ const FeedbackDashboard = () => {
 
         {/* New Expression Modal - Reusing from original HomeComponent */}
         {newExpressionOpen && (
-          <div className='fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end md:items-center justify-center'>
-            <div className='bg-white w-full h-full md:h-auto md:max-w-lg md:rounded-lg md:max-h-[90vh] flex flex-col border-2 border-gray-300 shadow-2xl'>
+          <div className='fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end md:items-center justify-center animate-in fade-in duration-300'>
+            <div className='bg-white w-full h-full md:h-auto md:max-w-lg md:rounded-lg md:max-h-[90vh] flex flex-col border-2 border-gray-300 shadow-2xl animate-in slide-in-from-bottom-4 md:slide-in-from-bottom-0 md:zoom-in-95 duration-300'>
               <div className='flex items-center justify-between p-4 border-b-2 border-gray-200 flex-shrink-0 bg-gray-50'>
                 <h2 className='text-lg font-bold text-gray-900'>
                   {editingExpression ? 'แก้ไขความคิดเห็น' : 'แสดงความคิดเห็นใหม่'}
