@@ -728,6 +728,19 @@ const FeedbackDashboard = () => {
   // Calculate if cards should be disabled
   const isPrivateCardDisabled = activeTab === 0
 
+  // Loading Skeleton Component
+  const StatCardSkeleton = () => (
+    <div className='bg-white rounded-2xl p-6 shadow-sm border border-gray-100'>
+      <div className='flex flex-col items-center text-center space-y-3 animate-pulse'>
+        <div className='w-16 h-16 rounded-full bg-gray-200'></div>
+        <div>
+          <div className='h-8 w-16 bg-gray-200 rounded mb-1'></div>
+          <div className='h-4 w-24 bg-gray-200 rounded'></div>
+        </div>
+      </div>
+    </div>
+  )
+
   // Stat Card Component
   interface StatCardProps {
     title: string
@@ -737,26 +750,33 @@ const FeedbackDashboard = () => {
     textColor: string
     onClick: () => void
     disabled?: boolean
+    loading?: boolean
   }
 
-  const StatCard = ({ title, value, icon: Icon, bgColor, textColor, onClick, disabled = false }: StatCardProps) => (
-    <div 
-      className={`bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200 cursor-pointer ${
-        disabled ? 'opacity-50' : ''
-      }`}
-      onClick={!disabled ? onClick : undefined}
-    >
-      <div className='flex flex-col items-center text-center space-y-3'>
-        <div className={`w-16 h-16 rounded-full ${bgColor} flex items-center justify-center shadow-sm`}>
-          <Icon className={`w-8 h-8 ${textColor}`} />
-        </div>
-        <div>
-          <p className={`text-3xl font-bold ${textColor} mb-1`}>{value}</p>
-          <p className='text-sm text-gray-700 font-medium leading-tight'>{title}</p>
+  const StatCard = ({ title, value, icon: Icon, bgColor, textColor, onClick, disabled = false, loading = false }: StatCardProps) => {
+    if (loading) {
+      return <StatCardSkeleton />
+    }
+
+    return (
+      <div 
+        className={`bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200 cursor-pointer ${
+          disabled ? 'opacity-50' : ''
+        }`}
+        onClick={!disabled ? onClick : undefined}
+      >
+        <div className='flex flex-col items-center text-center space-y-3'>
+          <div className={`w-16 h-16 rounded-full ${bgColor} flex items-center justify-center shadow-sm`}>
+            <Icon className={`w-8 h-8 ${textColor}`} />
+          </div>
+          <div>
+            <p className={`text-3xl font-bold ${textColor} mb-1`}>{value}</p>
+            <p className='text-sm text-gray-700 font-medium leading-tight'>{title}</p>
+          </div>
         </div>
       </div>
-    </div>
-  )
+    )
+  }
 
   // Expression List Modal Component
   interface ExpressionListModalProps {
@@ -1199,7 +1219,11 @@ const FeedbackDashboard = () => {
                   : 'bg-white text-gray-700 hover:bg-blue-50'
               }`}
             >
-              ที่ได้รับ ({filteredExpressions.length})
+              ที่ได้รับ ({loading ? (
+                <span className="inline-block w-4 h-4 bg-current opacity-50 rounded animate-pulse"></span>
+              ) : (
+                filteredExpressions.length
+              )})
             </button>
             <button
               onClick={() => setActiveTab(1)}
@@ -1209,7 +1233,11 @@ const FeedbackDashboard = () => {
                   : 'bg-white text-gray-700 hover:bg-blue-50'
               }`}
             >
-              ความคิดเห็น ({filteredMyExpressions.length})
+              ความคิดเห็น ({loading ? (
+                <span className="inline-block w-4 h-4 bg-current opacity-50 rounded animate-pulse"></span>
+              ) : (
+                filteredMyExpressions.length
+              )})
             </button>
           </div>
         </div>
@@ -1223,6 +1251,7 @@ const FeedbackDashboard = () => {
             bgColor="bg-green-100"
             textColor="text-green-600"
             onClick={() => handleCardClick('all_good')}
+            loading={loading}
           />
           <StatCard
             title="ต้องปรับปรุง (สาธารณะ)"
@@ -1231,6 +1260,7 @@ const FeedbackDashboard = () => {
             bgColor="bg-orange-100"
             textColor="text-orange-600"
             onClick={() => handleCardClick('all_improve')}
+            loading={loading}
           />
           <StatCard
             title="ชื่นชม (ส่วนตัว)"
@@ -1240,6 +1270,7 @@ const FeedbackDashboard = () => {
             textColor="text-pink-600"
             onClick={() => handleCardClick('private_good')}
             disabled={isPrivateCardDisabled}
+            loading={loading}
           />
           <StatCard
             title="ต้องปรับปรุง (ส่วนตัว)"
@@ -1249,6 +1280,7 @@ const FeedbackDashboard = () => {
             textColor="text-purple-600"
             onClick={() => handleCardClick('private_improve')}
             disabled={isPrivateCardDisabled}
+            loading={loading}
           />
         </div>
 
