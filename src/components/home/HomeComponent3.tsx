@@ -705,7 +705,19 @@ const FeedbackDashboard = () => {
           ...(timePeriod === 'monthly' && { month: currentMonth })
         }
 
-        loadSentExpressions(userEmpId, filters)
+        // Close the modal first
+        setExpressionListModal({
+          isOpen: false,
+          type: null,
+          title: ''
+        })
+        setSearchTerm('')
+
+        // Wait for the delete to complete and then refresh
+        await Promise.all([
+          loadReceivedExpressions(userEmpId, filters),
+          loadSentExpressions(userEmpId, filters)
+        ])
       }
     } catch (error) {
       console.error('Failed to delete expression:', error)
