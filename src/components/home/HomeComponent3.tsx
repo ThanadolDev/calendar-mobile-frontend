@@ -602,13 +602,21 @@ const FeedbackDashboard = () => {
         return cleanAtt
       })
 
+      // Get new attachments (files uploaded during edit)
+      const newAttachments = (expressionData.attachments || []).filter(att => 
+        typeof att === 'object' && !att.isExisting
+      )
+
+      // Combine existing and new attachments
+      const allAttachments = [...existingAttachments, ...newAttachments]
+
       const updateData: Partial<CreateExpressionRequest> = {
         type: expressionData.type,
         recipient: expressionData.recipient,
         content: expressionData.content,
         privacy: expressionData.privacy,
         status,
-        attachments: existingAttachments // Only send existing attachments
+        attachments: allAttachments // Send both existing and new attachments
       }
 
       await updateExpression(editingExpression.EXP_ID, updateData)
@@ -647,6 +655,56 @@ const FeedbackDashboard = () => {
   const removeAttachment = (index: number) => {
     const newAttachments = (expressionData.attachments || []).filter((_, i) => i !== index)
     setExpressionData({ ...expressionData, attachments: newAttachments })
+  }
+
+  // Handle editing a draft expression
+  const handleEditExpression = (expression: Expression) => {
+    // Close the list modal first
+    setExpressionListModal({
+      isOpen: false,
+      type: null,
+      title: ''
+    })
+    setSearchTerm('')
+    
+    setEditingExpression(expression)
+    setExpressionData({
+      type: expression.TYPE || 'praise',
+      recipient: expression.EXP_TO || '',
+      content: expression.EXP_DETAIL || '',
+      privacy: expression.EXP_KIND === 'X' ? 'public' : 'private',
+      status: 'draft',
+      attachments: (expression.attachments || []).map(att => ({
+        ...att,
+        isExisting: true // Flag to indicate this is an existing file
+      }))
+    })
+    setNewExpressionOpen(true)
+  }
+
+  // Handle deleting an expression (moves to status 'F' or soft delete)
+  const handleDeleteExpression = async (expressionId: string) => {
+    if (!confirm('คุณต้องการลบความคิดเห็นนี้หรือไม่?')) {
+      return
+    }
+
+    try {
+      await deleteExpression(expressionId)
+
+      // Refresh expressions after soft delete
+      if (userEmpId) {
+        const filters = {
+          timePeriod,
+          year: currentYear,
+          ...(timePeriod === 'monthly' && { month: currentMonth })
+        }
+
+        loadSentExpressions(userEmpId, filters)
+      }
+    } catch (error) {
+      console.error('Failed to delete expression:', error)
+      alert('ไม่สามารถลบความคิดเห็นได้ กรุณาลองใหม่อีกครั้ง')
+    }
   }
 
   // Clear error after 3 seconds
@@ -730,12 +788,12 @@ const FeedbackDashboard = () => {
 
   // Loading Skeleton Component
   const StatCardSkeleton = () => (
-    <div className='bg-white rounded-2xl p-6 shadow-sm border border-gray-100'>
-      <div className='flex flex-col items-center text-center space-y-3 animate-pulse'>
-        <div className='w-16 h-16 rounded-full bg-gray-200'></div>
+    <div className='bg-white rounded-2xl p-8 shadow-sm border border-gray-100'>
+      <div className='flex flex-col items-center text-center space-y-4 animate-pulse'>
+        <div className='w-20 h-20 rounded-full bg-gray-200'></div>
         <div>
-          <div className='h-8 w-16 bg-gray-200 rounded mb-1'></div>
-          <div className='h-4 w-24 bg-gray-200 rounded'></div>
+          <div className='h-10 w-20 bg-gray-200 rounded mb-2'></div>
+          <div className='h-5 w-28 bg-gray-200 rounded'></div>
         </div>
       </div>
     </div>
@@ -760,18 +818,18 @@ const FeedbackDashboard = () => {
 
     return (
       <div 
-        className={`bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 cursor-pointer transform hover:scale-105 active:scale-95 ${
+        className={`bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 cursor-pointer transform hover:scale-105 active:scale-95 ${
           disabled ? 'opacity-50 cursor-not-allowed hover:scale-100 active:scale-100' : ''
         }`}
         onClick={!disabled ? onClick : undefined}
       >
-        <div className='flex flex-col items-center text-center space-y-3'>
-          <div className={`w-16 h-16 rounded-full ${bgColor} flex items-center justify-center shadow-sm`}>
-            <Icon className={`w-8 h-8 ${textColor}`} />
+        <div className='flex flex-col items-center text-center space-y-4'>
+          <div className={`w-20 h-20 rounded-full ${bgColor} flex items-center justify-center shadow-sm`}>
+            <Icon className={`w-10 h-10 ${textColor}`} />
           </div>
           <div>
-            <p className={`text-3xl font-bold ${textColor} mb-1`}>{value}</p>
-            <p className='text-sm text-gray-700 font-medium leading-tight'>{title}</p>
+            <p className={`text-4xl font-bold ${textColor} mb-2`}>{value}</p>
+            <p className='text-base text-gray-700 font-medium leading-relaxed'>{title}</p>
           </div>
         </div>
       </div>
@@ -788,6 +846,7 @@ const FeedbackDashboard = () => {
     searchTerm: string
     onSearchChange: (term: string) => void
     onExpressionClick?: (expression: Expression) => void
+    showActions?: boolean
   }
 
   const ExpressionListModal = ({
@@ -798,7 +857,8 @@ const FeedbackDashboard = () => {
     loading,
     searchTerm,
     onSearchChange,
-    onExpressionClick
+    onExpressionClick,
+    showActions = false
   }: ExpressionListModalProps) => {
     if (!isOpen) return null
 
@@ -955,6 +1015,34 @@ const FeedbackDashboard = () => {
                           <span className="text-xs">ไฟล์เพิ่มเติม</span>
                         </button>
                       )}
+                    </div>
+                  )}
+
+                  {/* Show action buttons for my expressions when showActions is true */}
+                  {showActions && (
+                    <div className="flex justify-end gap-2 pt-3 border-t border-gray-200 mt-3">
+                      {/* Edit button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleEditExpression(expression)
+                        }}
+                        className="w-10 h-10 text-gray-600 bg-white hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors border border-gray-300 hover:border-blue-300"
+                        aria-label="แก้ไข"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                      {/* Delete button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeleteExpression(expression.EXP_ID)
+                        }}
+                        className="w-10 h-10 text-gray-600 bg-white hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors border border-gray-300 hover:border-red-300"
+                        aria-label="ลบ"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   )}
                 </div>
@@ -1207,13 +1295,13 @@ const FeedbackDashboard = () => {
         </div>
       </div>
 
-      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+      <div className='max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-12'>
         {/* Tab Selector */}
-        <div className='bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-8'>
+        <div className='bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-12'>
           <div className='flex'>
             <button
               onClick={() => setActiveTab(0)}
-              className={`flex-1 py-4 px-6 text-base font-semibold transition-all duration-200 ${
+              className={`flex-1 py-6 px-8 text-lg font-semibold transition-all duration-200 ${
                 activeTab === 0
                   ? 'bg-blue-500 text-white shadow-sm'
                   : 'bg-white text-gray-700 hover:bg-blue-50'
@@ -1227,7 +1315,7 @@ const FeedbackDashboard = () => {
             </button>
             <button
               onClick={() => setActiveTab(1)}
-              className={`flex-1 py-4 px-6 text-base font-semibold transition-all duration-200 ${
+              className={`flex-1 py-6 px-8 text-lg font-semibold transition-all duration-200 ${
                 activeTab === 1
                   ? 'bg-blue-500 text-white shadow-sm'
                   : 'bg-white text-gray-700 hover:bg-blue-50'
@@ -1243,7 +1331,7 @@ const FeedbackDashboard = () => {
         </div>
 
         {/* Stats Cards Grid - 2x2 Layout */}
-        <div className='grid grid-cols-2 gap-4 sm:gap-6 mb-8'>
+        <div className='grid grid-cols-2 gap-6 sm:gap-8 mb-12'>
           <StatCard
             title="ชื่นชม (สาธารณะ)"
             value={currentStats.praise || 0}
@@ -1285,19 +1373,19 @@ const FeedbackDashboard = () => {
         </div>
 
         {/* Enhanced Add Expression Button */}
-        <div className='bg-white rounded-2xl shadow-lg border border-gray-200 p-8 mb-8'>
+        <div className='bg-white rounded-2xl shadow-lg border border-gray-200 p-12 mb-12'>
           <div className='text-center'>
-            <div className='w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg'>
-              <Plus className='w-8 h-8 text-white' />
+            <div className='w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg'>
+              <Plus className='w-10 h-10 text-white' />
             </div>
-            <h3 className='text-xl font-bold text-gray-900 mb-2'>แสดงความคิดเห็น</h3>
-            <p className='text-gray-600 mb-6'>แบ่งปันความคิดเห็นหรือข้อเสนอแนะของคุณ</p>
+            <h3 className='text-2xl font-bold text-gray-900 mb-4'>แสดงความคิดเห็น</h3>
+            <p className='text-lg text-gray-600 mb-8'>แบ่งปันความคิดเห็นหรือข้อเสนอแนะของคุณ</p>
             <button 
               onClick={() => setNewExpressionOpen(true)}
-              className='inline-flex items-center space-x-3 bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
+              className='inline-flex items-center space-x-4 bg-blue-600 hover:bg-blue-700 text-white px-10 py-5 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
             >
-              <Plus className='w-6 h-6' />
-              <span className='text-lg'>เพิ่มความคิดเห็นใหม่</span>
+              <Plus className='w-7 h-7' />
+              <span className='text-xl'>เพิ่มความคิดเห็นใหม่</span>
             </button>
           </div>
         </div>
@@ -1312,6 +1400,7 @@ const FeedbackDashboard = () => {
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
           onExpressionClick={(expression) => setSelectedExpression(expression)}
+          showActions={activeTab === 1}
         />
 
         {/* Expression Detail Modal */}
@@ -1328,7 +1417,19 @@ const FeedbackDashboard = () => {
                   {editingExpression ? 'แก้ไขความคิดเห็น' : 'แสดงความคิดเห็นใหม่'}
                 </h2>
                 <button
-                  onClick={() => setNewExpressionOpen(false)}
+                  onClick={() => {
+                    setNewExpressionOpen(false)
+                    setEditingExpression(null)
+                    setShowPublishConfirmation(false)
+                    setExpressionData({
+                      type: 'praise',
+                      recipient: '',
+                      content: '',
+                      attachments: [] as CreateExpressionRequest['attachments'],
+                      privacy: 'public',
+                      status: 'draft'
+                    })
+                  }}
                   className='!text-gray-600 hover:!text-gray-900 hover:!bg-gray-200 p-2 rounded-lg transition-colors'
                   style={{ color: '#4b5563', backgroundColor: 'transparent' }}
                   aria-label='ปิด'
@@ -1482,28 +1583,56 @@ const FeedbackDashboard = () => {
                         const fileSize = typeof file === 'object' && file.size ? file.size : null
                         const mimeType = typeof file === 'object' && file.mimeType ? file.mimeType : undefined
                         const fileId = typeof file === 'object' && file.fileId ? file.fileId : null
+                        const isExisting = typeof file === 'object' && file.isExisting
+                        const fileUrl = typeof file === 'object' && file.url ? file.url : null
 
                         return (
                           <div
                             key={index}
-                            className='flex items-center justify-between p-3 bg-gray-50 rounded-lg border-2 border-gray-200'
+                            className={`flex items-center justify-between p-3 rounded-lg border-2 ${
+                              isExisting 
+                                ? 'bg-blue-50 border-blue-200' 
+                                : 'bg-green-50 border-green-200'
+                            }`}
                           >
                             <div className='flex items-center gap-3 flex-1 min-w-0'>
                               <div className='flex-shrink-0'>
-                                {isImageFile(fileName, mimeType) && fileId ? (
+                                {/* Handle thumbnails for both existing and new files */}
+                                {isImageFile(fileName, mimeType) ? (
                                   <>
-                                    <img
-                                      src={`http://192.168.55.37:18814/fileserver/displaythumb/${fileId}`}
-                                      alt={fileName}
-                                      className='w-8 h-8 object-cover rounded border'
-                                      onError={e => {
-                                        e.currentTarget.style.display = 'none'
-                                        const nextSibling = e.currentTarget.nextElementSibling as HTMLElement
-                                        if (nextSibling) {
-                                          nextSibling.style.display = 'block'
-                                        }
-                                      }}
-                                    />
+                                    {/* Existing files: use file server thumbnail */}
+                                    {isExisting && fileId ? (
+                                      <img
+                                        src={`http://192.168.55.37:18814/fileserver/displaythumb/${fileId}`}
+                                        alt={fileName}
+                                        className='w-8 h-8 object-cover rounded border'
+                                        onError={e => {
+                                          e.currentTarget.style.display = 'none'
+                                          const nextSibling = e.currentTarget.nextElementSibling as HTMLElement
+                                          if (nextSibling) {
+                                            nextSibling.style.display = 'block'
+                                          }
+                                        }}
+                                      />
+                                    ) : (
+                                      /* New files: use local preview or fallback to icon */
+                                      fileUrl ? (
+                                        <img
+                                          src={fileUrl}
+                                          alt={fileName}
+                                          className='w-8 h-8 object-cover rounded border'
+                                          onError={e => {
+                                            e.currentTarget.style.display = 'none'
+                                            const nextSibling = e.currentTarget.nextElementSibling as HTMLElement
+                                            if (nextSibling) {
+                                              nextSibling.style.display = 'block'
+                                            }
+                                          }}
+                                        />
+                                      ) : (
+                                        getFileIcon(fileName, mimeType)
+                                      )
+                                    )}
                                     <span className='hidden'>{getFileIcon(fileName, mimeType)}</span>
                                   </>
                                 ) : (
@@ -1511,7 +1640,19 @@ const FeedbackDashboard = () => {
                                 )}
                               </div>
                               <div className='flex-1 min-w-0'>
-                                <div className='text-sm font-semibold text-gray-900 truncate'>{fileName}</div>
+                                <div className='flex items-center gap-2'>
+                                  <div className='text-sm font-semibold text-gray-900 truncate'>{fileName}</div>
+                                  {/* Status indicator */}
+                                  {isExisting ? (
+                                    <span className='px-2 py-1 text-xs font-medium text-blue-800 bg-blue-100 rounded-full'>
+                                      เดิม
+                                    </span>
+                                  ) : (
+                                    <span className='px-2 py-1 text-xs font-medium text-green-800 bg-green-100 rounded-full'>
+                                      ใหม่
+                                    </span>
+                                  )}
+                                </div>
                                 {fileSize && (
                                   <div className='text-xs text-gray-700 font-medium'>{formatFileSize(fileSize)}</div>
                                 )}
