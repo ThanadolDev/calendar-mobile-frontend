@@ -101,7 +101,7 @@ const FeedbackDashboard = () => {
     return month
   })
   const [timePeriod, setTimePeriod] = useState<'monthly' | 'yearly'>('monthly')
-  const [activeTab, setActiveTab] = useState<'received' | 'sent'>('received')
+  const [activeTab, setActiveTab] = useState(0)
   const [periodLoading, setPeriodLoading] = useState(false)
   const [uploadLoading, setUploadLoading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
@@ -345,7 +345,7 @@ const FeedbackDashboard = () => {
   const filteredExpressionsForModal = useMemo(() => {
     if (!expressionListModal.type) return []
     
-    let baseExpressions = activeTab === 'received' ? expressions : myExpressions
+    let baseExpressions = activeTab === 0 ? expressions : myExpressions
     
     // Filter by type and visibility
     switch (expressionListModal.type) {
@@ -685,7 +685,7 @@ const FeedbackDashboard = () => {
   const handleCardClick = (type: 'all_good' | 'all_improve' | 'private_good' | 'private_improve') => {
     // Check if card should be disabled
     const isPrivateCard = type.includes('private')
-    const isDisabled = activeTab === 'received' && isPrivateCard
+    const isDisabled = activeTab === 0 && isPrivateCard
 
     if (isDisabled) return
 
@@ -714,7 +714,7 @@ const FeedbackDashboard = () => {
   }
 
   // Calculate if cards should be disabled
-  const isPrivateCardDisabled = activeTab === 'received'
+  const isPrivateCardDisabled = activeTab === 0
 
   // Stat Card Component
   interface StatCardProps {
@@ -850,72 +850,104 @@ const FeedbackDashboard = () => {
         </div>
       )}
 
-      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
-        {/* Header with period selector */}
-        <div className='bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8'>
-          <div className='flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6'>
-            <div className='flex items-center space-x-4'>
-              <h1 className='text-3xl font-bold text-gray-900'>แดชบอร์ดความคิดเห็น</h1>
-            </div>
-
-            {/* Period Selector */}
-            <div className='flex items-center space-x-4'>
-              <select
-                value={timePeriod}
-                onChange={(e) => setTimePeriod(e.target.value as 'monthly' | 'yearly')}
-                className='px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-              >
-                <option value="monthly">รายเดือน</option>
-                <option value="yearly">รายปี</option>
-              </select>
-
-              {timePeriod === 'monthly' && (
-                <select
-                  value={currentMonth}
-                  onChange={(e) => setCurrentMonth(parseInt(e.target.value))}
-                  className='px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                >
-                  {MONTH_NAMES.map((month, index) => (
-                    <option key={index} value={index}>{month}</option>
-                  ))}
-                </select>
-              )}
-
-              <select
-                value={currentYear}
-                onChange={(e) => setCurrentYear(parseInt(e.target.value))}
-                className='px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-              >
-                {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(year => (
-                  <option key={year} value={year}>{year}</option>
-                ))}
-              </select>
-            </div>
-          </div>
+      {/* Time Period Toggle */}
+      <div className='p-4 bg-white border-b-2 border-gray-200 shadow-sm'>
+        <div className='flex rounded-lg border-2 border-gray-300 overflow-hidden shadow-sm'>
+          <button
+            onClick={() => {
+              setPeriodLoading(true)
+              setTimePeriod('monthly')
+            }}
+            className={`flex-1 py-3 px-4 text-sm font-semibold transition-colors ${
+              timePeriod === 'monthly' ? '!bg-blue-600 !text-white' : '!bg-white !text-gray-800 hover:!bg-blue-50'
+            }`}
+            disabled={periodLoading}
+            style={
+              timePeriod === 'monthly'
+                ? { backgroundColor: '#2563eb', color: '#ffffff' }
+                : { backgroundColor: '#ffffff', color: '#1f2937' }
+            }
+          >
+            รายเดือน
+          </button>
+          <button
+            onClick={() => {
+              setPeriodLoading(true)
+              setTimePeriod('yearly')
+            }}
+            className={`flex-1 py-3 px-4 text-sm font-semibold transition-colors ${
+              timePeriod === 'yearly' ? '!bg-blue-600 !text-white' : '!bg-white !text-gray-800 hover:!bg-blue-50'
+            }`}
+            disabled={periodLoading}
+            style={
+              timePeriod === 'yearly'
+                ? { backgroundColor: '#2563eb', color: '#ffffff' }
+                : { backgroundColor: '#ffffff', color: '#1f2937' }
+            }
+          >
+            รายปี
+          </button>
         </div>
 
-        {/* Tab Selector */}
-        <div className='bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8'>
-          <div className='flex space-x-1 bg-gray-100 rounded-lg p-1'>
+        {/* Month/Year Navigation */}
+        <div className='mt-4'>
+          <div
+            className='bg-gray-50 rounded-xl p-4 flex items-center justify-between'
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
             <button
-              onClick={() => setActiveTab('received')}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                activeTab === 'received'
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+              onClick={() => (timePeriod === 'monthly' ? navigateMonth(-1) : navigateYear(-1))}
+              className='p-3 hover:bg-white rounded-full transition-colors border border-gray-200 hover:border-gray-300 shadow-sm'
+              aria-label={timePeriod === 'monthly' ? 'เดือนก่อนหน้า' : 'ปีก่อนหน้า'}
+            >
+              <ChevronLeft className='w-5 h-5 text-gray-600' />
+            </button>
+
+            <div className='text-center'>
+              <p className='text-xl font-bold text-gray-900'>
+                {timePeriod === 'monthly' ? `${MONTH_NAMES[currentMonth]} ${currentYear + 543}` : `${currentYear + 543}`}
+              </p>
+              <p className='text-sm text-gray-600 mt-1'>
+                {timePeriod === 'monthly' ? 'เลื่อนซ้าย-ขวาเพื่อเปลี่ยนเดือน' : 'เลื่อนซ้าย-ขวาเพื่อเปลี่ยนปี'}
+              </p>
+            </div>
+
+            <button
+              onClick={() => (timePeriod === 'monthly' ? navigateMonth(1) : navigateYear(1))}
+              className='p-3 hover:bg-white rounded-full transition-colors border border-gray-200 hover:border-gray-300 shadow-sm'
+              aria-label={timePeriod === 'monthly' ? 'เดือนถัดไป' : 'ปีถัดไป'}
+            >
+              <ChevronRight className='w-5 h-5 text-gray-600' />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+        {/* Tab Selector */}
+        <div className='bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-8'>
+          <div className='flex'>
+            <button
+              onClick={() => setActiveTab(0)}
+              className={`flex-1 py-4 px-6 text-base font-semibold transition-all duration-200 ${
+                activeTab === 0
+                  ? 'bg-blue-500 text-white shadow-sm'
+                  : 'bg-white text-gray-700 hover:bg-blue-50'
               }`}
             >
-              ที่ได้รับ
+              ที่ได้รับ ({filteredExpressions.length})
             </button>
             <button
-              onClick={() => setActiveTab('sent')}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                activeTab === 'sent'
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+              onClick={() => setActiveTab(1)}
+              className={`flex-1 py-4 px-6 text-base font-semibold transition-all duration-200 ${
+                activeTab === 1
+                  ? 'bg-blue-500 text-white shadow-sm'
+                  : 'bg-white text-gray-700 hover:bg-blue-50'
               }`}
             >
-              ที่แสดงความคิดเห็น
+              ความคิดเห็น ({filteredMyExpressions.length})
             </button>
           </div>
         </div>
