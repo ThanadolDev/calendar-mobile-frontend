@@ -84,6 +84,9 @@ const FeedbackDashboard = () => {
     myExpressions,
     loading,
     createLoading,
+    updateLoading,
+    deleteLoading,
+    statsLoading,
     error,
     createExpression,
     loadReceivedExpressions,
@@ -106,6 +109,9 @@ const FeedbackDashboard = () => {
   const [periodLoading, setPeriodLoading] = useState(false)
   const [uploadLoading, setUploadLoading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
+  
+  // Combined loading state for better UX
+  const isAnyLoading = loading || createLoading || updateLoading || deleteLoading || statsLoading || periodLoading || uploadLoading
   const [showPublishConfirmation, setShowPublishConfirmation] = useState(false)
   const [newExpressionOpen, setNewExpressionOpen] = useState(false)
   
@@ -299,12 +305,12 @@ const FeedbackDashboard = () => {
                 }}
                 className='flex-1 py-3 px-4 !bg-blue-600 !text-white rounded-lg hover:!bg-blue-700 font-semibold transition-colors border-2 border-blue-600 hover:border-blue-700'
                 style={{ backgroundColor: '#2563eb', color: '#ffffff' }}
-                disabled={createLoading}
+                disabled={createLoading || updateLoading}
               >
-                {createLoading ? (
+                {(createLoading || updateLoading) ? (
                   <div className='flex items-center justify-center gap-2'>
                     <Loader2 className='w-4 h-4 animate-spin' />
-                    กำลังเผยแพร่...
+                    {editingExpression ? 'กำลังอัปเดต...' : 'กำลังเผยแพร่...'}
                   </div>
                 ) : (
                   'ยืนยันเผยแพร่'
@@ -1027,10 +1033,17 @@ const FeedbackDashboard = () => {
                           e.stopPropagation()
                           handleEditExpression(expression)
                         }}
-                        className="w-10 h-10 text-gray-600 bg-white hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors border border-gray-300 hover:border-blue-300"
+                        disabled={updateLoading || deleteLoading}
+                        className={`w-10 h-10 text-gray-600 bg-white hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors border border-gray-300 hover:border-blue-300 ${
+                          updateLoading || deleteLoading ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
                         aria-label="แก้ไข"
                       >
-                        <Edit3 className="w-4 h-4" />
+                        {updateLoading ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Edit3 className="w-4 h-4" />
+                        )}
                       </button>
                       {/* Delete button */}
                       <button
@@ -1038,10 +1051,17 @@ const FeedbackDashboard = () => {
                           e.stopPropagation()
                           handleDeleteExpression(expression.EXP_ID)
                         }}
-                        className="w-10 h-10 text-gray-600 bg-white hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors border border-gray-300 hover:border-red-300"
+                        disabled={updateLoading || deleteLoading}
+                        className={`w-10 h-10 text-gray-600 bg-white hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors border border-gray-300 hover:border-red-300 ${
+                          updateLoading || deleteLoading ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
                         aria-label="ลบ"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        {deleteLoading ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
                       </button>
                     </div>
                   )}
@@ -1220,6 +1240,22 @@ const FeedbackDashboard = () => {
         </div>
       )}
 
+      {/* Loading Status Bar */}
+      {isAnyLoading && (
+        <div className="mx-4 mt-4 p-3 bg-blue-50 border border-blue-200 text-blue-800 rounded-xl flex items-center gap-2 shadow-sm">
+          <Loader2 className="w-5 h-5 animate-spin" />
+          <span className="font-medium">
+            {uploadLoading && `กำลังอัปโหลดไฟล์... ${uploadProgress > 0 ? `${uploadProgress}%` : ''}`}
+            {createLoading && !uploadLoading && 'กำลังสร้างความคิดเห็น...'}
+            {updateLoading && !uploadLoading && 'กำลังอัปเดตความคิดเห็น...'}
+            {deleteLoading && !uploadLoading && 'กำลังลบความคิดเห็น...'}
+            {loading && !uploadLoading && !createLoading && !updateLoading && !deleteLoading && 'กำลังโหลดข้อมูล...'}
+            {periodLoading && !loading && !uploadLoading && !createLoading && !updateLoading && !deleteLoading && 'กำลังโหลดข้อมูลช่วงเวลา...'}
+            {statsLoading && !loading && !uploadLoading && !createLoading && !updateLoading && !deleteLoading && !periodLoading && 'กำลังคำนวณสถิติ...'}
+          </span>
+        </div>
+      )}
+
       {/* Time Period Toggle */}
       <div className='p-4 bg-white border-b-2 border-gray-200 shadow-sm'>
         <div className='flex rounded-lg border-2 border-gray-300 overflow-hidden shadow-sm'>
@@ -1269,27 +1305,50 @@ const FeedbackDashboard = () => {
           >
             <button
               onClick={() => (timePeriod === 'monthly' ? navigateMonth(-1) : navigateYear(-1))}
-              className='p-3 hover:bg-gray-50 rounded-full transition-colors border border-gray-200 hover:border-gray-300 shadow-sm'
+              disabled={periodLoading || loading}
+              className={`w-12 h-12 flex items-center justify-center hover:bg-gray-50 rounded-full transition-all duration-200 border border-gray-200 hover:border-gray-300 shadow-sm hover:shadow-md ${
+                periodLoading || loading ? 'opacity-50 cursor-not-allowed' : 'active:scale-95'
+              }`}
               aria-label={timePeriod === 'monthly' ? 'เดือนก่อนหน้า' : 'ปีก่อนหน้า'}
             >
-              <ChevronLeft className='w-5 h-5 text-gray-600' />
+              {periodLoading || loading ? (
+                <Loader2 className='w-5 h-5 text-gray-600 animate-spin' />
+              ) : (
+                <ChevronLeft className='w-5 h-5 text-gray-600' />
+              )}
             </button>
 
             <div className='text-center'>
               <p className='text-xl font-bold text-gray-900'>
-                {timePeriod === 'monthly' ? `${MONTH_NAMES[currentMonth]} ${currentYear + 543}` : `${currentYear + 543}`}
+                {periodLoading || loading ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    กำลังโหลด...
+                  </span>
+                ) : (
+                  timePeriod === 'monthly' ? `${MONTH_NAMES[currentMonth]} ${currentYear + 543}` : `${currentYear + 543}`
+                )}
               </p>
               <p className='text-sm text-gray-600 mt-1'>
-                {timePeriod === 'monthly' ? 'เลื่อนซ้าย-ขวาเพื่อเปลี่ยนเดือน' : 'เลื่อนซ้าย-ขวาเพื่อเปลี่ยนปี'}
+                {periodLoading || loading ? 'กรุณารอสักครู่...' : 
+                  timePeriod === 'monthly' ? 'เลื่อนซ้าย-ขวาเพื่อเปลี่ยนเดือน' : 'เลื่อนซ้าย-ขวาเพื่อเปลี่ยนปี'
+                }
               </p>
             </div>
 
             <button
               onClick={() => (timePeriod === 'monthly' ? navigateMonth(1) : navigateYear(1))}
-              className='p-3 hover:bg-gray-50 rounded-full transition-colors border border-gray-200 hover:border-gray-300 shadow-sm'
+              disabled={periodLoading || loading}
+              className={`w-12 h-12 flex items-center justify-center hover:bg-gray-50 rounded-full transition-all duration-200 border border-gray-200 hover:border-gray-300 shadow-sm hover:shadow-md ${
+                periodLoading || loading ? 'opacity-50 cursor-not-allowed' : 'active:scale-95'
+              }`}
               aria-label={timePeriod === 'monthly' ? 'เดือนถัดไป' : 'ปีถัดไป'}
             >
-              <ChevronRight className='w-5 h-5 text-gray-600' />
+              {periodLoading || loading ? (
+                <Loader2 className='w-5 h-5 text-gray-600 animate-spin' />
+              ) : (
+                <ChevronRight className='w-5 h-5 text-gray-600' />
+              )}
             </button>
           </div>
         </div>
@@ -1339,7 +1398,7 @@ const FeedbackDashboard = () => {
             bgColor="bg-green-100"
             textColor="text-green-600"
             onClick={() => handleCardClick('all_good')}
-            loading={loading || periodLoading}
+            loading={loading || periodLoading || statsLoading}
           />
           <StatCard
             title="ต้องปรับปรุง (สาธารณะ)"
@@ -1348,7 +1407,7 @@ const FeedbackDashboard = () => {
             bgColor="bg-orange-100"
             textColor="text-orange-600"
             onClick={() => handleCardClick('all_improve')}
-            loading={loading || periodLoading}
+            loading={loading || periodLoading || statsLoading}
           />
           <StatCard
             title="ชื่นชม (ส่วนตัว)"
@@ -1358,7 +1417,7 @@ const FeedbackDashboard = () => {
             textColor="text-pink-600"
             onClick={() => handleCardClick('private_good')}
             disabled={isPrivateCardDisabled}
-            loading={loading || periodLoading}
+            loading={loading || periodLoading || statsLoading}
           />
           <StatCard
             title="ต้องปรับปรุง (ส่วนตัว)"
@@ -1368,7 +1427,7 @@ const FeedbackDashboard = () => {
             textColor="text-purple-600"
             onClick={() => handleCardClick('private_improve')}
             disabled={isPrivateCardDisabled}
-            loading={loading || periodLoading}
+            loading={loading || periodLoading || statsLoading}
           />
         </div>
 
@@ -1382,10 +1441,22 @@ const FeedbackDashboard = () => {
             <p className='text-lg text-gray-600 mb-8'>แบ่งปันความคิดเห็นหรือข้อเสนอแนะของคุณ</p>
             <button 
               onClick={() => setNewExpressionOpen(true)}
-              className='inline-flex items-center space-x-4 bg-blue-600 hover:bg-blue-700 text-white px-10 py-5 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
+              disabled={isAnyLoading}
+              className={`inline-flex items-center space-x-4 bg-blue-600 hover:bg-blue-700 text-white px-10 py-5 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 ${
+                isAnyLoading ? 'opacity-50 cursor-not-allowed transform-none' : ''
+              }`}
             >
-              <Plus className='w-7 h-7' />
-              <span className='text-xl'>เพิ่มความคิดเห็นใหม่</span>
+              {isAnyLoading ? (
+                <>
+                  <Loader2 className='w-7 h-7 animate-spin' />
+                  <span className='text-xl'>กำลังประมวลผล...</span>
+                </>
+              ) : (
+                <>
+                  <Plus className='w-7 h-7' />
+                  <span className='text-xl'>เพิ่มความคิดเห็นใหม่</span>
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -1487,7 +1558,7 @@ const FeedbackDashboard = () => {
                       value={expressionData.recipient}
                       onChange={empId => setExpressionData({ ...expressionData, recipient: empId })}
                       placeholder='เลือกผู้รับ'
-                      disabled={loading}
+                      disabled={isAnyLoading}
                       excludeEmpId={userEmpId}
                     />
                   </div>
@@ -1500,7 +1571,10 @@ const FeedbackDashboard = () => {
                     onChange={e => setExpressionData({ ...expressionData, content: e.target.value })}
                     placeholder='แสดงความคิดเห็น...'
                     rows={4}
-                    className='w-full p-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white placeholder-gray-500 font-medium shadow-sm'
+                    disabled={isAnyLoading}
+                    className={`w-full p-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white placeholder-gray-500 font-medium shadow-sm ${
+                      isAnyLoading ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
                   />
                 </div>
 
@@ -1690,7 +1764,7 @@ const FeedbackDashboard = () => {
                   }}
                   className='flex-1 py-3 px-4 border-2 border-gray-400 rounded-lg !text-gray-800 hover:!bg-gray-100 font-semibold transition-colors !bg-white'
                   style={{ backgroundColor: '#ffffff', color: '#1f2937' }}
-                  disabled={loading}
+                  disabled={isAnyLoading}
                 >
                   ยกเลิก
                 </button>
@@ -1698,9 +1772,9 @@ const FeedbackDashboard = () => {
                   onClick={() => setShowPublishConfirmation(true)}
                   className='flex-1 py-3 px-4 !bg-blue-600 !text-white rounded-lg hover:!bg-blue-700 flex items-center justify-center gap-2 font-semibold transition-colors border-2 border-blue-600 hover:border-blue-700'
                   style={{ backgroundColor: '#2563eb', color: '#ffffff' }}
-                  disabled={createLoading}
+                  disabled={createLoading || updateLoading}
                 >
-                  {createLoading ? <Loader2 className='w-4 h-4 animate-spin' /> : <Send className='w-4 h-4' />}
+                  {(createLoading || updateLoading) ? <Loader2 className='w-4 h-4 animate-spin' /> : <Send className='w-4 h-4' />}
                   เผยแพร่
                 </button>
               </div>
@@ -1709,6 +1783,30 @@ const FeedbackDashboard = () => {
         )}
 
         <PublishConfirmationModal />
+
+        {/* Global Loading Overlay */}
+        {(createLoading || updateLoading || deleteLoading) && (
+          <div className="fixed inset-0 bg-black bg-opacity-30 z-[70] flex items-center justify-center animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl p-8 shadow-2xl border-2 border-gray-200 animate-in zoom-in-95 duration-300">
+              <div className="flex flex-col items-center text-center space-y-4">
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+                  <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">
+                    {createLoading && !editingExpression && 'กำลังสร้างความคิดเห็น...'}
+                    {updateLoading && 'กำลังอัปเดตความคิดเห็น...'}
+                    {deleteLoading && 'กำลังลบความคิดเห็น...'}
+                    {createLoading && editingExpression && 'กำลังเผยแพร่ความคิดเห็น...'}
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    กรุณารอสักครู่...
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

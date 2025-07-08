@@ -14,6 +14,9 @@ interface UseExpressionsState {
   myExpressions: Expression[]
   loading: boolean
   createLoading: boolean
+  updateLoading: boolean
+  deleteLoading: boolean
+  statsLoading: boolean
   error: string | null
   stats: ExpressionStats
 }
@@ -38,6 +41,9 @@ export function useExpressions(): UseExpressionsState & UseExpressionsActions {
     myExpressions: [],
     loading: false,
     createLoading: false,
+    updateLoading: false,
+    deleteLoading: false,
+    statsLoading: false,
     error: null,
     stats: {
       praise: 0,
@@ -53,6 +59,18 @@ export function useExpressions(): UseExpressionsState & UseExpressionsActions {
 
   const setCreateLoading = useCallback((createLoading: boolean) => {
     setState(prev => ({ ...prev, createLoading }))
+  }, [])
+
+  const setUpdateLoading = useCallback((updateLoading: boolean) => {
+    setState(prev => ({ ...prev, updateLoading }))
+  }, [])
+
+  const setDeleteLoading = useCallback((deleteLoading: boolean) => {
+    setState(prev => ({ ...prev, deleteLoading }))
+  }, [])
+
+  const setStatsLoading = useCallback((statsLoading: boolean) => {
+    setState(prev => ({ ...prev, statsLoading }))
   }, [])
 
   const setError = useCallback((error: string | null) => {
@@ -134,7 +152,7 @@ export function useExpressions(): UseExpressionsState & UseExpressionsActions {
 
   const updateExpression = useCallback(async (id: string, data: Partial<CreateExpressionRequest>) => {
     try {
-      setLoading(true)
+      setUpdateLoading(true)
       clearError()
 
       const response = await expressionService.updateExpression(id, data)
@@ -153,13 +171,13 @@ export function useExpressions(): UseExpressionsState & UseExpressionsActions {
       setError(error instanceof Error ? error.message : 'Failed to update expression')
       throw error
     } finally {
-      setLoading(false)
+      setUpdateLoading(false)
     }
-  }, [setLoading, clearError, setError])
+  }, [setUpdateLoading, clearError, setError])
 
   const deleteExpression = useCallback(async (id: string) => {
     try {
-      setLoading(true)
+      setDeleteLoading(true)
       clearError()
 
       const response = await expressionService.deleteExpression(id)
@@ -176,9 +194,9 @@ export function useExpressions(): UseExpressionsState & UseExpressionsActions {
       setError(error instanceof Error ? error.message : 'Failed to delete expression')
       throw error
     } finally {
-      setLoading(false)
+      setDeleteLoading(false)
     }
-  }, [setLoading, clearError, setError])
+  }, [setDeleteLoading, clearError, setError])
 
   const calculateStatsForPeriod = useCallback((
     timePeriod: 'monthly' | 'yearly',
