@@ -127,6 +127,7 @@ const FeedbackDashboard = () => {
   const [expressionData, setExpressionData] = useState<CreateExpressionRequest>({
     type: 'praise',
     recipient: '',
+    subject: '',
     content: '',
     attachments: [] as CreateExpressionRequest['attachments'],
     privacy: 'public',

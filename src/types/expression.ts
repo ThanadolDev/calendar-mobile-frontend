@@ -12,6 +12,7 @@ export interface ExpressionAttachment {
 export interface CreateExpressionRequest {
   type: 'praise' | 'suggestion'
   recipient: string
+  subject: string
   content: string
   privacy: 'public' | 'private'
   status: 'published' | 'draft' // 'draft' maps to 'P', 'published' to 'T', 'deleted' to 'F' in backend
