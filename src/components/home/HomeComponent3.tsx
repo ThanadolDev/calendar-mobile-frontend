@@ -135,6 +135,7 @@ const FeedbackDashboard = () => {
   const [expressionData, setExpressionData] = useState<CreateExpressionRequest>({
     type: 'praise',
     recipient: '',
+    subject: '',
     content: '',
     attachments: [] as CreateExpressionRequest['attachments'],
     privacy: 'public',
@@ -517,7 +518,7 @@ const FeedbackDashboard = () => {
 
   // Handle saving expression
   const handleSaveExpression = async (status: 'draft' | 'published') => {
-    if (!expressionData.recipient || !expressionData.content) {
+    if (!expressionData.recipient || !expressionData.subject || !expressionData.content) {
       alert('กรุณากรอกข้อมูลให้ครบถ้วน')
 
       return
@@ -536,6 +537,7 @@ const FeedbackDashboard = () => {
       setExpressionData({
         type: 'praise',
         recipient: '',
+        subject: '',
         content: '',
         attachments: [] as CreateExpressionRequest['attachments'],
         privacy: 'public',
@@ -605,7 +607,7 @@ const FeedbackDashboard = () => {
 
   // Handle updating an existing expression
   const handleUpdateExpression = async (status: 'draft' | 'published') => {
-    if (!expressionData.recipient || !expressionData.content) {
+    if (!expressionData.recipient || !expressionData.subject || !expressionData.content) {
       alert('กรุณากรอกข้อมูลให้ครบถ้วน')
 
       return
@@ -640,6 +642,7 @@ const FeedbackDashboard = () => {
       const updateData: Partial<CreateExpressionRequest> = {
         type: expressionData.type,
         recipient: expressionData.recipient,
+        subject: expressionData.subject,
         content: expressionData.content,
         privacy: expressionData.privacy,
         status,
@@ -654,6 +657,7 @@ const FeedbackDashboard = () => {
       setExpressionData({
         type: 'praise',
         recipient: '',
+        subject: '',
         content: '',
         attachments: [] as CreateExpressionRequest['attachments'],
         privacy: 'public',
@@ -699,6 +703,7 @@ const FeedbackDashboard = () => {
     setExpressionData({
       type: expression.TYPE || 'praise',
       recipient: expression.EXP_TO || '',
+      subject: expression.EXP_SUBJECT || '',
       content: expression.EXP_DETAIL || '',
       privacy: expression.EXP_KIND === 'X' ? 'public' : 'private',
       status: 'draft',
@@ -990,7 +995,13 @@ const FeedbackDashboard = () => {
                     </div>
                   </div>
 
-                  <p className="text-sm text-gray-800 mb-3 line-clamp-2 leading-relaxed">
+                  {expression.EXP_SUBJECT && (
+                    <h4 className="text-sm font-semibold text-gray-900 mb-2 line-clamp-1">
+                      {expression.EXP_SUBJECT}
+                    </h4>
+                  )}
+
+                  <p className="text-sm text-gray-800 mb-3 line-clamp-1 leading-relaxed">
                     {expression.EXP_DETAIL}
                   </p>
 
@@ -1180,6 +1191,17 @@ const FeedbackDashboard = () => {
                 </div>
               </div>
             </div>
+
+            {expression.EXP_SUBJECT && (
+              <div>
+                <label className='block text-sm font-bold text-gray-800 mb-2'>หัวข้อ</label>
+                <div className='p-4 bg-gray-50 rounded-lg border-2 border-gray-200'>
+                  <p className='text-gray-800 leading-relaxed font-medium'>
+                    {expression.EXP_SUBJECT}
+                  </p>
+                </div>
+              </div>
+            )}
 
             <div>
               <label className='block text-sm font-bold text-gray-800 mb-2'>เนื้อหา</label>
@@ -1606,12 +1628,28 @@ const FeedbackDashboard = () => {
                 </div>
 
                 <div>
+                  <label className='block text-sm font-bold text-gray-800 mb-2'>หัวข้อ</label>
+                  <input
+                    type='text'
+                    value={expressionData.subject}
+                    onChange={e => setExpressionData({ ...expressionData, subject: e.target.value })}
+                    placeholder='หัวข้อของข้อความ...'
+                    maxLength={50}
+                    disabled={isAnyLoading}
+                    className={`w-full p-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white placeholder-gray-500 font-medium shadow-sm ${
+                      isAnyLoading ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  />
+                </div>
+
+                <div>
                   <label className='block text-sm font-bold text-gray-800 mb-2'>เนื้อหา</label>
                   <textarea
                     value={expressionData.content}
                     onChange={e => setExpressionData({ ...expressionData, content: e.target.value })}
                     placeholder='แสดงความคิดเห็น...'
                     rows={4}
+                    maxLength={2000}
                     disabled={isAnyLoading}
                     className={`w-full p-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white placeholder-gray-500 font-medium shadow-sm ${
                       isAnyLoading ? 'opacity-50 cursor-not-allowed' : ''
