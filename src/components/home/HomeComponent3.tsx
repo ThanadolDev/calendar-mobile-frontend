@@ -4,12 +4,13 @@ import React, { useState, useRef, useEffect, useMemo } from 'react'
 
 import {
   Plus,
-  ThumbsUp,
   MessageSquare,
   User,
   Calendar,
   Eye,
-  EyeOff,
+  MessageSquareDashed,
+  Star,
+  StarHalf,
   Paperclip,
   Send,
   Edit3,
@@ -985,7 +986,7 @@ const FeedbackDashboard = () => {
                         {expression.TYPE === 'praise' ? 'ชื่นชม' : 'ต้องปรับปรุง'}
                       </span>
                       {expression.EXP_KIND === 'H' && (
-                        <EyeOff className="w-4 h-4 text-gray-400"  />
+                        <MessageSquare className="w-4 h-4 text-gray-400"  />
                       )}
                     </div>
                   </div>
@@ -1435,7 +1436,7 @@ const FeedbackDashboard = () => {
           <StatCard
             title="ชื่นชม (สาธารณะ)"
             value={currentStats.praise || 0}
-            icon={ThumbsUp}
+            icon={Star}
             bgColor="bg-green-100"
             textColor="text-green-600"
             onClick={() => handleCardClick('all_good')}
@@ -1444,7 +1445,7 @@ const FeedbackDashboard = () => {
           <StatCard
             title="ต้องปรับปรุง (สาธารณะ)"
             value={currentStats.suggestions || 0}
-            icon={AlertCircle}
+            icon={MessageSquare}
             bgColor="bg-orange-100"
             textColor="text-orange-600"
             onClick={() => handleCardClick('all_improve')}
@@ -1453,7 +1454,7 @@ const FeedbackDashboard = () => {
           <StatCard
             title="ชื่นชม (ส่วนตัว)"
             value={currentStats.private || 0}
-            icon={Heart}
+            icon={StarHalf}
             bgColor="bg-pink-100"
             textColor="text-pink-600"
             onClick={() => handleCardClick('private_good')}
@@ -1463,7 +1464,7 @@ const FeedbackDashboard = () => {
           <StatCard
             title="ต้องปรับปรุง (ส่วนตัว)"
             value={currentStats.public || 0}
-            icon={Lightbulb}
+            icon={MessageSquareDashed}
             bgColor="bg-purple-100"
             textColor="text-purple-600"
             onClick={() => handleCardClick('private_improve')}
@@ -1651,7 +1652,7 @@ const FeedbackDashboard = () => {
                           : { backgroundColor: '#ffffff', color: '#1f2937' }
                       }
                     >
-                      <EyeOff className='w-4 h-4' />
+                      <MessageSquare className='w-4 h-4' />
                       ไม่เปิดเผย
                     </button>
                   </div>
