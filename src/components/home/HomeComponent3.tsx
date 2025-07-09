@@ -1648,12 +1648,18 @@ const FeedbackDashboard = () => {
                     value={expressionData.content}
                     onChange={e => setExpressionData({ ...expressionData, content: e.target.value })}
                     placeholder='แสดงความคิดเห็น...'
-                    rows={4}
+                    rows={3}
                     maxLength={2000}
                     disabled={isAnyLoading}
-                    className={`w-full p-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white placeholder-gray-500 font-medium shadow-sm ${
+                    className={`w-full p-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white placeholder-gray-500 font-medium shadow-sm resize-none ${
                       isAnyLoading ? 'opacity-50 cursor-not-allowed' : ''
                     }`}
+                    style={{ minHeight: '5rem', height: 'auto' }}
+                    onInput={(e) => {
+                      const target = e.target as HTMLTextAreaElement;
+                      target.style.height = 'auto';
+                      target.style.height = Math.max(target.scrollHeight, 80) + 'px';
+                    }}
                   />
                 </div>
 
