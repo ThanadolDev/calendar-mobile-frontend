@@ -488,7 +488,9 @@ const FeedbackDashboard = () => {
         content: '',
         attachments: [] as CreateExpressionRequest['attachments'],
         privacy: 'public',
+        subject: '',
         status: 'draft'
+
       })
 
       // Refresh the expressions data to show the new expression immediately
@@ -522,7 +524,7 @@ const FeedbackDashboard = () => {
       content: expression.EXP_DETAIL || '',
       privacy: expression.EXP_KIND === 'X' ? 'public' : 'private',
       status: 'draft',
-
+subject: '',
       attachments: (expression.attachments || []).map(att => ({
         ...att,
         isExisting: true // Flag to indicate this is an existing file
@@ -602,6 +604,7 @@ const FeedbackDashboard = () => {
         content: '',
         attachments: [] as CreateExpressionRequest['attachments'],
         privacy: 'public',
+        subject: '',
         status: 'draft'
       })
 
@@ -1556,6 +1559,7 @@ const StatCard = ({ title, value, icon: Icon, bgColor, textColor }: StatCardProp
                     content: '',
                     attachments: [] as CreateExpressionRequest['attachments'],
                     privacy: 'public',
+                    subject: '',
                     status: 'draft'
                   })
                 }}

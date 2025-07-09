@@ -1556,14 +1556,17 @@ const FeedbackDashboard = () => {
                     setNewExpressionOpen(false)
                     setEditingExpression(null)
                     setShowPublishConfirmation(false)
+
                     setExpressionData({
                       type: 'praise',
                       recipient: '',
                       content: '',
+                      subject: '',
                       attachments: [] as CreateExpressionRequest['attachments'],
                       privacy: 'public',
                       status: 'draft'
                     })
+
                   }}
                   className='!text-gray-600 hover:!text-gray-900 hover:!bg-gray-200 p-2 rounded-lg transition-colors'
                   style={{ color: '#4b5563', backgroundColor: 'transparent' }}
@@ -1658,6 +1661,7 @@ const FeedbackDashboard = () => {
                     style={{ minHeight: '5rem', height: 'auto' }}
                     onInput={(e) => {
                       const target = e.target as HTMLTextAreaElement;
+
                       target.style.height = 'auto';
                       target.style.height = Math.max(target.scrollHeight, 80) + 'px';
                     }}
@@ -1845,6 +1849,7 @@ const FeedbackDashboard = () => {
                     setExpressionData({
                       type: 'praise',
                       recipient: '',
+                      subject: '',
                       content: '',
                       attachments: [] as CreateExpressionRequest['attachments'],
                       privacy: 'public',
