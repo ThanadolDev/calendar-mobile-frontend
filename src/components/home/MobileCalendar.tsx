@@ -34,7 +34,7 @@ import {
 // Date utilities
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, addMonths, subMonths, getYear, setYear, setMonth } from 'date-fns'
 
-// Sample events data - current month events
+// Sample events data - employee leave events
 const getCurrentMonthEvents = () => {
   const now = new Date()
   const currentMonth = now.getMonth()
@@ -43,43 +43,48 @@ const getCurrentMonthEvents = () => {
   return [
     {
       id: 1,
-      title: 'Team Meeting',
-      start: new Date(currentYear, currentMonth, 5, 10, 0),
-      end: new Date(currentYear, currentMonth, 5, 11, 0),
-      description: 'Weekly team sync meeting',
-      calendar: 'Work'
+      employeeName: 'สมชาย อนันต์',
+      leaveType: 'ลาป่วย',
+      start: new Date(currentYear, currentMonth, 5, 8, 0),
+      end: new Date(currentYear, currentMonth, 5, 17, 0),
+      duration: '1 วัน',
+      reason: 'ไข้หวัดใหญ่'
     },
     {
       id: 2,
-      title: 'Doctor Appointment',
-      start: new Date(currentYear, currentMonth, 12, 14, 30),
-      end: new Date(currentYear, currentMonth, 12, 15, 30),
-      description: 'Annual health checkup',
-      calendar: 'Personal'
+      employeeName: 'สุดา ใจดี',
+      leaveType: 'ลาพักร้อน',
+      start: new Date(currentYear, currentMonth, 12, 8, 0),
+      end: new Date(currentYear, currentMonth, 14, 17, 0),
+      duration: '3 วัน',
+      reason: 'ท่องเที่ยวกับครอบครัว'
     },
     {
       id: 3,
-      title: 'Project Deadline',
-      start: new Date(currentYear, currentMonth, 18, 17, 0),
-      end: new Date(currentYear, currentMonth, 18, 18, 0),
-      description: 'Submit final project deliverables',
-      calendar: 'Work'
+      employeeName: 'วิชัย สมบูรณ์',
+      leaveType: 'ลากิจ',
+      start: new Date(currentYear, currentMonth, 18, 13, 0),
+      end: new Date(currentYear, currentMonth, 18, 17, 0),
+      duration: '0.5 วัน',
+      reason: 'ธุระส่วนตัว'
     },
     {
       id: 4,
-      title: 'Family Dinner',
-      start: new Date(currentYear, currentMonth, 22, 19, 0),
-      end: new Date(currentYear, currentMonth, 22, 21, 0),
-      description: 'Monthly family gathering',
-      calendar: 'Personal'
+      employeeName: 'มาลี ประเสริฐ',
+      leaveType: 'ลาคลอด',
+      start: new Date(currentYear, currentMonth, 22, 8, 0),
+      end: new Date(currentYear, currentMonth + 2, 22, 17, 0),
+      duration: '90 วัน',
+      reason: 'ลาคลอดบุตร'
     },
     {
       id: 5,
-      title: 'Workshop',
-      start: new Date(currentYear, currentMonth, 28, 9, 0),
-      end: new Date(currentYear, currentMonth, 28, 17, 0),
-      description: 'Professional development workshop',
-      calendar: 'Work'
+      employeeName: 'ชัยรัตน์ วงศ์ดี',
+      leaveType: 'ลาป่วย',
+      start: new Date(currentYear, currentMonth, 28, 8, 0),
+      end: new Date(currentYear, currentMonth, 29, 17, 0),
+      duration: '2 วัน',
+      reason: 'อุบัติเหตุ'
     }
   ]
 }
@@ -121,9 +126,6 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
     setSelectedDate(date)
     const dayEvents = getEventsForDate(date)
     setSelectedEvents(dayEvents)
-    if (dayEvents.length > 0) {
-      setShowEventDialog(true)
-    }
   }
 
   // Navigation functions
@@ -258,41 +260,122 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
         {viewMode === 'month' && (
           <Box sx={{ 
             display: 'grid', 
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: 2,
-            mt: 2
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: 3,
+            mt: 3,
+            px: 2
           }}>
-            {['January', 'February', 'March', 'April', 'May', 'June', 
-              'July', 'August', 'September', 'October', 'November', 'December'].map((month, index) => (
-              <Button
+            {['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 
+              'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'].map((month, index) => (
+              <Card
                 key={month}
+                elevation={index === currentDate.getMonth() ? 4 : 1}
+                sx={{ 
+                  cursor: 'pointer',
+                  backgroundColor: index === currentDate.getMonth() ? '#FF6B6B' : '#FFFFFF',
+                  color: index === currentDate.getMonth() ? '#FFFFFF' : '#000000',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    elevation: 6,
+                    transform: 'translateY(-2px)'
+                  }
+                }}
                 onClick={() => handleMonthSelect(index)}
-                variant={index === currentDate.getMonth() ? 'contained' : 'outlined'}
-                sx={{ py: 2 }}
               >
-                {month}
-              </Button>
+                <CardContent sx={{ 
+                  py: 3, 
+                  textAlign: 'center',
+                  '&:last-child': { pb: 3 }
+                }}>
+                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                    {month}
+                  </Typography>
+                </CardContent>
+              </Card>
             ))}
           </Box>
         )}
 
         {viewMode === 'year' && (
           <Box sx={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: 2,
-            mt: 2
+            mt: 3,
+            px: 2
           }}>
-            {Array.from({ length: 20 }, (_, i) => getYear(currentDate) - 10 + i).map((year) => (
-              <Button
-                key={year}
-                onClick={() => handleYearSelect(year)}
-                variant={year === getYear(currentDate) ? 'contained' : 'outlined'}
-                sx={{ py: 2 }}
-              >
-                {year}
-              </Button>
-            ))}
+            {/* Current Year Display */}
+            <Box sx={{ 
+              textAlign: 'center', 
+              mb: 4,
+              py: 3,
+              backgroundColor: '#F8F9FA',
+              borderRadius: '16px',
+              border: '1px solid #E0E0E0'
+            }}>
+              <Typography variant="h4" sx={{ 
+                fontWeight: 'bold', 
+                color: '#FF6B6B',
+                mb: 1
+              }}>
+                {getYear(currentDate)}
+              </Typography>
+              <Typography variant="body2" sx={{ color: '#666666' }}>
+                ปีปัจจุบัน
+              </Typography>
+            </Box>
+
+            {/* Year List */}
+            <Box sx={{ 
+              maxHeight: '400px',
+              overflowY: 'auto',
+              '&::-webkit-scrollbar': {
+                width: '4px',
+              },
+              '&::-webkit-scrollbar-track': {
+                backgroundColor: '#F5F5F5',
+                borderRadius: '2px'
+              },
+              '&::-webkit-scrollbar-thumb': {
+                backgroundColor: '#CCCCCC',
+                borderRadius: '2px',
+                '&:hover': {
+                  backgroundColor: '#999999'
+                }
+              }
+            }}>
+              {Array.from({ length: 21 }, (_, i) => getYear(currentDate) - 10 + i).map((year, index) => (
+                <Box
+                  key={year}
+                  onClick={() => handleYearSelect(year)}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    py: 2.5,
+                    px: 3,
+                    mb: 0.5,
+                    cursor: 'pointer',
+                    backgroundColor: year === getYear(currentDate) ? '#FF6B6B' : 'transparent',
+                    color: year === getYear(currentDate) ? '#FFFFFF' : '#000000',
+                    borderRadius: '12px',
+                    transition: 'all 0.2s ease',
+                    borderLeft: year === getYear(currentDate) ? '4px solid #FFFFFF' : '4px solid transparent',
+                    '&:hover': {
+                      backgroundColor: year === getYear(currentDate) ? '#FF6B6B' : '#F5F5F5',
+                      transform: 'translateX(4px)'
+                    },
+                    '&:active': {
+                      transform: 'scale(0.98)'
+                    }
+                  }}
+                >
+                  <Typography variant="h6" sx={{ 
+                    fontWeight: year === getYear(currentDate) ? 'bold' : 'medium',
+                    fontSize: '1.1rem'
+                  }}>
+                    {year}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
           </Box>
         )}
 
@@ -377,16 +460,65 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
           </Card>
         )}
 
-        {/* No Events Message */}
-        <Box sx={{ 
-          textAlign: 'center', 
-          mt: 6,
-          color: '#999999'
-        }}>
-          <Typography variant="h6">
-            No Events
-          </Typography>
-        </Box>
+        {/* Events Display */}
+        {viewMode === 'calendar' && (
+          <Box sx={{ mt: 4 }}>
+            {selectedDate && selectedEvents.length > 0 ? (
+              <Box>
+                <Typography variant="h6" sx={{ mb: 3, fontWeight: 'bold', color: '#000000' }}>
+                  รายการลาวันที่ {format(selectedDate, 'd MMMM yyyy')}
+                </Typography>
+                <Stack spacing={2}>
+                  {selectedEvents.map((event, index) => (
+                    <Card key={index} elevation={2} sx={{ backgroundColor: '#FFFFFF' }}>
+                      <CardContent sx={{ p: 3 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                          <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#000000' }}>
+                            {event.employeeName}
+                          </Typography>
+                          <Chip 
+                            label={event.leaveType} 
+                            size="small"
+                            sx={{ 
+                              backgroundColor: event.leaveType === 'ลาป่วย' ? '#FFE5E5' : 
+                                               event.leaveType === 'ลาพักร้อน' ? '#E5F3FF' :
+                                               event.leaveType === 'ลากิจ' ? '#FFF5E5' : '#E8F5E8',
+                              color: event.leaveType === 'ลาป่วย' ? '#D32F2F' : 
+                                     event.leaveType === 'ลาพักร้อน' ? '#1976D2' :
+                                     event.leaveType === 'ลากิจ' ? '#F57C00' : '#388E3C',
+                              fontWeight: 'bold'
+                            }}
+                          />
+                        </Box>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                          <strong>ระยะเวลา:</strong> {event.duration}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                          <strong>เวลา:</strong> {format(new Date(event.start), 'HH:mm')} - {format(new Date(event.end), 'HH:mm')} น.
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          <strong>เหตุผล:</strong> {event.reason}
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </Stack>
+              </Box>
+            ) : selectedDate ? (
+              <Box sx={{ textAlign: 'center', mt: 6, color: '#999999' }}>
+                <Typography variant="h6">
+                  ไม่มีรายการลาในวันที่ {format(selectedDate, 'd MMMM yyyy')}
+                </Typography>
+              </Box>
+            ) : (
+              <Box sx={{ textAlign: 'center', mt: 6, color: '#999999' }}>
+                <Typography variant="h6">
+                  เลือกวันที่เพื่อดูรายการลา
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        )}
 
         {/* Bottom Navigation */}
         {/* <Box sx={{ 
@@ -413,52 +545,6 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
         </Box> */}
       </Box>
 
-      {/* Event Details Dialog */}
-      <Dialog
-        open={showEventDialog}
-        onClose={() => setShowEventDialog(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          Events for {selectedDate && format(selectedDate, 'MMMM d, yyyy')}
-        </DialogTitle>
-        <DialogContent>
-          {selectedEvents.length === 0 ? (
-            <Typography>No events for this date</Typography>
-          ) : (
-            <Stack spacing={2}>
-              {selectedEvents.map((event, index) => (
-                <Card key={index} elevation={1}>
-                  <CardContent>
-                    <Typography variant="h6" gutterBottom>
-                      {event.title}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      {format(new Date(event.start), 'h:mm a')} - {format(new Date(event.end), 'h:mm a')}
-                    </Typography>
-                    {event.description && (
-                      <Typography variant="body2" sx={{ mt: 1 }}>
-                        {event.description}
-                      </Typography>
-                    )}
-                    <Box sx={{ mt: 2 }}>
-                      <Chip 
-                        label={event.calendar || 'General'} 
-                        size="small"
-                        variant="outlined"
-                      />
-                    </Box>
-                  </CardContent>
-                </Card>
-              ))}
-            </Stack>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setShowEventDialog(false)}>Close</Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   )
 }
