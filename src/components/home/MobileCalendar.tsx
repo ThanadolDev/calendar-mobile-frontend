@@ -1,5 +1,5 @@
 // React Imports
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 // MUI Imports
 import { 
@@ -97,16 +97,129 @@ type MobileCalendarProps = {
 
 type ViewMode = 'calendar' | 'month' | 'year'
 
+// Year Picker Component
+const YearPicker = ({ currentYear, onYearSelect }: { currentYear: number, onYearSelect: (year: number) => void }) => {
+  const yearListRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    // Auto-scroll to selected year when component mounts
+    if (yearListRef.current) {
+      const selectedElement = yearListRef.current.querySelector(`[data-year="${currentYear}"]`)
+      if (selectedElement) {
+        selectedElement.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        })
+      }
+    }
+  }, [currentYear])
+
+  const years = Array.from({ length: 26 }, (_, i) => currentYear - 20 + i)
+
+  return (
+    <Box sx={{ 
+      mt: 3,
+      px: 2
+    }}>
+      {/* Current Year Display */}
+      <Box sx={{ 
+        textAlign: 'center', 
+        mb: 4,
+        py: 3,
+        backgroundColor: '#F8F9FA',
+        borderRadius: '16px',
+        border: '1px solid #E0E0E0'
+      }}>
+        <Typography variant="h4" sx={{ 
+          fontWeight: 'bold', 
+          color: '#FF6B6B',
+          mb: 1
+        }}>
+          {currentYear}
+        </Typography>
+        <Typography variant="body2" sx={{ color: '#666666' }}>
+          ปีปัจจุบัน
+        </Typography>
+      </Box>
+
+      {/* Year List */}
+      <Box 
+        ref={yearListRef}
+        sx={{ 
+          maxHeight: '400px',
+          overflowY: 'auto',
+          '&::-webkit-scrollbar': {
+            width: '4px',
+          },
+          '&::-webkit-scrollbar-track': {
+            backgroundColor: '#F5F5F5',
+            borderRadius: '2px'
+          },
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: '#CCCCCC',
+            borderRadius: '2px',
+            '&:hover': {
+              backgroundColor: '#999999'
+            }
+          }
+        }}
+      >
+        {years.map((year) => (
+          <Box
+            key={year}
+            data-year={year}
+            onClick={() => onYearSelect(year)}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              py: 2.5,
+              px: 3,
+              mb: 0.5,
+              cursor: 'pointer',
+              backgroundColor: year === currentYear ? '#FF6B6B' : 'transparent',
+              color: year === currentYear ? '#FFFFFF' : '#000000',
+              borderRadius: '12px',
+              transition: 'all 0.2s ease',
+              borderLeft: year === currentYear ? '4px solid #FFFFFF' : '4px solid transparent',
+              '&:hover': {
+                backgroundColor: year === currentYear ? '#FF6B6B' : '#F5F5F5',
+                transform: 'translateX(4px)'
+              },
+              '&:active': {
+                transform: 'scale(0.98)'
+              }
+            }}
+          >
+            <Typography variant="h6" sx={{ 
+              fontWeight: year === currentYear ? 'bold' : 'medium',
+              fontSize: '1.1rem'
+            }}>
+              {year}
+            </Typography>
+          </Box>
+        ))}
+      </Box>
+    </Box>
+  )
+}
+
 const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
   // State
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date())
   const [showEventDialog, setShowEventDialog] = useState(false)
   const [selectedEvents, setSelectedEvents] = useState<any[]>([])
   const [viewMode, setViewMode] = useState<ViewMode>('calendar')
 
   // Hooks
   const theme = useTheme()
+
+  // Initialize today's events
+  useEffect(() => {
+    const todayEvents = getEventsForDate(new Date())
+    setSelectedEvents(todayEvents)
+  }, [events])
 
   // Get events for selected date
   const getEventsForDate = (date: Date) => {
@@ -159,20 +272,48 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
 
   // Navigation handlers
   const handleBackClick = () => {
-    if (viewMode === 'calendar') {
+    if (viewMode === 'year') {
       setViewMode('month')
     } else if (viewMode === 'month') {
-      setViewMode('year')
+      setViewMode('calendar')
     }
   }
 
   const handleMonthSelect = (monthIndex: number) => {
-    setCurrentDate(setMonth(currentDate, monthIndex))
+    const newDate = setMonth(currentDate, monthIndex)
+    setCurrentDate(newDate)
+    
+    // Check if it's current month/year, if so select today, otherwise unselect
+    const today = new Date()
+    const isCurrentMonth = newDate.getMonth() === today.getMonth() && newDate.getFullYear() === today.getFullYear()
+    
+    if (isCurrentMonth) {
+      setSelectedDate(today)
+      setSelectedEvents(getEventsForDate(today))
+    } else {
+      setSelectedDate(null)
+      setSelectedEvents([])
+    }
+    
     setViewMode('calendar')
   }
 
   const handleYearSelect = (year: number) => {
-    setCurrentDate(setYear(currentDate, year))
+    const newDate = setYear(currentDate, year)
+    setCurrentDate(newDate)
+    
+    // Check if it's current year, if so select today, otherwise unselect
+    const today = new Date()
+    const isCurrentYear = newDate.getFullYear() === today.getFullYear()
+    
+    if (isCurrentYear) {
+      setSelectedDate(today)
+      setSelectedEvents(getEventsForDate(today))
+    } else {
+      setSelectedDate(null)
+      setSelectedEvents([])
+    }
+    
     setViewMode('month')
   }
 
@@ -210,20 +351,20 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
       }}>
         <Toolbar sx={{ justifyContent: 'space-between', px: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {viewMode !== 'year' && (
+              <IconButton onClick={handleBackClick} size="small">
+                <ChevronLeft />
+              </IconButton>
+            )}
             <Typography 
               variant="h6" 
-              sx={{ fontWeight: 'bold', cursor: 'pointer' }}
-              onClick={() => setViewMode('year')}
+              sx={{ fontWeight: 'bold', cursor: viewMode === 'calendar' ? 'pointer' : 'default' }}
+              onClick={viewMode === 'calendar' ? () => setViewMode('month') : undefined}
             >
               {viewMode === 'calendar' && `${getYear(currentDate)} BE`}
               {viewMode === 'month' && `${getYear(currentDate)} BE`}
               {viewMode === 'year' && 'Select Year'}
             </Typography>
-            {(viewMode === 'month' || viewMode === 'year') && (
-              <IconButton onClick={handleBackClick} size="small">
-                <ChevronLeft />
-              </IconButton>
-            )}
           </Box>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <IconButton>
@@ -290,6 +431,20 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
                   <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
                     {month}
                   </Typography>
+                  <Typography 
+                    variant="body2" 
+                    sx={{ 
+                      color: index === currentDate.getMonth() ? '#FFFFFF' : '#666666',
+                      mt: 0.5,
+                      cursor: 'pointer'
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setViewMode('year')
+                    }}
+                  >
+                    {getYear(currentDate)}
+                  </Typography>
                 </CardContent>
               </Card>
             ))}
@@ -297,86 +452,10 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
         )}
 
         {viewMode === 'year' && (
-          <Box sx={{ 
-            mt: 3,
-            px: 2
-          }}>
-            {/* Current Year Display */}
-            <Box sx={{ 
-              textAlign: 'center', 
-              mb: 4,
-              py: 3,
-              backgroundColor: '#F8F9FA',
-              borderRadius: '16px',
-              border: '1px solid #E0E0E0'
-            }}>
-              <Typography variant="h4" sx={{ 
-                fontWeight: 'bold', 
-                color: '#FF6B6B',
-                mb: 1
-              }}>
-                {getYear(currentDate)}
-              </Typography>
-              <Typography variant="body2" sx={{ color: '#666666' }}>
-                ปีปัจจุบัน
-              </Typography>
-            </Box>
-
-            {/* Year List */}
-            <Box sx={{ 
-              maxHeight: '400px',
-              overflowY: 'auto',
-              '&::-webkit-scrollbar': {
-                width: '4px',
-              },
-              '&::-webkit-scrollbar-track': {
-                backgroundColor: '#F5F5F5',
-                borderRadius: '2px'
-              },
-              '&::-webkit-scrollbar-thumb': {
-                backgroundColor: '#CCCCCC',
-                borderRadius: '2px',
-                '&:hover': {
-                  backgroundColor: '#999999'
-                }
-              }
-            }}>
-              {Array.from({ length: 21 }, (_, i) => getYear(currentDate) - 10 + i).map((year, index) => (
-                <Box
-                  key={year}
-                  onClick={() => handleYearSelect(year)}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    py: 2.5,
-                    px: 3,
-                    mb: 0.5,
-                    cursor: 'pointer',
-                    backgroundColor: year === getYear(currentDate) ? '#FF6B6B' : 'transparent',
-                    color: year === getYear(currentDate) ? '#FFFFFF' : '#000000',
-                    borderRadius: '12px',
-                    transition: 'all 0.2s ease',
-                    borderLeft: year === getYear(currentDate) ? '4px solid #FFFFFF' : '4px solid transparent',
-                    '&:hover': {
-                      backgroundColor: year === getYear(currentDate) ? '#FF6B6B' : '#F5F5F5',
-                      transform: 'translateX(4px)'
-                    },
-                    '&:active': {
-                      transform: 'scale(0.98)'
-                    }
-                  }}
-                >
-                  <Typography variant="h6" sx={{ 
-                    fontWeight: year === getYear(currentDate) ? 'bold' : 'medium',
-                    fontSize: '1.1rem'
-                  }}>
-                    {year}
-                  </Typography>
-                </Box>
-              ))}
-            </Box>
-          </Box>
+          <YearPicker 
+            currentYear={getYear(currentDate)}
+            onYearSelect={handleYearSelect}
+          />
         )}
 
         {viewMode === 'calendar' && (
