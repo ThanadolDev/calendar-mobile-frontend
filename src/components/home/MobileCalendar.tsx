@@ -34,25 +34,57 @@ import {
 // Date utilities
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, addMonths, subMonths, getYear, setYear, setMonth } from 'date-fns'
 
-// Sample events data
-const sampleEvents = [
-  {
-    id: 1,
-    title: 'Team Meeting',
-    start: new Date(2024, 6, 15, 10, 0), // July 15, 2024 10:00 AM
-    end: new Date(2024, 6, 15, 11, 0),
-    description: 'Weekly team sync meeting',
-    calendar: 'Work'
-  },
-  {
-    id: 2,
-    title: 'Doctor Appointment',
-    start: new Date(2024, 6, 20, 14, 30), // July 20, 2024 2:30 PM
-    end: new Date(2024, 6, 20, 15, 30),
-    description: 'Annual health checkup',
-    calendar: 'Personal'
-  }
-]
+// Sample events data - current month events
+const getCurrentMonthEvents = () => {
+  const now = new Date()
+  const currentMonth = now.getMonth()
+  const currentYear = now.getFullYear()
+  
+  return [
+    {
+      id: 1,
+      title: 'Team Meeting',
+      start: new Date(currentYear, currentMonth, 5, 10, 0),
+      end: new Date(currentYear, currentMonth, 5, 11, 0),
+      description: 'Weekly team sync meeting',
+      calendar: 'Work'
+    },
+    {
+      id: 2,
+      title: 'Doctor Appointment',
+      start: new Date(currentYear, currentMonth, 12, 14, 30),
+      end: new Date(currentYear, currentMonth, 12, 15, 30),
+      description: 'Annual health checkup',
+      calendar: 'Personal'
+    },
+    {
+      id: 3,
+      title: 'Project Deadline',
+      start: new Date(currentYear, currentMonth, 18, 17, 0),
+      end: new Date(currentYear, currentMonth, 18, 18, 0),
+      description: 'Submit final project deliverables',
+      calendar: 'Work'
+    },
+    {
+      id: 4,
+      title: 'Family Dinner',
+      start: new Date(currentYear, currentMonth, 22, 19, 0),
+      end: new Date(currentYear, currentMonth, 22, 21, 0),
+      description: 'Monthly family gathering',
+      calendar: 'Personal'
+    },
+    {
+      id: 5,
+      title: 'Workshop',
+      start: new Date(currentYear, currentMonth, 28, 9, 0),
+      end: new Date(currentYear, currentMonth, 28, 17, 0),
+      description: 'Professional development workshop',
+      calendar: 'Work'
+    }
+  ]
+}
+
+const sampleEvents = getCurrentMonthEvents()
 
 type MobileCalendarProps = {
   events?: any[]
@@ -81,6 +113,11 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
 
   // Handle date click
   const handleDateClick = (date: Date) => {
+    // Prevent unselecting the same date
+    if (selectedDate && isSameDay(date, selectedDate)) {
+      return
+    }
+    
     setSelectedDate(date)
     const dayEvents = getEventsForDate(date)
     setSelectedEvents(dayEvents)
@@ -171,16 +208,20 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
       }}>
         <Toolbar sx={{ justifyContent: 'space-between', px: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            {(viewMode === 'month' || viewMode === 'year') && (
-              <IconButton onClick={handleBackClick}>
-                <ChevronLeft />
-              </IconButton>
-            )}
-            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+            <Typography 
+              variant="h6" 
+              sx={{ fontWeight: 'bold', cursor: 'pointer' }}
+              onClick={() => setViewMode('year')}
+            >
               {viewMode === 'calendar' && `${getYear(currentDate)} BE`}
               {viewMode === 'month' && `${getYear(currentDate)} BE`}
               {viewMode === 'year' && 'Select Year'}
             </Typography>
+            {(viewMode === 'month' || viewMode === 'year') && (
+              <IconButton onClick={handleBackClick} size="small">
+                <ChevronLeft />
+              </IconButton>
+            )}
           </Box>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <IconButton>
