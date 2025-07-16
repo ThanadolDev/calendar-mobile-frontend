@@ -32,7 +32,7 @@ import {
 } from 'lucide-react'
 
 // Date utilities
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, addMonths, subMonths } from 'date-fns'
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, addMonths, subMonths, getYear, setYear, setMonth } from 'date-fns'
 
 // Sample events data
 const sampleEvents = [
@@ -58,12 +58,15 @@ type MobileCalendarProps = {
   events?: any[]
 }
 
+type ViewMode = 'calendar' | 'month' | 'year'
+
 const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
   // State
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [showEventDialog, setShowEventDialog] = useState(false)
   const [selectedEvents, setSelectedEvents] = useState<any[]>([])
+  const [viewMode, setViewMode] = useState<ViewMode>('calendar')
 
   // Hooks
   const theme = useTheme()
@@ -115,19 +118,42 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
 
   const calendarDays = generateCalendarDays()
 
+  // Navigation handlers
+  const handleBackClick = () => {
+    if (viewMode === 'calendar') {
+      setViewMode('month')
+    } else if (viewMode === 'month') {
+      setViewMode('year')
+    }
+  }
+
+  const handleMonthSelect = (monthIndex: number) => {
+    setCurrentDate(setMonth(currentDate, monthIndex))
+    setViewMode('calendar')
+  }
+
+  const handleYearSelect = (year: number) => {
+    setCurrentDate(setYear(currentDate, year))
+    setViewMode('month')
+  }
+
   // Get day style
   const getDayStyle = (date: Date) => {
     const isCurrentMonth = isSameMonth(date, currentDate)
     const isToday = isSameDay(date, new Date())
+    const isSelected = selectedDate && isSameDay(date, selectedDate)
     const hasEvents = getEventsForDate(date).length > 0
 
     return {
+      position: 'relative',
       opacity: isCurrentMonth ? 1 : 0.3,
-      backgroundColor: isToday ? '#FF6B6B' : 'transparent',
-      color: isToday ? '#FFFFFF' : theme.palette.text.primary,
-      fontWeight: isToday ? 'bold' : 'normal',
-      border: hasEvents ? `2px solid #FF6B6B` : 'none',
-      borderRadius: isToday ? '50%' : hasEvents ? '8px' : '0'
+      backgroundColor: isToday ? '#FF6B6B' : isSelected ? '#000000' : 'transparent',
+      color: isToday ? '#FFFFFF' : isSelected ? '#FFFFFF' : theme.palette.text.primary,
+      fontWeight: isToday || isSelected ? 'bold' : 'normal',
+      borderRadius: isToday || isSelected ? '50%' : '0',
+      width: '40px',
+      height: '40px',
+      aspectRatio: '1'
     }
   }
 
@@ -145,11 +171,15 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
       }}>
         <Toolbar sx={{ justifyContent: 'space-between', px: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <IconButton>
-              <ChevronLeft />
-            </IconButton>
+            {(viewMode === 'month' || viewMode === 'year') && (
+              <IconButton onClick={handleBackClick}>
+                <ChevronLeft />
+              </IconButton>
+            )}
             <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-              2569 BE
+              {viewMode === 'calendar' && `${getYear(currentDate)} BE`}
+              {viewMode === 'month' && `${getYear(currentDate)} BE`}
+              {viewMode === 'year' && 'Select Year'}
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', gap: 1 }}>
@@ -168,83 +198,143 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
 
       {/* Calendar Container */}
       <Box sx={{ padding: 2 }}>
-        {/* Month Navigation */}
-        <Box sx={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          mb: 3
-        }}>
-          <IconButton onClick={goToPreviousMonth} sx={{ p: 1 }}>
-            <ChevronLeft />
-          </IconButton>
-          <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#000000' }}>
-            {format(currentDate, 'MMMM')}
-          </Typography>
-          <IconButton onClick={goToNextMonth} sx={{ p: 1 }}>
-            <ChevronRight />
-          </IconButton>
-        </Box>
-
-        {/* Calendar Grid */}
-        <Card elevation={0} sx={{ 
-          backgroundColor: 'transparent',
-          border: 'none'
-        }}>
-          <CardContent sx={{ p: 0 }}>
-            {/* Day Headers */}
+        {viewMode === 'calendar' && (
+          <>
+            {/* Month Display */}
             <Box sx={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(7, 1fr)',
-              gap: 1,
-              mb: 2
+              display: 'flex', 
+              justifyContent: 'flex-start', 
+              alignItems: 'center',
+              mb: 3
             }}>
-              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => (
-                <Box key={index} sx={{ 
-                  textAlign: 'center',
-                  py: 1,
-                  color: '#666666',
-                  fontSize: '0.875rem',
-                  fontWeight: 'medium'
-                }}>
-                  {day}
-                </Box>
-              ))}
+              <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#000000' }}>
+                {format(currentDate, 'MMMM')}
+              </Typography>
             </Box>
+          </>
+        )}
 
-            {/* Calendar Days */}
-            <Box sx={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(7, 1fr)',
-              gap: 1
-            }}>
-              {calendarDays.map((date, index) => (
-                <Box
-                  key={index}
-                  onClick={() => handleDateClick(date)}
-                  sx={{
-                    ...getDayStyle(date),
+        {viewMode === 'month' && (
+          <Box sx={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: 2,
+            mt: 2
+          }}>
+            {['January', 'February', 'March', 'April', 'May', 'June', 
+              'July', 'August', 'September', 'October', 'November', 'December'].map((month, index) => (
+              <Button
+                key={month}
+                onClick={() => handleMonthSelect(index)}
+                variant={index === currentDate.getMonth() ? 'contained' : 'outlined'}
+                sx={{ py: 2 }}
+              >
+                {month}
+              </Button>
+            ))}
+          </Box>
+        )}
+
+        {viewMode === 'year' && (
+          <Box sx={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: 2,
+            mt: 2
+          }}>
+            {Array.from({ length: 20 }, (_, i) => getYear(currentDate) - 10 + i).map((year) => (
+              <Button
+                key={year}
+                onClick={() => handleYearSelect(year)}
+                variant={year === getYear(currentDate) ? 'contained' : 'outlined'}
+                sx={{ py: 2 }}
+              >
+                {year}
+              </Button>
+            ))}
+          </Box>
+        )}
+
+        {viewMode === 'calendar' && (
+          <Card elevation={0} sx={{ 
+            backgroundColor: 'transparent',
+            border: 'none'
+          }}>
+            <CardContent sx={{ p: 0 }}>
+              {/* Day Headers */}
+              <Box sx={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(7, 1fr)',
+                gap: 1,
+                mb: 2
+              }}>
+                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => (
+                  <Box key={index} sx={{ 
                     textAlign: 'center',
-                    py: 2,
-                    cursor: 'pointer',
-                    minHeight: '48px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '1rem',
-                    transition: 'all 0.2s ease',
-                    '&:hover': {
-                      backgroundColor: '#F0F0F0',
-                      borderRadius: '8px'
-                    }
-                  }}
-                >
-                  {format(date, 'd')}
-                </Box>
-              ))}
-            </Box>
-          </CardContent>
-        </Card>
+                    py: 1,
+                    color: '#666666',
+                    fontSize: '0.875rem',
+                    fontWeight: 'medium'
+                  }}>
+                    {day}
+                  </Box>
+                ))}
+              </Box>
+
+              {/* Calendar Days */}
+              <Box sx={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(7, 1fr)',
+                gap: 1
+              }}>
+                {calendarDays.map((date, index) => {
+                  const hasEvents = getEventsForDate(date).length > 0
+                  return (
+                    <Box
+                      key={index}
+                      onClick={() => handleDateClick(date)}
+                      sx={{
+                        ...getDayStyle(date),
+                        textAlign: 'center',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '1rem',
+                        transition: 'all 0.2s ease',
+                        '&:hover': {
+                          backgroundColor: '#F0F0F0',
+                          borderRadius: '8px'
+                        }
+                      }}
+                    >
+                      <Box sx={{ 
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '100%',
+                        height: '100%'
+                      }}>
+                        {format(date, 'd')}
+                      </Box>
+                      {hasEvents && (
+                        <Box sx={{
+                          width: '4px',
+                          height: '4px',
+                          backgroundColor: '#FF6B6B',
+                          borderRadius: '50%',
+                          position: 'absolute',
+                          bottom: '6px'
+                        }} />
+                      )}
+                    </Box>
+                  )
+                })}
+              </Box>
+            </CardContent>
+          </Card>
+        )}
 
         {/* No Events Message */}
         <Box sx={{ 
@@ -258,7 +348,7 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
         </Box>
 
         {/* Bottom Navigation */}
-        <Box sx={{ 
+        {/* <Box sx={{ 
           position: 'fixed',
           bottom: 0,
           left: 0,
@@ -279,7 +369,7 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
           <IconButton>
             <Mail />
           </IconButton>
-        </Box>
+        </Box> */}
       </Box>
 
       {/* Event Details Dialog */}
