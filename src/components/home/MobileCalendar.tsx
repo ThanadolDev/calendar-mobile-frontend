@@ -2,16 +2,16 @@
 import { useState, useEffect, useRef } from 'react'
 
 // MUI Imports
-import { 
-  Box, 
-  Typography, 
-  IconButton, 
-  Card, 
-  CardContent, 
-  Dialog, 
-  DialogTitle, 
-  DialogContent, 
-  DialogActions, 
+import {
+  Box,
+  Typography,
+  IconButton,
+  Card,
+  CardContent,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   Button,
   Chip,
   Stack,
@@ -21,11 +21,11 @@ import {
 import { useTheme } from '@mui/material/styles'
 
 // Icon Imports
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  Plus, 
-  Search, 
+import {
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Search,
   Menu,
   Calendar,
   Mail
@@ -39,7 +39,7 @@ const getCurrentMonthEvents = () => {
   const now = new Date()
   const currentMonth = now.getMonth()
   const currentYear = now.getFullYear()
-  
+
   return [
     {
       id: 1,
@@ -106,9 +106,9 @@ const YearPicker = ({ currentYear, onYearSelect }: { currentYear: number, onYear
     if (yearListRef.current) {
       const selectedElement = yearListRef.current.querySelector(`[data-year="${currentYear}"]`)
       if (selectedElement) {
-        selectedElement.scrollIntoView({ 
-          behavior: 'smooth', 
-          block: 'center' 
+        selectedElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
         })
       }
     }
@@ -117,21 +117,21 @@ const YearPicker = ({ currentYear, onYearSelect }: { currentYear: number, onYear
   const years = Array.from({ length: 26 }, (_, i) => currentYear - 20 + i)
 
   return (
-    <Box sx={{ 
+    <Box sx={{
       mt: 3,
       px: 2
     }}>
       {/* Current Year Display */}
-      <Box sx={{ 
-        textAlign: 'center', 
+      <Box sx={{
+        textAlign: 'center',
         mb: 4,
         py: 3,
         backgroundColor: '#F8F9FA',
         borderRadius: '16px',
         border: '1px solid #E0E0E0'
       }}>
-        <Typography variant="h4" sx={{ 
-          fontWeight: 'bold', 
+        <Typography variant="h4" sx={{
+          fontWeight: 'bold',
           color: '#FF6B6B',
           mb: 1
         }}>
@@ -143,9 +143,9 @@ const YearPicker = ({ currentYear, onYearSelect }: { currentYear: number, onYear
       </Box>
 
       {/* Year List */}
-      <Box 
+      <Box
         ref={yearListRef}
-        sx={{ 
+        sx={{
           maxHeight: '400px',
           overflowY: 'auto',
           '&::-webkit-scrollbar': {
@@ -191,7 +191,7 @@ const YearPicker = ({ currentYear, onYearSelect }: { currentYear: number, onYear
               }
             }}
           >
-            <Typography variant="h6" sx={{ 
+            <Typography variant="h6" sx={{
               fontWeight: year === currentYear ? 'bold' : 'medium',
               fontSize: '1.1rem'
             }}>
@@ -235,7 +235,7 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
     if (selectedDate && isSameDay(date, selectedDate)) {
       return
     }
-    
+
     setSelectedDate(date)
     const dayEvents = getEventsForDate(date)
     setSelectedEvents(dayEvents)
@@ -272,21 +272,22 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
 
   // Navigation handlers
   const handleBackClick = () => {
-    if (viewMode === 'year') {
+    if (viewMode === 'calendar') {
       setViewMode('month')
     } else if (viewMode === 'month') {
-      setViewMode('calendar')
+      setViewMode('year')
     }
   }
 
   const handleMonthSelect = (monthIndex: number) => {
     const newDate = setMonth(currentDate, monthIndex)
+
     setCurrentDate(newDate)
-    
+
     // Check if it's current month/year, if so select today, otherwise unselect
     const today = new Date()
     const isCurrentMonth = newDate.getMonth() === today.getMonth() && newDate.getFullYear() === today.getFullYear()
-    
+
     if (isCurrentMonth) {
       setSelectedDate(today)
       setSelectedEvents(getEventsForDate(today))
@@ -294,18 +295,18 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
       setSelectedDate(null)
       setSelectedEvents([])
     }
-    
+
     setViewMode('calendar')
   }
 
   const handleYearSelect = (year: number) => {
     const newDate = setYear(currentDate, year)
     setCurrentDate(newDate)
-    
+
     // Check if it's current year, if so select today, otherwise unselect
     const today = new Date()
     const isCurrentYear = newDate.getFullYear() === today.getFullYear()
-    
+
     if (isCurrentYear) {
       setSelectedDate(today)
       setSelectedEvents(getEventsForDate(today))
@@ -313,7 +314,7 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
       setSelectedDate(null)
       setSelectedEvents([])
     }
-    
+
     setViewMode('month')
   }
 
@@ -338,13 +339,13 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
   }
 
   return (
-    <Box sx={{ 
-      minHeight: '100vh', 
+    <Box sx={{
+      minHeight: '100vh',
       backgroundColor: '#F8F9FA',
       padding: 0
     }}>
       {/* Header */}
-      <AppBar position="static" elevation={0} sx={{ 
+      <AppBar position="static" elevation={0} sx={{
         backgroundColor: '#FFFFFF',
         color: '#000000',
         borderBottom: `1px solid #E0E0E0`
@@ -352,12 +353,14 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
         <Toolbar sx={{ justifyContent: 'space-between', px: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             {viewMode !== 'year' && (
-              <IconButton onClick={handleBackClick} size="small">
-                <ChevronLeft />
+              <IconButton
+              // onClick={handleBackClick}
+              size="small">
+                <ChevronLeft onClick={handleBackClick}/>
               </IconButton>
             )}
-            <Typography 
-              variant="h6" 
+            <Typography
+              variant="h6"
               sx={{ fontWeight: 'bold', cursor: viewMode === 'calendar' ? 'pointer' : 'default' }}
               onClick={viewMode === 'calendar' ? () => setViewMode('month') : undefined}
             >
@@ -366,7 +369,7 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
               {viewMode === 'year' && 'Select Year'}
             </Typography>
           </Box>
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          {/* <Box sx={{ display: 'flex', gap: 1 }}>
             <IconButton>
               <Menu />
             </IconButton>
@@ -376,7 +379,7 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
             <IconButton>
               <Plus />
             </IconButton>
-          </Box>
+          </Box> */}
         </Toolbar>
       </AppBar>
 
@@ -385,9 +388,9 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
         {viewMode === 'calendar' && (
           <>
             {/* Month Display */}
-            <Box sx={{ 
-              display: 'flex', 
-              justifyContent: 'flex-start', 
+            <Box sx={{
+              display: 'flex',
+              justifyContent: 'flex-start',
               alignItems: 'center',
               mb: 3
             }}>
@@ -399,19 +402,19 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
         )}
 
         {viewMode === 'month' && (
-          <Box sx={{ 
-            display: 'grid', 
+          <Box sx={{
+            display: 'grid',
             gridTemplateColumns: 'repeat(2, 1fr)',
             gap: 3,
             mt: 3,
             px: 2
           }}>
-            {['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 
+            {['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
               'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'].map((month, index) => (
               <Card
                 key={month}
                 elevation={index === currentDate.getMonth() ? 4 : 1}
-                sx={{ 
+                sx={{
                   cursor: 'pointer',
                   backgroundColor: index === currentDate.getMonth() ? '#FF6B6B' : '#FFFFFF',
                   color: index === currentDate.getMonth() ? '#FFFFFF' : '#000000',
@@ -423,17 +426,17 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
                 }}
                 onClick={() => handleMonthSelect(index)}
               >
-                <CardContent sx={{ 
-                  py: 3, 
+                <CardContent sx={{
+                  py: 3,
                   textAlign: 'center',
                   '&:last-child': { pb: 3 }
                 }}>
                   <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
                     {month}
                   </Typography>
-                  <Typography 
-                    variant="body2" 
-                    sx={{ 
+                  <Typography
+                    variant="body2"
+                    sx={{
                       color: index === currentDate.getMonth() ? '#FFFFFF' : '#666666',
                       mt: 0.5,
                       cursor: 'pointer'
@@ -452,27 +455,27 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
         )}
 
         {viewMode === 'year' && (
-          <YearPicker 
+          <YearPicker
             currentYear={getYear(currentDate)}
             onYearSelect={handleYearSelect}
           />
         )}
 
         {viewMode === 'calendar' && (
-          <Card elevation={0} sx={{ 
+          <Card elevation={0} sx={{
             backgroundColor: 'transparent',
             border: 'none'
           }}>
             <CardContent sx={{ p: 0 }}>
               {/* Day Headers */}
-              <Box sx={{ 
-                display: 'grid', 
+              <Box sx={{
+                display: 'grid',
                 gridTemplateColumns: 'repeat(7, 1fr)',
                 gap: 1,
                 mb: 2
               }}>
                 {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => (
-                  <Box key={index} sx={{ 
+                  <Box key={index} sx={{
                     textAlign: 'center',
                     py: 1,
                     color: '#666666',
@@ -485,8 +488,8 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
               </Box>
 
               {/* Calendar Days */}
-              <Box sx={{ 
-                display: 'grid', 
+              <Box sx={{
+                display: 'grid',
                 gridTemplateColumns: 'repeat(7, 1fr)',
                 gap: 1
               }}>
@@ -512,7 +515,7 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
                         }
                       }}
                     >
-                      <Box sx={{ 
+                      <Box sx={{
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -555,14 +558,14 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
                           <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#000000' }}>
                             {event.employeeName}
                           </Typography>
-                          <Chip 
-                            label={event.leaveType} 
+                          <Chip
+                            label={event.leaveType}
                             size="small"
-                            sx={{ 
-                              backgroundColor: event.leaveType === 'ลาป่วย' ? '#FFE5E5' : 
+                            sx={{
+                              backgroundColor: event.leaveType === 'ลาป่วย' ? '#FFE5E5' :
                                                event.leaveType === 'ลาพักร้อน' ? '#E5F3FF' :
                                                event.leaveType === 'ลากิจ' ? '#FFF5E5' : '#E8F5E8',
-                              color: event.leaveType === 'ลาป่วย' ? '#D32F2F' : 
+                              color: event.leaveType === 'ลาป่วย' ? '#D32F2F' :
                                      event.leaveType === 'ลาพักร้อน' ? '#1976D2' :
                                      event.leaveType === 'ลากิจ' ? '#F57C00' : '#388E3C',
                               fontWeight: 'bold'
@@ -600,7 +603,7 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
         )}
 
         {/* Bottom Navigation */}
-        {/* <Box sx={{ 
+        {/* <Box sx={{
           position: 'fixed',
           bottom: 0,
           left: 0,
