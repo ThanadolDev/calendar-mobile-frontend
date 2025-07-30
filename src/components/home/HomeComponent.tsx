@@ -34,6 +34,7 @@ import fileUploadService from '../../services/fileUploadService'
 import fileDownloadService from '../../services/fileDownloadService'
 import { useEmployees } from '../../hooks/useEmployees'
 import EmployeeDropdown from '../ui/EmployeeDropdown'
+import { useToast } from '../ui/Toast'
 
 // Constants
 const SWIPE_THRESHOLD = 50
@@ -76,6 +77,9 @@ const FeedbackDashboard = () => {
 
   // Employee management
   const { getEmployeeName } = useEmployees()
+  
+  // Toast notifications
+  const { showToast } = useToast()
 
   // Use the expressions hook for API integration
   const {
@@ -100,7 +104,6 @@ const FeedbackDashboard = () => {
   const [currentMonth, setCurrentMonth] = useState(() => {
     const month = new Date().getMonth()
 
-    console.log('Initial month:', month, new Date())
 
     return month
   })
@@ -110,6 +113,9 @@ const FeedbackDashboard = () => {
   const [uploadLoading, setUploadLoading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [showPublishConfirmation, setShowPublishConfirmation] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [pullDistance, setPullDistance] = useState(0)
+  const [isTransitioning, setIsTransitioning] = useState(false)
 
   const [selectedExpression, setSelectedExpression] = useState<
     | (Expression & {
@@ -136,7 +142,10 @@ const FeedbackDashboard = () => {
 
   const touchStartX = useRef(0)
   const touchEndX = useRef(0)
+  const touchStartY = useRef(0)
+  const touchEndY = useRef(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
 
   // Helper function to check if file is an image
   const isImageFile = (fileName: string, mimeType?: string) => {
@@ -191,43 +200,110 @@ const FeedbackDashboard = () => {
     return false
   }
 
-  // Handle touch events
+  // Handle touch events for swipe navigation
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.targetTouches[0].clientX
+    touchStartY.current = e.targetTouches[0].clientY
   }
 
   const handleTouchMove = (e: React.TouchEvent) => {
     touchEndX.current = e.targetTouches[0].clientX
+    touchEndY.current = e.targetTouches[0].clientY
+  }
+
+  // Pull-to-refresh functionality
+  const handlePullRefresh = async () => {
+    if (isRefreshing) return
+    
+    setIsRefreshing(true)
+    showToast({
+      type: 'info',
+      title: 'กำลังรีเฟรช',
+      message: 'กำลังโหลดข้อมูลใหม่...',
+      duration: 2000
+    })
+    
+    try {
+      if (userEmpId) {
+        const filters = {
+          timePeriod,
+          year: currentYear,
+          ...(timePeriod === 'monthly' && { month: currentMonth })
+        }
+        
+        await Promise.all([
+          loadReceivedExpressions(userEmpId, filters),
+          loadSentExpressions(userEmpId, filters)
+        ])
+        
+        showToast({
+          type: 'success',
+          title: 'รีเฟรชสำเร็จ',
+          message: 'ข้อมูลถูกอัพเดทแล้ว',
+          duration: 2000
+        })
+      }
+    } catch (error) {
+      showToast({
+        type: 'error',
+        title: 'รีเฟรชล้มเหลว',
+        message: 'กรุณาลองใหม่อีกครั้ง'
+      })
+    } finally {
+      setIsRefreshing(false)
+    }
   }
 
   const handleTouchEnd = () => {
     if (!touchStartX.current || !touchEndX.current) return
 
-    const distance = touchStartX.current - touchEndX.current
-    const isLeftSwipe = distance > SWIPE_THRESHOLD
-    const isRightSwipe = distance < -SWIPE_THRESHOLD
-
-    if (timePeriod === 'monthly') {
-      if (isLeftSwipe) {
-        navigateMonth(1)
-      } else if (isRightSwipe) {
-        navigateMonth(-1)
+    const distanceX = touchStartX.current - touchEndX.current
+    const distanceY = touchStartY.current - touchEndY.current
+    const isLeftSwipe = distanceX > SWIPE_THRESHOLD
+    const isRightSwipe = distanceX < -SWIPE_THRESHOLD
+    const isPullDown = distanceY < -SWIPE_THRESHOLD
+    
+    // Prioritize vertical gestures for pull-to-refresh
+    if (Math.abs(distanceY) > Math.abs(distanceX) && isPullDown && scrollRef.current?.scrollTop === 0) {
+      handlePullRefresh()
+      return
+    }
+    
+    // Only handle horizontal swipes if vertical movement is minimal
+    if (Math.abs(distanceX) > Math.abs(distanceY)) {
+      // Add haptic feedback for supported devices
+      if (navigator.vibrate) {
+        navigator.vibrate(50)
       }
-    } else {
-      if (isLeftSwipe) {
-        navigateYear(1)
-      } else if (isRightSwipe) {
-        navigateYear(-1)
+      
+      setIsTransitioning(true)
+      
+      if (timePeriod === 'monthly') {
+        if (isLeftSwipe) {
+          navigateMonth(1)
+        } else if (isRightSwipe) {
+          navigateMonth(-1)
+        }
+      } else {
+        if (isLeftSwipe) {
+          navigateYear(1)
+        } else if (isRightSwipe) {
+          navigateYear(-1)
+        }
       }
+      
+      // Reset transition state after animation
+      setTimeout(() => setIsTransitioning(false), 300)
     }
   }
 
   // Navigation functions
   const navigateMonth = (direction: number) => {
+    if (isTransitioning) return // Prevent rapid navigation
+    
     setPeriodLoading(true)
     const newMonth = currentMonth + direction
 
-    console.log('navigateMonth - current:', currentMonth, 'direction:', direction, 'newMonth:', newMonth)
 
     // Use React.startTransition to ensure state updates are batched properly
     React.startTransition(() => {
@@ -247,6 +323,8 @@ const FeedbackDashboard = () => {
   }
 
   const navigateYear = (direction: number) => {
+    if (isTransitioning) return // Prevent rapid navigation
+    
     setPeriodLoading(true)
     React.startTransition(() => {
       setCurrentYear(currentYear + direction)
@@ -444,12 +522,10 @@ const FeedbackDashboard = () => {
           attachments: [...(expressionData.attachments || []), ...newAttachments]
         })
 
-        console.log('Files uploaded successfully:', uploadResult.data.files)
       } else {
         throw new Error(uploadResult.message || 'Upload failed')
       }
     } catch (error) {
-      console.error('File upload error:', error)
       alert(`File upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setUploadLoading(false)
@@ -467,7 +543,11 @@ const FeedbackDashboard = () => {
   const handleSaveExpression = async (status: 'draft' | 'published') => {
     if (!expressionData.recipient || !expressionData.content) {
       // Note: Error handling is managed by the useExpressions hook
-      alert('กรุณากรอกข้อมูลให้ครบถ้วน')
+      showToast({
+        type: 'warning',
+        title: 'ข้อมูลไม่ครบถ้วน',
+        message: 'กรุณากรอกผู้รับและเนื้อหาให้ครบถ้วน'
+      })
 
       return
     }
@@ -505,13 +585,11 @@ const FeedbackDashboard = () => {
         // Don't await here to make the UI feel more responsive
         Promise.all([loadReceivedExpressions(userEmpId, filters), loadSentExpressions(userEmpId, filters)]).catch(
           error => {
-            console.error('Failed to refresh expressions after create:', error)
           }
         )
       }
     } catch (error) {
       // Error is already handled by the hook
-      console.error('Failed to save expression:', error)
     }
   }
 
@@ -553,7 +631,6 @@ subject: '',
         loadSentExpressions(userEmpId, filters)
       }
     } catch (error) {
-      console.error('Failed to delete expression:', error)
       alert('ไม่สามารถลบความคิดเห็นได้ กรุณาลองใหม่อีกครั้ง')
     }
   }
@@ -561,7 +638,11 @@ subject: '',
   // Handle updating an existing expression
   const handleUpdateExpression = async (status: 'draft' | 'published') => {
     if (!expressionData.recipient || !expressionData.content) {
-      alert('กรุณากรอกข้อมูลให้ครบถ้วน')
+      showToast({
+        type: 'warning',
+        title: 'ข้อมูลไม่ครบถ้วน',
+        message: 'กรุณากรอกผู้รับและเนื้อหาให้ครบถ้วน'
+      })
 
       return
     }
@@ -618,12 +699,10 @@ subject: '',
 
         Promise.all([loadReceivedExpressions(userEmpId, filters), loadSentExpressions(userEmpId, filters)]).catch(
           error => {
-            console.error('Failed to refresh expressions after update:', error)
           }
         )
       }
     } catch (error) {
-      console.error('Failed to update expression:', error)
     }
   }
 
@@ -645,8 +724,11 @@ subject: '',
   }, [error, clearError])
 
   // Debug logging
-  console.log('HomeComponent render - user:', user, 'userEmpId:', userEmpId, 'loading:', loading)
-  console.log('Current date values - month:', currentMonth, 'year:', currentYear)
+  // Development debugging - remove in production
+  if (process.env.NODE_ENV === 'development') {
+    console.log('HomeComponent render - user:', user, 'userEmpId:', userEmpId, 'loading:', loading)
+    console.log('Current date values - month:', currentMonth, 'year:', currentYear)
+  }
 
   // If no user and not loading, redirect to login
   React.useEffect(() => {
@@ -659,15 +741,21 @@ subject: '',
   // Show loading if expressions are loading or if we're redirecting
   if (loading || !user || !userEmpId) {
     return (
-      <div className='min-h-screen bg-white flex items-center justify-center'>
-        <div className='text-center'>
-          <div className='inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600'></div>
-          <p className='mt-2 text-gray-800 font-medium'>
-            {!user ? 'กำลังตรวจสอบการเข้าสู่ระบบ...' : 'กำลังโหลดข้อมูล...'}
-          </p>
+      <div className='min-h-screen bg-gray-100 flex items-center justify-center p-4'>
+        <div className='text-center max-w-sm w-full'>
+          <div className='w-16 h-16 mx-auto mb-4 relative'>
+            <div className='absolute inset-0 rounded-full border-4 border-blue-200'></div>
+            <div className='absolute inset-0 rounded-full border-4 border-transparent border-t-blue-600 animate-spin'></div>
+          </div>
+          <div className='space-y-2'>
+            <p className='text-lg font-semibold text-gray-900'>
+              {!user ? 'กำลังตรวจสอบการเข้าสู่ระบบ...' : 'กำลังโหลดข้อมูล...'}
+            </p>
+            <p className='text-sm text-gray-600'>กรุณารอสักครู่...</p>
+          </div>
           {/* Debug info in development */}
           {process.env.NODE_ENV === 'development' && (
-            <div className='mt-4 text-sm text-gray-700 bg-gray-100 p-3 rounded-lg'>
+            <div className='mt-6 text-xs text-gray-600 bg-gray-50 p-3 rounded-lg border'>
               <p>User: {user ? 'Available' : 'Not found'}</p>
               <p>UserEmpId: {userEmpId || 'Not found'}</p>
               <p>Loading: {loading ? 'True' : 'False'}</p>
@@ -791,8 +879,8 @@ const StatCard = ({ title, value, icon: Icon, bgColor, textColor }: StatCardProp
     >
       <div className='flex items-start justify-between mb-3'>
         <div className='flex items-center'>
-          <div className='w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3 border-2 border-blue-200'>
-            <User className='w-5 h-5 text-blue-700' />
+          <div className='w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mr-3 border-2 border-blue-200'>
+            <User className='w-6 h-6 text-blue-700' />
           </div>
           <div>
             <p className='font-semibold text-sm text-gray-900'>
@@ -899,10 +987,10 @@ const StatCard = ({ title, value, icon: Icon, bgColor, textColor }: StatCardProp
               e.stopPropagation()
               handleEditExpression(expression)
             }}
-            className='w-10 h-10 text-gray-600 bg-white hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors border border-gray-300 hover:border-blue-300'
+            className='w-12 h-12 text-gray-600 bg-white hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors border border-gray-300 hover:border-blue-300 flex items-center justify-center'
             aria-label='แก้ไข'
           >
-            <Edit3 className='w-4 h-4' />
+            <Edit3 className='w-5 h-5' />
           </button>
           {/* Delete button - show for all my expressions */}
           <button
@@ -910,10 +998,10 @@ const StatCard = ({ title, value, icon: Icon, bgColor, textColor }: StatCardProp
               e.stopPropagation()
               handleDeleteExpression(expression.EXP_ID)
             }}
-            className='w-10 h-10 text-gray-600 bg-white hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors border border-gray-300 hover:border-red-300'
+            className='w-12 h-12 text-gray-600 bg-white hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors border border-gray-300 hover:border-red-300 flex items-center justify-center'
             aria-label='ลบ'
           >
-            <Trash2 className='w-4 h-4' />
+            <Trash2 className='w-5 h-5' />
           </button>
         </div>
       )}
@@ -1095,7 +1183,7 @@ const StatCard = ({ title, value, icon: Icon, bgColor, textColor }: StatCardProp
   }
 
   return (
-    <div className='min-h-screen bg-gray-100'>
+    <div ref={scrollRef} className='min-h-screen bg-gray-100 overflow-auto'>
       {/* Error Message */}
       {error && (
         <div className='mx-4 mt-4 p-4 bg-red-50 border border-red-200 text-red-800 rounded-xl flex items-center gap-2 shadow-sm'>
@@ -1146,34 +1234,41 @@ const StatCard = ({ title, value, icon: Icon, bgColor, textColor }: StatCardProp
         {/* Month/Year Navigation */}
         <div className='px-4 pb-4'>
           <div
-            className='bg-gray-50 rounded-xl p-4 flex items-center justify-between'
+            className={`bg-gray-50 rounded-xl p-4 flex items-center justify-between transition-all duration-300 ${
+              isTransitioning ? 'scale-[0.98] bg-blue-50' : ''
+            }`}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
           >
             <button
               onClick={() => (timePeriod === 'monthly' ? navigateMonth(-1) : navigateYear(-1))}
-              className='p-3 hover:bg-white rounded-full transition-colors border border-gray-200 hover:border-gray-300 shadow-sm'
+              className='p-4 hover:bg-white rounded-full transition-colors border border-gray-200 hover:border-gray-300 shadow-sm min-w-[44px] min-h-[44px] flex items-center justify-center'
               aria-label={timePeriod === 'monthly' ? 'เดือนก่อนหน้า' : 'ปีก่อนหน้า'}
             >
-              <ChevronLeft className='w-5 h-5 text-gray-600' />
+              <ChevronLeft className='w-6 h-6 text-gray-600' />
             </button>
 
             <div className='text-center'>
               <p className='text-xl font-bold text-gray-900'>
                 {timePeriod === 'monthly' ? `${MONTH_NAMES[currentMonth]} ${currentYear + 543}` : `${currentYear + 543}`}
               </p>
-              <p className='text-sm text-gray-600 mt-1'>
-                {timePeriod === 'monthly' ? 'เลื่อนซ้าย-ขวาเพื่อเปลี่ยนเดือน' : 'เลื่อนซ้าย-ขวาเพื่อเปลี่ยนปี'}
-              </p>
+              <div className='space-y-1'>
+                <p className='text-sm text-gray-600'>
+                  {timePeriod === 'monthly' ? 'เลื่อนซ้าย-ขวาเพื่อเปลี่ยนเดือน' : 'เลื่อนซ้าย-ขวาเพื่อเปลี่ยนปี'}
+                </p>
+                <p className='text-xs text-blue-600 font-medium'>
+                  ดึงลงเพื่อรีเฟรช • {isRefreshing ? 'กำลังรีเฟรช...' : 'พร้อมแล้ว'}
+                </p>
+              </div>
             </div>
 
             <button
               onClick={() => (timePeriod === 'monthly' ? navigateMonth(1) : navigateYear(1))}
-              className='p-3 hover:bg-white rounded-full transition-colors border border-gray-200 hover:border-gray-300 shadow-sm'
+              className='p-4 hover:bg-white rounded-full transition-colors border border-gray-200 hover:border-gray-300 shadow-sm min-w-[44px] min-h-[44px] flex items-center justify-center'
               aria-label={timePeriod === 'monthly' ? 'เดือนถัดไป' : 'ปีถัดไป'}
             >
-              <ChevronRight className='w-5 h-5 text-gray-600' />
+              <ChevronRight className='w-6 h-6 text-gray-600' />
             </button>
           </div>
         </div>
@@ -1181,7 +1276,9 @@ const StatCard = ({ title, value, icon: Icon, bgColor, textColor }: StatCardProp
 
       {/* Stats Cards */}
       <div className='p-4'>
-        <div className='grid grid-cols-2 gap-4'>
+        <div className={`grid grid-cols-2 gap-4 transition-all duration-300 ${
+          isRefreshing ? 'opacity-50 scale-[0.98]' : ''
+        }`}>
           {periodLoading ? (
             <>
               <StatCardSkeleton />
@@ -1322,10 +1419,10 @@ const StatCard = ({ title, value, icon: Icon, bgColor, textColor }: StatCardProp
       {/* Floating Action Button */}
       <button
         onClick={() => setNewExpressionOpen(true)}
-        className='fixed bottom-6 right-6 w-14 h-14 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600 flex items-center justify-center transition-all duration-200 hover:scale-105 border border-blue-400'
+        className='fixed bottom-6 right-6 w-16 h-16 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600 flex items-center justify-center transition-all duration-200 hover:scale-105 border border-blue-400'
         aria-label='แสดงความคิดเห็นใหม่'
       >
-        <Plus className='w-6 h-6' />
+        <Plus className='w-7 h-7' />
       </button>
 
       {/* Expression Detail Modal */}

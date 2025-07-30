@@ -106,7 +106,7 @@ const UserDropdown = () => {
           alt={userInfo?.name}
           src={imageTxt}
           onClick={handleDropdownOpen}
-          className='cursor-pointer bs-[38px] is-[38px]'
+          className='cursor-pointer bs-[44px] is-[44px] hover:scale-105 transition-transform duration-200'
         />
       ) : (
         ''

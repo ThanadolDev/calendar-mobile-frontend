@@ -272,10 +272,10 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
 
   // Navigation handlers
   const handleBackClick = () => {
-    if (viewMode === 'calendar') {
+    if (viewMode === 'month') {
+      setViewMode('calendar')
+    } else if (viewMode === 'year') {
       setViewMode('month')
-    } else if (viewMode === 'month') {
-      setViewMode('year')
     }
   }
 
@@ -331,9 +331,9 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
       backgroundColor: isToday ? '#FF6B6B' : isSelected ? '#000000' : 'transparent',
       color: isToday ? '#FFFFFF' : isSelected ? '#FFFFFF' : theme.palette.text.primary,
       fontWeight: isToday || isSelected ? 'bold' : 'normal',
-      borderRadius: isToday || isSelected ? '50%' : '0',
-      width: '40px',
-      height: '40px',
+      borderRadius: isToday || isSelected ? '50%' : '8px',
+      width: '44px',
+      height: '44px',
       aspectRatio: '1'
     }
   }
@@ -354,9 +354,11 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             {viewMode !== 'year' && (
               <IconButton
-              // onClick={handleBackClick}
-              size="small">
-                <ChevronLeft onClick={handleBackClick}/>
+                onClick={handleBackClick}
+                size="medium"
+                sx={{ minWidth: '44px', minHeight: '44px' }}
+              >
+                <ChevronLeft />
               </IconButton>
             )}
             <Typography
@@ -438,12 +440,7 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
                     variant="body2"
                     sx={{
                       color: index === currentDate.getMonth() ? '#FFFFFF' : '#666666',
-                      mt: 0.5,
-                      cursor: 'pointer'
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setViewMode('year')
+                      mt: 0.5
                     }}
                   >
                     {getYear(currentDate)}

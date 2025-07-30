@@ -13,6 +13,7 @@ import '@/app/globals.css'
 import '@assets/iconify-icons/generated-icons.css'
 
 import { PermissionProvider } from '../contexts/PermissionContext'
+import { ToastProvider } from '../components/ui/Toast'
 
 // ตั้งค่า Sarabun
 const sarabun = Noto_Sans_Thai({
@@ -36,7 +37,9 @@ const RootLayout = ({ children }: ChildrenType) => {
     <PermissionProvider>
       <html id='__next' lang='en' dir={direction}>
         <body className={`flex is-full min-bs-full flex-auto flex-col ${sarabun.variable} antialiased`}>
-          {children}
+          <ToastProvider>
+            {children}
+          </ToastProvider>
         </body>
       </html>
     </PermissionProvider>
