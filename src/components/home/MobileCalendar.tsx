@@ -43,7 +43,7 @@ const getCurrentMonthEvents = () => {
   return [
     {
       id: 1,
-      employeeName: 'สมชาย อนันต์',
+      employeeName: 'น้องปอ',
       leaveType: 'ลาป่วย',
       start: new Date(currentYear, currentMonth, 5, 8, 0),
       end: new Date(currentYear, currentMonth, 5, 17, 0),
@@ -52,7 +52,7 @@ const getCurrentMonthEvents = () => {
     },
     {
       id: 2,
-      employeeName: 'สุดา ใจดี',
+      employeeName: 'น้องปอ',
       leaveType: 'ลาพักร้อน',
       start: new Date(currentYear, currentMonth, 12, 8, 0),
       end: new Date(currentYear, currentMonth, 14, 17, 0),
@@ -61,7 +61,7 @@ const getCurrentMonthEvents = () => {
     },
     {
       id: 3,
-      employeeName: 'วิชัย สมบูรณ์',
+      employeeName: 'น้องปอ',
       leaveType: 'ลากิจ',
       start: new Date(currentYear, currentMonth, 18, 13, 0),
       end: new Date(currentYear, currentMonth, 18, 17, 0),
@@ -70,7 +70,7 @@ const getCurrentMonthEvents = () => {
     },
     {
       id: 4,
-      employeeName: 'มาลี ประเสริฐ',
+      employeeName: 'น้องปอ',
       leaveType: 'ลาคลอด',
       start: new Date(currentYear, currentMonth, 22, 8, 0),
       end: new Date(currentYear, currentMonth + 2, 22, 17, 0),
@@ -79,7 +79,7 @@ const getCurrentMonthEvents = () => {
     },
     {
       id: 5,
-      employeeName: 'ชัยรัตน์ วงศ์ดี',
+      employeeName: 'น้องปอ',
       leaveType: 'ลาป่วย',
       start: new Date(currentYear, currentMonth, 28, 8, 0),
       end: new Date(currentYear, currentMonth, 29, 17, 0),
@@ -440,7 +440,16 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
                     variant="body2"
                     sx={{
                       color: index === currentDate.getMonth() ? '#FFFFFF' : '#666666',
+<<<<<<< HEAD
                       mt: 0.5
+=======
+                      mt: 0.5,
+                      cursor: 'pointer'
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setViewMode('calendar')
+>>>>>>> 749d5c7f3e18cdf35cf2d048996934f376bc6819
                     }}
                   >
                     {getYear(currentDate)}
