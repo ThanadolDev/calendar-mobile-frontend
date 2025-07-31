@@ -1,4 +1,6 @@
+
 import { useState, useEffect } from 'react'
+
 import calendarHolidayService from '../services/calendarHolidayService'
 import type { LeaveEvent, HolidayEvent } from '../types/calendar'
 
@@ -30,15 +32,16 @@ export const useCalendarData = ({ year, month, employeeId }: UseCalendarDataProp
         // Calculate date range for the month
         const startDate = new Date(year, month - 1, 1)
         const endDate = new Date(year, month, 0)
-        
+
         // Format dates as DD/MM/YYYY for backend API (as expected by the calendar service)
         const formatDateForApi = (date: Date): string => {
           const day = date.getDate().toString().padStart(2, '0')
           const month = (date.getMonth() + 1).toString().padStart(2, '0')
           const year = date.getFullYear()
+
           return `${day}/${month}/${year}`
         }
-        
+
         const startDateStr = formatDateForApi(startDate)
         const endDateStr = formatDateForApi(endDate)
 
