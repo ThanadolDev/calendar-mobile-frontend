@@ -107,7 +107,9 @@ export class EnhancedApiClient {
     if (!EnhancedApiClient._instance) {
       EnhancedApiClient._instance = new EnhancedApiClient()
     }
-    return EnhancedApiClient._instance
+
+    
+return EnhancedApiClient._instance
   }
 
   private setupInterceptors(): void {
@@ -122,6 +124,7 @@ export class EnhancedApiClient {
         
         // Add auth token
         const token = this.getToken()
+
         if (token) {
           config.headers.Authorization = `Bearer ${token}`
         }
@@ -137,6 +140,7 @@ export class EnhancedApiClient {
     this.instance.interceptors.response.use(
       (response) => {
         const duration = Date.now() - response.config.metadata.startTime
+
         this.updateResponseTimeStats(duration)
         
         return response
@@ -151,19 +155,23 @@ export class EnhancedApiClient {
           try {
             await this.refreshToken()
             const token = this.getToken()
+
             if (token) {
               originalRequest.headers.Authorization = `Bearer ${token}`
-              return this.instance(originalRequest)
+              
+return this.instance(originalRequest)
             }
           } catch (refreshError) {
             this.clearTokens()
             this.redirectToLogin()
-            return Promise.reject(refreshError)
+            
+return Promise.reject(refreshError)
           }
         }
         
         this.requestStats.errors++
-        return Promise.reject(this.normalizeError(error))
+        
+return Promise.reject(this.normalizeError(error))
       }
     )
   }
@@ -175,9 +183,11 @@ export class EnhancedApiClient {
     // Check cache first
     if (options.cache !== false) {
       const cached = this.getFromCache<ApiResponse<T>>(cacheKey)
+
       if (cached) {
         this.requestStats.cacheHits++
-        return cached
+        
+return cached
       }
     }
 
@@ -203,7 +213,8 @@ export class EnhancedApiClient {
     })
 
     this.pendingRequests.set(cacheKey, requestPromise)
-    return requestPromise
+    
+return requestPromise
   }
 
   public async post<T>(url: string, data?: any, options: RequestOptions = {}): Promise<ApiResponse<T>> {
@@ -271,6 +282,7 @@ export class EnhancedApiClient {
   // Cache management
   private setCache<T>(key: string, data: T, ttl?: number, tags?: string[]): void {
     const defaultTTL = 5 * 60 * 1000 // 5 minutes
+
     this.cache.set(key, {
       data,
       timestamp: Date.now(),
@@ -281,11 +293,13 @@ export class EnhancedApiClient {
 
   private getFromCache<T>(key: string): T | null {
     const entry = this.cache.get(key)
+
     if (!entry) return null
 
     if (Date.now() - entry.timestamp > entry.ttl) {
       this.cache.delete(key)
-      return null
+      
+return null
     }
 
     return entry.data
@@ -294,10 +308,12 @@ export class EnhancedApiClient {
   public invalidateCache(pattern?: string): void {
     if (!pattern) {
       this.cache.clear()
-      return
+      
+return
     }
 
     const regex = new RegExp(pattern)
+
     for (const [key] of this.cache.entries()) {
       if (regex.test(key)) {
         this.cache.delete(key)
@@ -333,6 +349,7 @@ export class EnhancedApiClient {
 
         // Exponential backoff
         const delay = this.defaultRetryConfig.retryDelay * Math.pow(2, attempt - 1)
+
         await this.delay(delay)
       }
     }
@@ -400,11 +417,14 @@ export class EnhancedApiClient {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('accessToken')
     }
-    return null
+
+    
+return null
   }
 
   private async refreshToken(): Promise<void> {
     const refreshToken = localStorage.getItem('refreshToken')
+
     if (!refreshToken) throw new Error('No refresh token available')
 
     const response = await axios.post('https://api.nitisakc.dev/auth/refresh', null, {
@@ -439,6 +459,7 @@ export class EnhancedApiClient {
 
   private updateResponseTimeStats(duration: number): void {
     const { totalRequests, avgResponseTime } = this.requestStats
+
     this.requestStats.avgResponseTime = 
       (avgResponseTime * (totalRequests - 1) + duration) / totalRequests
   }
@@ -446,6 +467,7 @@ export class EnhancedApiClient {
   private startCacheCleanup(): void {
     setInterval(() => {
       const now = Date.now()
+
       for (const [key, entry] of this.cache.entries()) {
         if (now - entry.timestamp > entry.ttl) {
           this.cache.delete(key)

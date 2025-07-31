@@ -116,6 +116,7 @@ export class EnhancedExpressionService extends UserScopedBaseService<
           total: currentSentData.meta.total + 1
         }
       }
+
       this.setCacheData(sentCacheKey, updatedData, [this.cacheTag, `${this.cacheTag}:sent:${empId}`])
     }
 
@@ -133,6 +134,7 @@ export class EnhancedExpressionService extends UserScopedBaseService<
 
       // Update cache with real data
       const realExpression = this.transformExpressionData(response.data)
+
       this.updateOptimisticWithReal(sentCacheKey, optimisticExpression.EXP_ID, realExpression)
 
       return realExpression
@@ -153,6 +155,7 @@ export class EnhancedExpressionService extends UserScopedBaseService<
     
     if (useCache) {
       const cachedStats = await this.getCachedData<ExpressionStats>(cacheKey)
+
       if (cachedStats) return cachedStats
     }
 
@@ -212,10 +215,12 @@ export class EnhancedExpressionService extends UserScopedBaseService<
 
     // Process in batches of 5 to avoid overwhelming the server
     const batchSize = 5
+
     for (let i = 0; i < updates.length; i += batchSize) {
       const batch = updates.slice(i, i + batchSize)
       
       const batchResults = await this.batchUpdate(batch)
+
       results.push(...batchResults)
       
       completed += batch.length
@@ -224,6 +229,7 @@ export class EnhancedExpressionService extends UserScopedBaseService<
 
     // Invalidate relevant caches
     const userIds = new Set<string>()
+
     updates.forEach(update => {
       // Extract user IDs from the updates for cache invalidation
       if (update.data.recipient) userIds.add(update.data.recipient)
@@ -252,6 +258,7 @@ export class EnhancedExpressionService extends UserScopedBaseService<
   private transformExpressionData(expr: Expression): Expression {
     return {
       ...expr,
+
       // Ensure content fields are available with fallbacks
       EXP_DETAIL: expr.EXP_DETAIL || 'No content available',
       EXP_SUBJECT: expr.EXP_SUBJECT || 'No subject',
@@ -281,7 +288,9 @@ export class EnhancedExpressionService extends UserScopedBaseService<
     empId: string
   ): Expression {
     const now = new Date()
-    return {
+
+    
+return {
       EXP_ID: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       EXP_TYPE: data.type,
       EXP_KIND: data.privacy === 'public' ? 'X' : 'Y',
@@ -309,7 +318,8 @@ export class EnhancedExpressionService extends UserScopedBaseService<
       if (expr.TYPE === 'suggestion') stats.suggestions++
       if (expr.ISPUBLIC === '1') stats.public++
       if (expr.ISPUBLIC === '0') stats.private++
-      return stats
+      
+return stats
     }, {
       praise: 0,
       suggestions: 0,

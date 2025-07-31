@@ -121,7 +121,9 @@ export abstract class BaseService<T, CreateDto, UpdateDto> {
       if (!response.success) {
         throw new Error(response.message || 'Failed to create batch data')
       }
-      return response.data
+
+      
+return response.data
     })
   }
 
@@ -139,7 +141,9 @@ export abstract class BaseService<T, CreateDto, UpdateDto> {
       if (!response.success) {
         throw new Error(response.message || 'Failed to update batch data')
       }
-      return response.data
+
+      
+return response.data
     })
   }
 
@@ -198,7 +202,9 @@ export abstract class BaseService<T, CreateDto, UpdateDto> {
     })
     
     const queryString = params.toString()
-    return queryString ? `?${queryString}` : ''
+
+    
+return queryString ? `?${queryString}` : ''
   }
 
   protected transformData(data: any): T {

@@ -1,5 +1,5 @@
 // React Imports
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 
 // MUI Imports
 import {
@@ -8,11 +8,6 @@ import {
   IconButton,
   Card,
   CardContent,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
   Chip,
   Stack,
   AppBar,
@@ -22,17 +17,11 @@ import { useTheme } from '@mui/material/styles'
 
 // Icon Imports
 import {
-  ChevronLeft,
-  ChevronRight,
-  Plus,
-  Search,
-  Menu,
-  Calendar,
-  Mail
+  ChevronLeft
 } from 'lucide-react'
 
 // Date utilities
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, addMonths, subMonths, getYear, setYear, setMonth } from 'date-fns'
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, getYear, setYear, setMonth } from 'date-fns'
 
 // Sample events data - employee leave events
 const getCurrentMonthEvents = () => {
@@ -105,6 +94,7 @@ const YearPicker = ({ currentYear, onYearSelect }: { currentYear: number, onYear
     // Auto-scroll to selected year when component mounts
     if (yearListRef.current) {
       const selectedElement = yearListRef.current.querySelector(`[data-year="${currentYear}"]`)
+
 
       if (selectedElement) {
         selectedElement.scrollIntoView({
@@ -209,7 +199,6 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
   // State
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date())
-  const [showEventDialog, setShowEventDialog] = useState(false)
   const [selectedEvents, setSelectedEvents] = useState<any[]>([])
   const [viewMode, setViewMode] = useState<ViewMode>('calendar')
 
@@ -224,13 +213,22 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
   }, [events])
 
   // Get events for selected date
-  const getEventsForDate = (date: Date) => {
+  const getEventsForDate = useCallback((date: Date) => {
     return events.filter(event => {
       const eventDate = new Date(event.start)
 
+
       return isSameDay(eventDate, date)
     })
-  }
+  }, [events])
+
+  // Initialize today's events
+  useEffect(() => {
+    const todayEvents = getEventsForDate(new Date())
+
+    setSelectedEvents(todayEvents)
+  }, [getEventsForDate])
+
 
   // Handle date click
   const handleDateClick = (date: Date) => {
@@ -242,17 +240,11 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
     setSelectedDate(date)
     const dayEvents = getEventsForDate(date)
 
+
     setSelectedEvents(dayEvents)
   }
 
-  // Navigation functions
-  const goToPreviousMonth = () => {
-    setCurrentDate(subMonths(currentDate, 1))
-  }
-
-  const goToNextMonth = () => {
-    setCurrentDate(addMonths(currentDate, 1))
-  }
+  // Navigation functions (removed unused functions)
 
   // Generate calendar days
   const generateCalendarDays = () => {
@@ -305,6 +297,7 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
 
   const handleYearSelect = (year: number) => {
     const newDate = setYear(currentDate, year)
+
     setCurrentDate(newDate)
 
     // Check if it's current year, if so select today, otherwise unselect
@@ -327,7 +320,10 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
     const isCurrentMonth = isSameMonth(date, currentDate)
     const isToday = isSameDay(date, new Date())
     const isSelected = selectedDate && isSameDay(date, selectedDate)
-    const hasEvents = getEventsForDate(date).length > 0
+
+
+    // Check if date has events (used for visual indicators)
+    getEventsForDate(date).length > 0
 
     return {
       position: 'relative',
@@ -357,15 +353,13 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
       }}>
         <Toolbar sx={{ justifyContent: 'space-between', px: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            {viewMode !== 'year' && (
-              <IconButton
-                onClick={handleBackClick}
-                size="medium"
-                sx={{ minWidth: '44px', minHeight: '44px' }}
-              >
-                <ChevronLeft />
-              </IconButton>
-            )}
+            <IconButton
+              onClick={handleBackClick}
+              size="medium"
+              sx={{ minWidth: '44px', minHeight: '44px' }}
+            >
+              <ChevronLeft />
+            </IconButton>
             <Typography
               variant="h6"
               sx={{ fontWeight: 'bold', cursor: viewMode === 'calendar' ? 'pointer' : 'default' }}

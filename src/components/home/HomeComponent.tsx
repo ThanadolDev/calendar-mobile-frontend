@@ -114,7 +114,6 @@ const FeedbackDashboard = () => {
   const [uploadProgress, setUploadProgress] = useState(0)
   const [showPublishConfirmation, setShowPublishConfirmation] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
-  const [pullDistance, setPullDistance] = useState(0)
   const [isTransitioning, setIsTransitioning] = useState(false)
 
   const [selectedExpression, setSelectedExpression] = useState<
@@ -266,7 +265,8 @@ const FeedbackDashboard = () => {
     // Prioritize vertical gestures for pull-to-refresh
     if (Math.abs(distanceY) > Math.abs(distanceX) && isPullDown && scrollRef.current?.scrollTop === 0) {
       handlePullRefresh()
-      return
+      
+return
     }
     
     // Only handle horizontal swipes if vertical movement is minimal
@@ -406,7 +406,7 @@ const FeedbackDashboard = () => {
     // }
 
     return filtered
-  }, [expressions, timePeriod, currentMonth, currentYear])
+  }, [expressions])
 
   const filteredMyExpressions = useMemo(() => {
     const filtered = myExpressions
@@ -420,7 +420,7 @@ const FeedbackDashboard = () => {
     // }
 
     return filtered
-  }, [myExpressions, timePeriod, currentMonth, currentYear])
+  }, [myExpressions])
 
   // Calculate stats for current time period
   const currentStats = useMemo(() => {
@@ -584,11 +584,12 @@ const FeedbackDashboard = () => {
         // Reload both received and sent expressions in the background to ensure consistency
         // Don't await here to make the UI feel more responsive
         Promise.all([loadReceivedExpressions(userEmpId, filters), loadSentExpressions(userEmpId, filters)]).catch(
-          error => {
+          () => {
+            // Silent error handling
           }
         )
       }
-    } catch (error) {
+    } catch {
       // Error is already handled by the hook
     }
   }
@@ -698,11 +699,13 @@ subject: '',
         }
 
         Promise.all([loadReceivedExpressions(userEmpId, filters), loadSentExpressions(userEmpId, filters)]).catch(
-          error => {
+          () => {
+            // Silent error handling
           }
         )
       }
-    } catch (error) {
+    } catch {
+      // Silent error handling
     }
   }
 
