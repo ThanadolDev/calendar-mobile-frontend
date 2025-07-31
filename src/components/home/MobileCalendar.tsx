@@ -105,6 +105,7 @@ const YearPicker = ({ currentYear, onYearSelect }: { currentYear: number, onYear
     // Auto-scroll to selected year when component mounts
     if (yearListRef.current) {
       const selectedElement = yearListRef.current.querySelector(`[data-year="${currentYear}"]`)
+
       if (selectedElement) {
         selectedElement.scrollIntoView({
           behavior: 'smooth',
@@ -218,6 +219,7 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
   // Initialize today's events
   useEffect(() => {
     const todayEvents = getEventsForDate(new Date())
+
     setSelectedEvents(todayEvents)
   }, [events])
 
@@ -225,6 +227,7 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
   const getEventsForDate = (date: Date) => {
     return events.filter(event => {
       const eventDate = new Date(event.start)
+
       return isSameDay(eventDate, date)
     })
   }
@@ -238,6 +241,7 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
 
     setSelectedDate(date)
     const dayEvents = getEventsForDate(date)
+
     setSelectedEvents(dayEvents)
   }
 
@@ -345,6 +349,7 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
       padding: 0
     }}>
       {/* Header */}
+      <></>
       <AppBar position="static" elevation={0} sx={{
         backgroundColor: '#FFFFFF',
         color: '#000000',
@@ -440,16 +445,13 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
                     variant="body2"
                     sx={{
                       color: index === currentDate.getMonth() ? '#FFFFFF' : '#666666',
-<<<<<<< HEAD
-                      mt: 0.5
-=======
+
                       mt: 0.5,
                       cursor: 'pointer'
                     }}
                     onClick={(e) => {
                       e.stopPropagation()
                       setViewMode('calendar')
->>>>>>> 749d5c7f3e18cdf35cf2d048996934f376bc6819
                     }}
                   >
                     {getYear(currentDate)}
@@ -501,6 +503,7 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
               }}>
                 {calendarDays.map((date, index) => {
                   const hasEvents = getEventsForDate(date).length > 0
+
                   return (
                     <Box
                       key={index}
