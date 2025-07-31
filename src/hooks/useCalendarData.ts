@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
+
 import calendarHolidayService from '../services/calendarHolidayService'
 import type { LeaveEvent, HolidayEvent } from '../types/calendar'
 
 interface CalendarData {
+  events: Array<HolidayEvent | LeaveEvent>
   leaves: LeaveEvent[]
   holidays: HolidayEvent[]
   loading: boolean
@@ -36,6 +38,7 @@ export const useCalendarData = ({ year, month, employeeId }: UseCalendarDataProp
           const day = date.getDate().toString().padStart(2, '0')
           const month = (date.getMonth() + 1).toString().padStart(2, '0')
           const year = date.getFullYear()
+
           return `${day}/${month}/${year}`
         }
         
@@ -65,7 +68,11 @@ export const useCalendarData = ({ year, month, employeeId }: UseCalendarDataProp
     fetchCalendarData()
   }, [year, month, employeeId])
 
+  // Combine events for backward compatibility
+  const events = [...holidays, ...leaves]
+
   return {
+    events,
     leaves,
     holidays,
     loading,

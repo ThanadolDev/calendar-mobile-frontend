@@ -29,7 +29,7 @@ import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSa
 import { useCalendarData } from '../../hooks/useCalendarData'
 
 // Types
-import type { HolidayEvent } from '../../types/calendar'
+import type { HolidayEvent, LeaveEvent } from '../../types/calendar'
 
 type MobileCalendarProps = {
   events?: any[]
@@ -151,12 +151,26 @@ const MobileCalendar = ({ employeeId }: MobileCalendarProps) => {
   // State
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date())
-  const [selectedEvents, setSelectedEvents] = useState<any[]>([])
+  const [selectedEvents, setSelectedEvents] = useState<Array<HolidayEvent | LeaveEvent>>([])
   const [viewMode, setViewMode] = useState<ViewMode>('calendar')
 
   // Hooks
   const theme = useTheme()
-  const { events, holidays, loading, error } = useCalendarData(employeeId)
+
+  const { events, holidays, loading, error } = useCalendarData({
+    year: currentDate.getFullYear(),
+    month: currentDate.getMonth() + 1,
+    employeeId
+  })
+
+  // Re-fetch events when currentDate changes
+  useEffect(() => {
+    if (events) {
+      const todayEvents = getEventsForDate(new Date())
+
+      setSelectedEvents(todayEvents)
+    }
+  }, [currentDate, events, getEventsForDate])
 
   // Helper function to check if date is holiday
   const isHolidayDate = (date: Date, holidayList: HolidayEvent[] = []): boolean => {
@@ -168,20 +182,13 @@ const MobileCalendar = ({ employeeId }: MobileCalendarProps) => {
     if (!events || events.length === 0) return []
     
     return events.filter(event => {
-      const eventDate = new Date(event.start)
+      // Handle both HolidayEvent and LeaveEvent date formats
+      const eventDate = new Date(event.date) // Both types have .date property
 
       return isSameDay(eventDate, date)
     })
   }, [events])
 
-  // Initialize today's events
-  useEffect(() => {
-    if (events) {
-      const todayEvents = getEventsForDate(new Date())
-
-      setSelectedEvents(todayEvents)
-    }
-  }, [events, getEventsForDate])
 
 
   // Handle date click
@@ -528,39 +535,62 @@ const MobileCalendar = ({ employeeId }: MobileCalendarProps) => {
             {selectedDate && selectedEvents.length > 0 ? (
               <Box>
                 <Typography variant="h6" sx={{ mb: 3, fontWeight: 'bold', color: '#000000' }}>
-                  รายการลาวันที่ {format(selectedDate, 'd MMMM yyyy')}
+                  รายการกิจกรรมวันที่ {format(selectedDate, 'd MMMM yyyy')}
                 </Typography>
                 <Stack spacing={2}>
                   {selectedEvents.map((event, index) => (
                     <Card key={index} elevation={2} sx={{ backgroundColor: '#FFFFFF' }}>
                       <CardContent sx={{ p: 3 }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                          <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#000000' }}>
-                            {event.employeeName}
-                          </Typography>
-                          <Chip
-                            label={event.leaveType}
-                            size="small"
-                            sx={{
-                              backgroundColor: event.leaveType === 'ลาป่วย' ? '#FFE5E5' :
-                                               event.leaveType === 'ลาพักร้อน' ? '#E5F3FF' :
-                                               event.leaveType === 'ลากิจ' ? '#FFF5E5' : '#E8F5E8',
-                              color: event.leaveType === 'ลาป่วย' ? '#D32F2F' :
-                                     event.leaveType === 'ลาพักร้อน' ? '#1976D2' :
-                                     event.leaveType === 'ลากิจ' ? '#F57C00' : '#388E3C',
-                              fontWeight: 'bold'
-                            }}
-                          />
-                        </Box>
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                          <strong>ระยะเวลา:</strong> {event.duration}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                          <strong>เวลา:</strong> {format(new Date(event.start), 'HH:mm')} - {format(new Date(event.end), 'HH:mm')} น.
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          <strong>เหตุผล:</strong> {event.reason}
-                        </Typography>
+                        {event.type === 'leave' ? (
+                          <>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                              <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#000000' }}>
+                                {(event as LeaveEvent).employeeName}
+                              </Typography>
+                              <Chip
+                                label={(event as LeaveEvent).leaveType}
+                                size="small"
+                                sx={{
+                                  backgroundColor: (event as LeaveEvent).leaveType === 'ลาป่วย' ? '#FFE5E5' :
+                                                   (event as LeaveEvent).leaveType === 'ลาพักร้อน' ? '#E5F3FF' :
+                                                   (event as LeaveEvent).leaveType === 'ลากิจ' ? '#FFF5E5' : '#E8F5E8',
+                                  color: (event as LeaveEvent).leaveType === 'ลาป่วย' ? '#D32F2F' :
+                                         (event as LeaveEvent).leaveType === 'ลาพักร้อน' ? '#1976D2' :
+                                         (event as LeaveEvent).leaveType === 'ลากิจ' ? '#F57C00' : '#388E3C',
+                                  fontWeight: 'bold'
+                                }}
+                              />
+                            </Box>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                              <strong>ระยะเวลา:</strong> {(event as LeaveEvent).duration} วัน
+                            </Typography>
+                            {(event as LeaveEvent).startTime && (event as LeaveEvent).endTime && (
+                              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                <strong>เวลา:</strong> {(event as LeaveEvent).startTime} - {(event as LeaveEvent).endTime} น.
+                              </Typography>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                              <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#000000' }}>
+                                {(event as HolidayEvent).title}
+                              </Typography>
+                              <Chip
+                                label="วันหยุด"
+                                size="small"
+                                sx={{
+                                  backgroundColor: '#FFF3E0',
+                                  color: '#F57C00',
+                                  fontWeight: 'bold'
+                                }}
+                              />
+                            </Box>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                              <strong>ประเภท:</strong> {(event as HolidayEvent).category}
+                            </Typography>
+                          </>
+                        )}
                       </CardContent>
                     </Card>
                   ))}
@@ -569,13 +599,13 @@ const MobileCalendar = ({ employeeId }: MobileCalendarProps) => {
             ) : selectedDate ? (
               <Box sx={{ textAlign: 'center', mt: 6, color: '#999999' }}>
                 <Typography variant="h6">
-                  ไม่มีรายการลาในวันที่ {format(selectedDate, 'd MMMM yyyy')}
+                  ไม่มีรายการกิจกรรมในวันที่ {format(selectedDate, 'd MMMM yyyy')}
                 </Typography>
               </Box>
             ) : (
               <Box sx={{ textAlign: 'center', mt: 6, color: '#999999' }}>
                 <Typography variant="h6">
-                  เลือกวันที่เพื่อดูรายการลา
+                  เลือกวันที่เพื่อดูรายการกิจกรรม
                 </Typography>
               </Box>
             )}
