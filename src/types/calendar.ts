@@ -172,6 +172,8 @@ export interface LeaveEvent {
   leaveId: number
   employeeId: string
   employeeName: string
+  unitId?: string
+  unitDesc?: string
   date: string // DD/MM/YYYY format
   startDate: string
   endDate: string
@@ -179,7 +181,7 @@ export interface LeaveEvent {
   endTime?: string
   duration: number
   leaveType: string
-  medicalStatus: string
+  medicalStatus?: string
   approvalStatus: 'approved' | 'pending' | 'rejected'
   color: string
   isAllDay: boolean

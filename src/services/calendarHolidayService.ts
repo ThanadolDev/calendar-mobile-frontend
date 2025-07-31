@@ -118,24 +118,43 @@ class CalendarHolidayService {
       )
 
       // Transform backend data to frontend format
-      const leaves: LeaveEvent[] = response.data.leaves.map(leave => ({
-        id: leave.id,
-        leaveId: leave.leaveId,
-        employeeId: leave.employeeId,
-        employeeName: leave.employeeName,
-        date: leave.date,
-        startDate: leave.startDate,
-        endDate: leave.endDate,
-        startTime: leave.startTime,
-        endTime: leave.endTime,
-        duration: leave.duration,
-        leaveType: leave.leaveType,
-        medicalStatus: leave.medicalStatus,
-        approvalStatus: leave.approvalStatus,
-        color: leave.color,
-        isAllDay: leave.isAllDay,
-        type: leave.type
-      }))
+      const leaves: LeaveEvent[] = response.data.leaves.map(leave => {
+        // Convert startDate ISO string to DD/MM/YYYY format for calendar display
+        let displayDate = '';
+
+        if (leave.startDate) {
+          const dateObj = new Date(leave.startDate);
+
+          if (!isNaN(dateObj.getTime())) {
+            const day = dateObj.getDate().toString().padStart(2, '0');
+            const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+            const year = dateObj.getFullYear();
+
+            displayDate = `${day}/${month}/${year}`;
+          }
+        }
+
+        return {
+          id: leave.id,
+          leaveId: leave.leaveId,
+          employeeId: leave.employeeId,
+          employeeName: leave.employeeName,
+          unitId: (leave as any).unitId,
+          unitDesc: (leave as any).unitDesc,
+          date: displayDate, // Use formatted date for calendar matching
+          startDate: leave.startDate,
+          endDate: leave.endDate,
+          startTime: leave.startTime,
+          endTime: leave.endTime,
+          duration: leave.duration || (leave as any).totalHolidayEntitlement || 1, // Fallback to entitlement or 1 day
+          leaveType: leave.leaveType || 'ลาพักร้อน', // Default leave type
+          medicalStatus: leave.medicalStatus,
+          approvalStatus: leave.approvalStatus || 'approved',
+          color: leave.color || '#2196F3',
+          isAllDay: leave.isAllDay !== undefined ? leave.isAllDay : true,
+          type: leave.type || 'leave'
+        }
+      })
 
       return {
         success: true,
@@ -366,6 +385,7 @@ class CalendarHolidayService {
 
       // Get year from start date for API calls
       const startDateObj = new Date(params.startDate)
+
       if (isNaN(startDateObj.getTime())) {
         return {
           success: false,
@@ -495,4 +515,6 @@ class CalendarHolidayService {
 }
 
 // Export singleton instance
-export default new CalendarHolidayService()
+const calendarHolidayService = new CalendarHolidayService()
+
+export default calendarHolidayService

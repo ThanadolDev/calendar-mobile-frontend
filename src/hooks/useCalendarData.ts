@@ -79,12 +79,23 @@ export const useCalendarData = ({ year, month, employeeId }: UseCalendarDataProp
         if (result.success && result.data) {
           setLeaves(result.data.leaves)
           setHolidays(result.data.holidays)
+
+          // Debug logging
+          if (process.env.NODE_ENV === 'development') {
+            console.log('useCalendarData - Received data:', {
+              leaves: result.data.leaves,
+              holidays: result.data.holidays,
+              year,
+              month,
+              employeeId
+            })
+          }
         } else {
           setError(result.message || 'Failed to fetch calendar data')
         }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
-        
+
         setError(errorMessage)
 
         // Log detailed error in development only

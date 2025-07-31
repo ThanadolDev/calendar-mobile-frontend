@@ -170,12 +170,24 @@ const MobileCalendar = ({ employeeId }: MobileCalendarProps) => {
     // Handle DD/MM/YYYY format common in the API
     if (dateStr.includes('/')) {
       const [day, month, year] = dateStr.split('/')
-      const parsedDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+
+      if (day && month && year) {
+        const parsedDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+
+        return isNaN(parsedDate.getTime()) ? null : parsedDate
+      }
+    }
+
+    // Handle ISO format (YYYY-MM-DDTHH:mm:ss.sssZ)
+    if (dateStr.includes('T') || dateStr.includes('-')) {
+      const parsedDate = new Date(dateStr)
 
       return isNaN(parsedDate.getTime()) ? null : parsedDate
     }
 
     // Handle ISO format
+
+    // Fallback: try direct parsing
     const parsedDate = new Date(dateStr)
 
     return isNaN(parsedDate.getTime()) ? null : parsedDate
@@ -185,6 +197,7 @@ const MobileCalendar = ({ employeeId }: MobileCalendarProps) => {
   const isHolidayDate = useCallback((date: Date, holidayList: HolidayEvent[] = []): boolean => {
     return holidayList.some(holiday => {
       if (!holiday.date) return false
+
       const holidayDate = parseDateSafely(holiday.date)
 
       return holidayDate && isSameDay(holidayDate, date)
@@ -196,11 +209,25 @@ const MobileCalendar = ({ employeeId }: MobileCalendarProps) => {
     if (!events || events.length === 0) return []
 
     return events.filter(event => {
-      if (!event.date) return false
+      // First try the date field
+      if (event.date) {
+        const eventDate = parseDateSafely(event.date)
 
-      const eventDate = parseDateSafely(event.date)
+        if (eventDate && isSameDay(eventDate, date)) {
+          return true
+        }
+      }
 
-      return eventDate && isSameDay(eventDate, date)
+      // For leave events, also check startDate field as fallback
+      if (event.type === 'leave' && (event as LeaveEvent).startDate) {
+        const startDate = parseDateSafely((event as LeaveEvent).startDate)
+
+        if (startDate && isSameDay(startDate, date)) {
+          return true
+        }
+      }
+
+      return false
     })
   }, [events, parseDateSafely])
 
@@ -208,8 +235,14 @@ const MobileCalendar = ({ employeeId }: MobileCalendarProps) => {
   useEffect(() => {
     if (events) {
       const todayEvents = getEventsForDate(new Date())
-      
+
       setSelectedEvents(todayEvents)
+
+      // Debug: Log events data to console
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Calendar Events:', events)
+        console.log('Today Events:', todayEvents)
+      }
     }
   }, [currentDate, events, getEventsForDate])
 
@@ -223,6 +256,12 @@ const MobileCalendar = ({ employeeId }: MobileCalendarProps) => {
     setSelectedDate(date)
     const dayEvents = getEventsForDate(date)
 
+    // Debug: Log date matching
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Clicked date:', date.toDateString())
+      console.log('Day events found:', dayEvents)
+      console.log('All events:', events)
+    }
 
     setSelectedEvents(dayEvents)
   }
@@ -304,18 +343,19 @@ const MobileCalendar = ({ employeeId }: MobileCalendarProps) => {
     const isToday = isSameDay(date, new Date())
     const isSelected = selectedDate && isSameDay(date, selectedDate)
     const isHoliday = isHolidayDate(date, holidays || [])
+    const hasEvents = getEventsForDate(date).length > 0
 
     return {
       position: 'relative',
       opacity: isCurrentMonth ? 1 : 0.3,
-      backgroundColor: isToday ? '#FF6B6B' : isSelected ? '#000000' : 'transparent',
-      color: isToday ? '#FFFFFF' : isSelected ? '#FFFFFF' : theme.palette.text.primary,
-      fontWeight: isToday || isSelected ? 'bold' : 'normal',
+      backgroundColor: isToday ? '#FF6B6B' : isSelected ? '#000000' : hasEvents ? '#E3F2FD' : 'transparent',
+      color: isToday ? '#FFFFFF' : isSelected ? '#FFFFFF' : hasEvents ? '#1976D2' : theme.palette.text.primary,
+      fontWeight: isToday || isSelected || hasEvents ? 'bold' : 'normal',
       borderRadius: isToday || isSelected ? '50%' : '8px',
       width: '44px',
       height: '44px',
       aspectRatio: '1',
-      border: isHoliday ? '1px solid #FFCDD2' : 'none'
+      border: isHoliday ? '2px solid #FFCDD2' : hasEvents ? '1px solid #2196F3' : 'none'
     }
   }
 
@@ -535,12 +575,13 @@ const MobileCalendar = ({ employeeId }: MobileCalendarProps) => {
                       </Box>
                       {hasEvents && (
                         <Box sx={{
-                          width: '4px',
-                          height: '4px',
-                          backgroundColor: '#FF6B6B',
+                          width: '6px',
+                          height: '6px',
+                          backgroundColor: '#2196F3',
                           borderRadius: '50%',
                           position: 'absolute',
-                          bottom: '6px'
+                          bottom: '4px',
+                          right: '4px'
                         }} />
                       )}
                     </Box>
@@ -585,6 +626,12 @@ const MobileCalendar = ({ employeeId }: MobileCalendarProps) => {
                             </Box>
                             <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                               <strong>ระยะเวลา:</strong> {(event as LeaveEvent).duration} วัน
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                              <strong>แผนก:</strong> {(event as LeaveEvent).unitDesc || 'ไม่ระบุ'}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                              <strong>รหัสพนักงาน:</strong> {(event as LeaveEvent).employeeId}
                             </Typography>
                             {(event as LeaveEvent).startTime && (event as LeaveEvent).endTime && (
                               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
