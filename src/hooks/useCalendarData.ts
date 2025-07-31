@@ -1,10 +1,12 @@
 
 import { useState, useEffect } from 'react'
 
+
 import calendarHolidayService from '../services/calendarHolidayService'
 import type { LeaveEvent, HolidayEvent } from '../types/calendar'
 
 interface CalendarData {
+  events: Array<HolidayEvent | LeaveEvent>
   leaves: LeaveEvent[]
   holidays: HolidayEvent[]
   loading: boolean
@@ -29,9 +31,22 @@ export const useCalendarData = ({ year, month, employeeId }: UseCalendarDataProp
       setError(null)
 
       try {
+        // Validate input parameters
+        if (!year || !month || isNaN(year) || isNaN(month) || month < 1 || month > 12) {
+          setError('Invalid year or month parameters')
+          return
+        }
+
         // Calculate date range for the month
         const startDate = new Date(year, month - 1, 1)
         const endDate = new Date(year, month, 0)
+
+
+        // Validate date objects
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+          setError('Invalid date calculation')
+          return
+        }
 
         // Format dates as DD/MM/YYYY for backend API (as expected by the calendar service)
         const formatDateForApi = (date: Date): string => {
@@ -45,11 +60,17 @@ export const useCalendarData = ({ year, month, employeeId }: UseCalendarDataProp
         const startDateStr = formatDateForApi(startDate)
         const endDateStr = formatDateForApi(endDate)
 
+        // Validate formatted dates
+        if (!startDateStr || !endDateStr) {
+          setError('Failed to format dates for API')
+          return
+        }
+
         // Fetch data from the mobile calendar endpoint
         const result = await calendarHolidayService.getMobileCalendarEvents({
           startDate: startDateStr,
           endDate: endDateStr,
-          employeeId
+          employeeId: employeeId || undefined
         })
 
         if (result.success && result.data) {
@@ -59,7 +80,18 @@ export const useCalendarData = ({ year, month, employeeId }: UseCalendarDataProp
           setError(result.message || 'Failed to fetch calendar data')
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'An unexpected error occurred')
+        const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
+        setError(errorMessage)
+
+        // Log detailed error in development only
+        if (process.env.NODE_ENV === 'development') {
+          console.error('useCalendarData error:', {
+            error: err,
+            year,
+            month,
+            employeeId
+          })
+        }
       } finally {
         setLoading(false)
       }
@@ -68,7 +100,11 @@ export const useCalendarData = ({ year, month, employeeId }: UseCalendarDataProp
     fetchCalendarData()
   }, [year, month, employeeId])
 
+  // Combine events for backward compatibility
+  const events = [...holidays, ...leaves]
+
   return {
+    events,
     leaves,
     holidays,
     loading,
