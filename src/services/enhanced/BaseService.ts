@@ -1,5 +1,4 @@
 import { EnhancedApiClient } from './EnhancedApiClient'
-import type { ApiResponse } from './EnhancedApiClient'
 
 // Generic types for base service
 interface PaginatedResponse<T> {
