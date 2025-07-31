@@ -32,7 +32,7 @@ import { useCalendarData } from '../../hooks/useCalendarData'
 import type { HolidayEvent, LeaveEvent } from '../../types/calendar'
 
 type MobileCalendarProps = {
-  events?: any[]
+  events?: Array<HolidayEvent | LeaveEvent>
   employeeId?: string
 }
 
@@ -163,33 +163,50 @@ const MobileCalendar = ({ employeeId }: MobileCalendarProps) => {
     employeeId
   })
 
-  // Re-fetch events when currentDate changes
-  useEffect(() => {
-    if (events) {
-      const todayEvents = getEventsForDate(new Date())
-
-      setSelectedEvents(todayEvents)
+  // Safe date parsing utility
+  const parseDateSafely = useCallback((dateStr: string): Date | null => {
+    if (!dateStr) return null
+    
+    // Handle DD/MM/YYYY format common in the API
+    if (dateStr.includes('/')) {
+      const [day, month, year] = dateStr.split('/')
+      const parsedDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+      return isNaN(parsedDate.getTime()) ? null : parsedDate
     }
-  }, [currentDate, events, getEventsForDate])
+    
+    // Handle ISO format
+    const parsedDate = new Date(dateStr)
+    return isNaN(parsedDate.getTime()) ? null : parsedDate
+  }, [])
 
   // Helper function to check if date is holiday
-  const isHolidayDate = (date: Date, holidayList: HolidayEvent[] = []): boolean => {
-    return holidayList.some(holiday => isSameDay(new Date(holiday.date), date))
-  }
+  const isHolidayDate = useCallback((date: Date, holidayList: HolidayEvent[] = []): boolean => {
+    return holidayList.some(holiday => {
+      if (!holiday.date) return false
+      const holidayDate = parseDateSafely(holiday.date)
+      return holidayDate && isSameDay(holidayDate, date)
+    })
+  }, [parseDateSafely])
 
   // Get events for selected date
   const getEventsForDate = useCallback((date: Date) => {
     if (!events || events.length === 0) return []
     
     return events.filter(event => {
-      // Handle both HolidayEvent and LeaveEvent date formats
-      const eventDate = new Date(event.date) // Both types have .date property
-
-      return isSameDay(eventDate, date)
+      if (!event.date) return false
+      
+      const eventDate = parseDateSafely(event.date)
+      return eventDate && isSameDay(eventDate, date)
     })
-  }, [events])
+  }, [events, parseDateSafely])
 
-
+  // Re-fetch events when currentDate changes
+  useEffect(() => {
+    if (events) {
+      const todayEvents = getEventsForDate(new Date())
+      setSelectedEvents(todayEvents)
+    }
+  }, [currentDate, events, getEventsForDate])
 
   // Handle date click
   const handleDateClick = (date: Date) => {

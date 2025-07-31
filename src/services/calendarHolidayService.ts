@@ -25,6 +25,18 @@ class CalendarHolidayService {
     endDate?: string
   }): Promise<ServiceResponse<{ holidays: HolidayEvent[], count: number }>> {
     try {
+      // Validate parameters
+      if (!params || params.year === undefined || params.year === null) {
+        return {
+          success: false,
+          error: {
+            message: 'Year parameter is required',
+            status: 400
+          },
+          message: 'Year parameter is required'
+        }
+      }
+
       const queryParams = new URLSearchParams({
         year: params.year.toString()
       })
@@ -33,7 +45,7 @@ class CalendarHolidayService {
       if (params.endDate) queryParams.set('endDate', params.endDate)
 
       const response = await apiClient.get<CalendarApiResponse<{ 
-        holidays: any[], 
+        holidays: HolidayEvent[], 
         count: number,
         year: number,
         dateRange: { start: string, end: string }
@@ -77,6 +89,18 @@ class CalendarHolidayService {
     employeeId?: string
   }): Promise<ServiceResponse<{ leaves: LeaveEvent[], count: number }>> {
     try {
+      // Validate parameters
+      if (!params || params.year === undefined || params.year === null) {
+        return {
+          success: false,
+          error: {
+            message: 'Year parameter is required',
+            status: 400
+          },
+          message: 'Year parameter is required'
+        }
+      }
+
       const queryParams = new URLSearchParams({
         year: params.year.toString()
       })
@@ -86,7 +110,7 @@ class CalendarHolidayService {
       if (params.employeeId) queryParams.set('employeeId', params.employeeId)
 
       const response = await apiClient.get<CalendarApiResponse<{
-        leaves: any[],
+        leaves: LeaveEvent[],
         count: number,
         employeeFilter: string
       }>>(
@@ -317,8 +341,43 @@ class CalendarHolidayService {
     leaves: LeaveEvent[]
   }>> {
     try {
+      // Validate parameters
+      if (!params) {
+        return {
+          success: false,
+          error: {
+            message: 'Parameters are required',
+            status: 400
+          },
+          message: 'Parameters are required'
+        }
+      }
+
+      if (!params.startDate || !params.endDate) {
+        return {
+          success: false,
+          error: {
+            message: 'Start date and end date are required',
+            status: 400
+          },
+          message: 'Start date and end date are required'
+        }
+      }
+
       // Get year from start date for API calls
-      const year = new Date(params.startDate).getFullYear()
+      const startDateObj = new Date(params.startDate)
+      if (isNaN(startDateObj.getTime())) {
+        return {
+          success: false,
+          error: {
+            message: 'Invalid start date format',
+            status: 400
+          },
+          message: 'Invalid start date format'
+        }
+      }
+      
+      const year = startDateObj.getFullYear()
 
       // Fetch holidays and leaves in parallel
       const [holidaysResult, leavesResult] = await Promise.all([
@@ -402,7 +461,10 @@ class CalendarHolidayService {
    * Handle API errors consistently
    */
   private handleError(error: any): ServiceResponse<any> {
-    console.error('Calendar Holiday API Error:', error)
+    // Log error in development only
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Calendar Holiday API Error:', error)
+    }
 
     let errorMessage = 'An unexpected error occurred'
     let status = 500
