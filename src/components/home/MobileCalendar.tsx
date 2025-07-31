@@ -27,10 +27,9 @@ import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSa
 
 // Custom hooks
 import { useCalendarData } from '../../hooks/useCalendarData'
-import { useAuth } from '../../contexts/AuthContext'
 
 // Types
-import type { LeaveEvent, HolidayEvent } from '../../types/calendar'
+import type { HolidayEvent } from '../../types/calendar'
 
 type MobileCalendarProps = {
   events?: any[]
@@ -157,19 +156,19 @@ const MobileCalendar = ({ employeeId }: MobileCalendarProps) => {
 
   // Hooks
   const theme = useTheme()
+  const { events, holidays, loading, error } = useCalendarData(employeeId)
 
-  // Initialize today's events
-  useEffect(() => {
-    const todayEvents = getEventsForDate(new Date())
-
-    setSelectedEvents(todayEvents)
-  }, [events])
+  // Helper function to check if date is holiday
+  const isHolidayDate = (date: Date, holidayList: HolidayEvent[] = []): boolean => {
+    return holidayList.some(holiday => isSameDay(new Date(holiday.date), date))
+  }
 
   // Get events for selected date
   const getEventsForDate = useCallback((date: Date) => {
+    if (!events || events.length === 0) return []
+    
     return events.filter(event => {
       const eventDate = new Date(event.start)
-
 
       return isSameDay(eventDate, date)
     })
@@ -177,10 +176,12 @@ const MobileCalendar = ({ employeeId }: MobileCalendarProps) => {
 
   // Initialize today's events
   useEffect(() => {
-    const todayEvents = getEventsForDate(new Date())
+    if (events) {
+      const todayEvents = getEventsForDate(new Date())
 
-    setSelectedEvents(todayEvents)
-  }, [getEventsForDate])
+      setSelectedEvents(todayEvents)
+    }
+  }, [events, getEventsForDate])
 
 
   // Handle date click
@@ -273,10 +274,7 @@ const MobileCalendar = ({ employeeId }: MobileCalendarProps) => {
     const isCurrentMonth = isSameMonth(date, currentDate)
     const isToday = isSameDay(date, new Date())
     const isSelected = selectedDate && isSameDay(date, selectedDate)
-    const isHoliday = isHolidayDate(date, holidays)
-
-    // Check if date has events (used for visual indicators)
-    const hasEvents = getEventsForDate(date).length > 0
+    const isHoliday = isHolidayDate(date, holidays || [])
 
     return {
       position: 'relative',
