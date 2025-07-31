@@ -205,7 +205,7 @@ const MobileCalendar = ({ employeeId }: MobileCalendarProps) => {
   // Get events for selected date
   const getEventsForDate = useCallback((date: Date) => {
     if (!events || events.length === 0) return []
-    
+
     return events.filter(event => {
       // First try the date field
       if (event.date) {

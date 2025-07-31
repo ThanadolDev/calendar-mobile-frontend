@@ -1,4 +1,6 @@
+
 import { useState, useEffect } from 'react'
+
 
 import calendarHolidayService from '../services/calendarHolidayService'
 import type { LeaveEvent, HolidayEvent } from '../types/calendar'
@@ -39,14 +41,15 @@ export const useCalendarData = ({ year, month, employeeId }: UseCalendarDataProp
         // Calculate date range for the month
         const startDate = new Date(year, month - 1, 1)
         const endDate = new Date(year, month, 0)
-        
+
+
         // Validate date objects
         if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
           setError('Invalid date calculation')
           
           return
         }
-        
+
         // Format dates as DD/MM/YYYY for backend API (as expected by the calendar service)
         const formatDateForApi = (date: Date): string => {
           const day = date.getDate().toString().padStart(2, '0')
@@ -55,7 +58,7 @@ export const useCalendarData = ({ year, month, employeeId }: UseCalendarDataProp
 
           return `${day}/${month}/${year}`
         }
-        
+
         const startDateStr = formatDateForApi(startDate)
         const endDateStr = formatDateForApi(endDate)
 
@@ -94,7 +97,7 @@ export const useCalendarData = ({ year, month, employeeId }: UseCalendarDataProp
         const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
 
         setError(errorMessage)
-        
+
         // Log detailed error in development only
         if (process.env.NODE_ENV === 'development') {
           console.error('useCalendarData error:', {
