@@ -11,7 +11,9 @@ import {
   Chip,
   Stack,
   AppBar,
-  Toolbar
+  Toolbar,
+  CircularProgress,
+  Alert
 } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
 
@@ -23,68 +25,63 @@ import {
 // Date utilities
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, getYear, setYear, setMonth } from 'date-fns'
 
-// Sample events data - employee leave events
-const getCurrentMonthEvents = () => {
-  const now = new Date()
-  const currentMonth = now.getMonth()
-  const currentYear = now.getFullYear()
+// Custom hooks
+import { useCalendarData } from '../../hooks/useCalendarData'
+import { useAuth } from '../../contexts/AuthContext'
 
-  return [
-    {
-      id: 1,
-      employeeName: 'น้องปอ',
-      leaveType: 'ลาป่วย',
-      start: new Date(currentYear, currentMonth, 5, 8, 0),
-      end: new Date(currentYear, currentMonth, 5, 17, 0),
-      duration: '1 วัน',
-      reason: 'ไข้หวัดใหญ่'
-    },
-    {
-      id: 2,
-      employeeName: 'น้องปอ',
-      leaveType: 'ลาพักร้อน',
-      start: new Date(currentYear, currentMonth, 12, 8, 0),
-      end: new Date(currentYear, currentMonth, 14, 17, 0),
-      duration: '3 วัน',
-      reason: 'ท่องเที่ยวกับครอบครัว'
-    },
-    {
-      id: 3,
-      employeeName: 'น้องปอ',
-      leaveType: 'ลากิจ',
-      start: new Date(currentYear, currentMonth, 18, 13, 0),
-      end: new Date(currentYear, currentMonth, 18, 17, 0),
-      duration: '0.5 วัน',
-      reason: 'ธุระส่วนตัว'
-    },
-    {
-      id: 4,
-      employeeName: 'น้องปอ',
-      leaveType: 'ลาคลอด',
-      start: new Date(currentYear, currentMonth, 22, 8, 0),
-      end: new Date(currentYear, currentMonth + 2, 22, 17, 0),
-      duration: '90 วัน',
-      reason: 'ลาคลอดบุตร'
-    },
-    {
-      id: 5,
-      employeeName: 'น้องปอ',
-      leaveType: 'ลาป่วย',
-      start: new Date(currentYear, currentMonth, 28, 8, 0),
-      end: new Date(currentYear, currentMonth, 29, 17, 0),
-      duration: '2 วัน',
-      reason: 'อุบัติเหตุ'
-    }
-  ]
-}
-
-const sampleEvents = getCurrentMonthEvents()
+// Types
+import type { LeaveEvent, HolidayEvent } from '../../types/calendar'
 
 type MobileCalendarProps = {
   events?: any[]
+  employeeId?: string
 }
 
 type ViewMode = 'calendar' | 'month' | 'year'
+
+// Transform leave event to match the original format
+const transformLeaveEvent = (leave: LeaveEvent) => {
+  // Convert DD/MM/YYYY format to Date object
+  const parseDate = (dateStr: string): Date => {
+    const [day, month, year] = dateStr.split('/')
+    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+  }
+
+  const startDate = parseDate(leave.startDate)
+  const endDate = parseDate(leave.endDate)
+  
+  // Set times
+  if (leave.startTime) {
+    const [hours, minutes] = leave.startTime.split(':')
+    startDate.setHours(parseInt(hours), parseInt(minutes))
+  } else {
+    startDate.setHours(8, 0) // Default 8:00 AM
+  }
+  
+  if (leave.endTime) {
+    const [hours, minutes] = leave.endTime.split(':')
+    endDate.setHours(parseInt(hours), parseInt(minutes))
+  } else {
+    endDate.setHours(17, 0) // Default 5:00 PM
+  }
+
+  return {
+    id: leave.id,
+    employeeName: leave.employeeName,
+    leaveType: leave.leaveType,
+    start: startDate,
+    end: endDate,
+    duration: leave.duration ? `${leave.duration} วัน` : '1 วัน',
+    reason: 'ข้อมูลจากระบบ'
+  }
+}
+
+// Check if a date is a holiday
+const isHolidayDate = (date: Date, holidays: HolidayEvent[]): boolean => {
+  // Format date as DD/MM/YYYY to match the holiday date format from backend
+  const dateStr = format(date, 'dd/MM/yyyy')
+  return holidays.some(holiday => holiday.date === dateStr)
+}
 
 // Year Picker Component
 const YearPicker = ({ currentYear, onYearSelect }: { currentYear: number, onYearSelect: (year: number) => void }) => {
@@ -194,7 +191,7 @@ const YearPicker = ({ currentYear, onYearSelect }: { currentYear: number, onYear
   )
 }
 
-const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
+const MobileCalendar = ({ employeeId }: MobileCalendarProps) => {
   // State
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date())
@@ -203,6 +200,17 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
 
   // Hooks
   const theme = useTheme()
+  const { user } = useAuth()
+  
+  // Use calendar data hook
+  const { leaves, holidays, loading, error } = useCalendarData({
+    year: getYear(currentDate),
+    month: currentDate.getMonth() + 1,
+    employeeId: employeeId || user?.id
+  })
+
+  // Transform leaves to match the original event format
+  const events = leaves.map(transformLeaveEvent)
 
   // Get events for selected date
   const getEventsForDate = useCallback((date: Date) => {
@@ -310,22 +318,45 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
     const isCurrentMonth = isSameMonth(date, currentDate)
     const isToday = isSameDay(date, new Date())
     const isSelected = selectedDate && isSameDay(date, selectedDate)
-
+    const isHoliday = isHolidayDate(date, holidays)
 
     // Check if date has events (used for visual indicators)
-    getEventsForDate(date).length > 0
+    const hasEvents = getEventsForDate(date).length > 0
 
     return {
       position: 'relative',
-      opacity: isCurrentMonth ? 1 : 0.3,
-      backgroundColor: isToday ? '#FF6B6B' : isSelected ? '#000000' : 'transparent',
-      color: isToday ? '#FFFFFF' : isSelected ? '#FFFFFF' : theme.palette.text.primary,
+      opacity: isCurrentMonth ? (isHoliday ? 0.5 : 1) : 0.3,
+      backgroundColor: isToday ? '#FF6B6B' : 
+                      isSelected ? '#000000' : 
+                      isHoliday ? '#FFE5E5' : 'transparent',
+      color: isToday ? '#FFFFFF' : 
+             isSelected ? '#FFFFFF' : 
+             isHoliday ? '#D32F2F' : theme.palette.text.primary,
       fontWeight: isToday || isSelected ? 'bold' : 'normal',
       borderRadius: isToday || isSelected ? '50%' : '8px',
       width: '44px',
       height: '44px',
-      aspectRatio: '1'
+      aspectRatio: '1',
+      border: isHoliday ? '1px solid #FFCDD2' : 'none'
     }
+  }
+
+  // Show loading state
+  if (loading) {
+    return (
+      <Box sx={{
+        minHeight: '100vh',
+        backgroundColor: '#F8F9FA',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <Box sx={{ textAlign: 'center' }}>
+          <CircularProgress sx={{ color: '#FF6B6B', mb: 2 }} />
+          <Typography>กำลังโหลดข้อมูลปฏิทิน...</Typography>
+        </Box>
+      </Box>
+    )
   }
 
   return (
@@ -334,6 +365,13 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
       backgroundColor: '#F8F9FA',
       padding: 0
     }}>
+      {/* Error Alert */}
+      {error && (
+        <Alert severity="error" sx={{ m: 2 }}>
+          เกิดข้อผิดพลาด: {error}
+        </Alert>
+      )}
+
       {/* Header */}
       <AppBar position="static" elevation={0} sx={{
         backgroundColor: '#FFFFFF',
@@ -492,9 +530,9 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
               }}>
                 {calendarDays.map((date, index) => {
                   // Check if date has events (used for visual indicators)
-    getEventsForDate(date).length > 0
+                  const hasEvents = getEventsForDate(date).length > 0
                   
-return (
+                  return (
                     <Box
                       key={index}
                       onClick={() => handleDateClick(date)}
