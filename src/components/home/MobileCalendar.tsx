@@ -11,7 +11,9 @@ import {
   Chip,
   Stack,
   AppBar,
-  Toolbar
+  Toolbar,
+  CircularProgress,
+  Alert
 } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
 
@@ -23,65 +25,16 @@ import {
 // Date utilities
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, getYear, setYear, setMonth } from 'date-fns'
 
-// Sample events data - employee leave events
-const getCurrentMonthEvents = () => {
-  const now = new Date()
-  const currentMonth = now.getMonth()
-  const currentYear = now.getFullYear()
+// Custom hooks
+import { useCalendarData } from '../../hooks/useCalendarData'
+import { useAuth } from '../../contexts/AuthContext'
 
-  return [
-    {
-      id: 1,
-      employeeName: 'น้องปอ',
-      leaveType: 'ลาป่วย',
-      start: new Date(currentYear, currentMonth, 5, 8, 0),
-      end: new Date(currentYear, currentMonth, 5, 17, 0),
-      duration: '1 วัน',
-      reason: 'ไข้หวัดใหญ่'
-    },
-    {
-      id: 2,
-      employeeName: 'น้องปอ',
-      leaveType: 'ลาพักร้อน',
-      start: new Date(currentYear, currentMonth, 12, 8, 0),
-      end: new Date(currentYear, currentMonth, 14, 17, 0),
-      duration: '3 วัน',
-      reason: 'ท่องเที่ยวกับครอบครัว'
-    },
-    {
-      id: 3,
-      employeeName: 'น้องปอ',
-      leaveType: 'ลากิจ',
-      start: new Date(currentYear, currentMonth, 18, 13, 0),
-      end: new Date(currentYear, currentMonth, 18, 17, 0),
-      duration: '0.5 วัน',
-      reason: 'ธุระส่วนตัว'
-    },
-    {
-      id: 4,
-      employeeName: 'น้องปอ',
-      leaveType: 'ลาคลอด',
-      start: new Date(currentYear, currentMonth, 22, 8, 0),
-      end: new Date(currentYear, currentMonth + 2, 22, 17, 0),
-      duration: '90 วัน',
-      reason: 'ลาคลอดบุตร'
-    },
-    {
-      id: 5,
-      employeeName: 'น้องปอ',
-      leaveType: 'ลาป่วย',
-      start: new Date(currentYear, currentMonth, 28, 8, 0),
-      end: new Date(currentYear, currentMonth, 29, 17, 0),
-      duration: '2 วัน',
-      reason: 'อุบัติเหตุ'
-    }
-  ]
-}
-
-const sampleEvents = getCurrentMonthEvents()
+// Types
+import type { LeaveEvent, HolidayEvent } from '../../types/calendar'
 
 type MobileCalendarProps = {
   events?: any[]
+  employeeId?: string
 }
 
 type ViewMode = 'calendar' | 'month' | 'year'
@@ -195,7 +148,7 @@ const YearPicker = ({ currentYear, onYearSelect }: { currentYear: number, onYear
   )
 }
 
-const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
+const MobileCalendar = ({ employeeId }: MobileCalendarProps) => {
   // State
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date())
@@ -320,10 +273,10 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
     const isCurrentMonth = isSameMonth(date, currentDate)
     const isToday = isSameDay(date, new Date())
     const isSelected = selectedDate && isSameDay(date, selectedDate)
-
+    const isHoliday = isHolidayDate(date, holidays)
 
     // Check if date has events (used for visual indicators)
-    getEventsForDate(date).length > 0
+    const hasEvents = getEventsForDate(date).length > 0
 
     return {
       position: 'relative',
@@ -334,8 +287,27 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
       borderRadius: isToday || isSelected ? '50%' : '8px',
       width: '44px',
       height: '44px',
-      aspectRatio: '1'
+      aspectRatio: '1',
+      border: isHoliday ? '1px solid #FFCDD2' : 'none'
     }
+  }
+
+  // Show loading state
+  if (loading) {
+    return (
+      <Box sx={{
+        minHeight: '100vh',
+        backgroundColor: '#F8F9FA',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <Box sx={{ textAlign: 'center' }}>
+          <CircularProgress sx={{ color: '#FF6B6B', mb: 2 }} />
+          <Typography>กำลังโหลดข้อมูลปฏิทิน...</Typography>
+        </Box>
+      </Box>
+    )
   }
 
   return (
@@ -344,6 +316,13 @@ const MobileCalendar = ({ events = sampleEvents }: MobileCalendarProps) => {
       backgroundColor: '#F8F9FA',
       padding: 0
     }}>
+      {/* Error Alert */}
+      {error && (
+        <Alert severity="error" sx={{ m: 2 }}>
+          เกิดข้อผิดพลาด: {error}
+        </Alert>
+      )}
+
       {/* Header */}
       <></>
       <AppBar position="static" elevation={0} sx={{

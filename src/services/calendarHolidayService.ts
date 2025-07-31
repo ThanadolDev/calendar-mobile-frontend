@@ -345,16 +345,16 @@ class CalendarHolidayService {
 
       // Combine events
       const events = [
-        ...holidaysResult.data.holidays,
-        ...leavesResult.data.leaves
+        ...(holidaysResult.data?.holidays || []),
+        ...(leavesResult.data?.leaves || [])
       ]
 
       return {
         success: true,
         data: {
           events,
-          holidays: holidaysResult.data.holidays,
-          leaves: leavesResult.data.leaves
+          holidays: holidaysResult.data?.holidays || [],
+          leaves: leavesResult.data?.leaves || []
         },
         message: 'Mobile calendar events retrieved successfully'
       }
@@ -383,7 +383,7 @@ class CalendarHolidayService {
         return result as any
       }
 
-      const holidayInfo = result.data.holidays.find(h => h.date === date)
+      const holidayInfo = result.data?.holidays.find(h => h.date === date)
 
       return {
         success: true,
