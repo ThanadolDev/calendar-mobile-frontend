@@ -34,6 +34,7 @@ export const useCalendarData = ({ year, month, employeeId }: UseCalendarDataProp
         // Validate input parameters
         if (!year || !month || isNaN(year) || isNaN(month) || month < 1 || month > 12) {
           setError('Invalid year or month parameters')
+
           return
         }
 
@@ -45,6 +46,7 @@ export const useCalendarData = ({ year, month, employeeId }: UseCalendarDataProp
         // Validate date objects
         if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
           setError('Invalid date calculation')
+
           return
         }
 
@@ -63,6 +65,7 @@ export const useCalendarData = ({ year, month, employeeId }: UseCalendarDataProp
         // Validate formatted dates
         if (!startDateStr || !endDateStr) {
           setError('Failed to format dates for API')
+
           return
         }
 
@@ -81,6 +84,7 @@ export const useCalendarData = ({ year, month, employeeId }: UseCalendarDataProp
         }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
+        
         setError(errorMessage)
 
         // Log detailed error in development only

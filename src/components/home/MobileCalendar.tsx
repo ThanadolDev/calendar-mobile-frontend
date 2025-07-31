@@ -166,16 +166,18 @@ const MobileCalendar = ({ employeeId }: MobileCalendarProps) => {
   // Safe date parsing utility
   const parseDateSafely = useCallback((dateStr: string): Date | null => {
     if (!dateStr) return null
-    
+
     // Handle DD/MM/YYYY format common in the API
     if (dateStr.includes('/')) {
       const [day, month, year] = dateStr.split('/')
       const parsedDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+
       return isNaN(parsedDate.getTime()) ? null : parsedDate
     }
-    
+
     // Handle ISO format
     const parsedDate = new Date(dateStr)
+
     return isNaN(parsedDate.getTime()) ? null : parsedDate
   }, [])
 
@@ -184,6 +186,7 @@ const MobileCalendar = ({ employeeId }: MobileCalendarProps) => {
     return holidayList.some(holiday => {
       if (!holiday.date) return false
       const holidayDate = parseDateSafely(holiday.date)
+
       return holidayDate && isSameDay(holidayDate, date)
     })
   }, [parseDateSafely])
@@ -194,8 +197,9 @@ const MobileCalendar = ({ employeeId }: MobileCalendarProps) => {
 
     return events.filter(event => {
       if (!event.date) return false
-      
+
       const eventDate = parseDateSafely(event.date)
+
       return eventDate && isSameDay(eventDate, date)
     })
   }, [events, parseDateSafely])
@@ -204,6 +208,7 @@ const MobileCalendar = ({ employeeId }: MobileCalendarProps) => {
   useEffect(() => {
     if (events) {
       const todayEvents = getEventsForDate(new Date())
+      
       setSelectedEvents(todayEvents)
     }
   }, [currentDate, events, getEventsForDate])
