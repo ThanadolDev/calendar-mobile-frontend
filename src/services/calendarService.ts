@@ -209,9 +209,11 @@ class CalendarService {
    */
   async getWeekEvents(date: Date = new Date()): Promise<ServiceResponse<EventsResponse>> {
     const startOfWeek = new Date(date)
+
     startOfWeek.setDate(date.getDate() - date.getDay()) // Go to Sunday
     
     const endOfWeek = new Date(startOfWeek)
+
     endOfWeek.setDate(startOfWeek.getDate() + 6) // Go to Saturday
 
     return this.getEvents({
@@ -282,7 +284,9 @@ class CalendarService {
     if (timeString) {
       return new Date(`${dateString}T${timeString}:00`)
     }
-    return new Date(dateString)
+
+    
+return new Date(dateString)
   }
 
   /**
@@ -290,7 +294,9 @@ class CalendarService {
    */
   static isToday(event: CalendarEvent): boolean {
     const today = new Date().toISOString().split('T')[0]
-    return event.startDate === today
+
+    
+return event.startDate === today
   }
 
   /**
@@ -299,10 +305,13 @@ class CalendarService {
   static isUpcoming(event: CalendarEvent, days: number = 7): boolean {
     const today = new Date()
     const futureDate = new Date()
+
     futureDate.setDate(today.getDate() + days)
     
     const eventDate = new Date(event.startDate)
-    return eventDate >= today && eventDate <= futureDate
+
+    
+return eventDate >= today && eventDate <= futureDate
   }
 
   /**

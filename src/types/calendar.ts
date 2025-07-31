@@ -37,6 +37,7 @@ export interface CreateEventRequest {
 }
 
 export interface UpdateEventRequest extends Partial<CreateEventRequest> {
+
   // All fields are optional for updates
 }
 
@@ -131,6 +132,7 @@ export interface CalendarViewMode {
 }
 
 export interface EventFormData extends CreateEventRequest {
+
   // Additional UI-specific fields can be added here
 }
 
@@ -148,3 +150,103 @@ export interface ServiceResponse<T> {
   message?: string
   error?: CalendarApiError
 }
+
+// ============================================================================
+// Holiday & Non-Work Day Types
+// ============================================================================
+
+export interface HolidayEvent {
+  id: string
+  date: string // DD/MM/YYYY format
+  title: string
+  type: 'holiday'
+  category: 'holiday' | 'weekend' | 'non_work'
+  isRecurring: boolean
+  dayName: string
+  isAllDay: boolean
+  color: string
+}
+
+export interface LeaveEvent {
+  id: string
+  leaveId: number
+  employeeId: string
+  employeeName: string
+  date: string // DD/MM/YYYY format
+  startDate: string
+  endDate: string
+  startTime?: string
+  endTime?: string
+  duration: number
+  leaveType: string
+  medicalStatus: string
+  approvalStatus: 'approved' | 'pending' | 'rejected'
+  color: string
+  isAllDay: boolean
+  type: 'leave'
+}
+
+export interface UnifiedCalendarDay {
+  date: string // DD/MM/YYYY format
+  dayName: string
+  isWeekend: boolean
+  isHoliday: boolean
+  eventsSummary?: string
+  counts: {
+    holidays: number
+    leaves: number
+    events: number
+    total: number
+  }
+  hasEvents: boolean
+}
+
+export interface LeaveBalance {
+  employeeId: string
+  employeeName: string
+  employmentStart: string
+  year: number
+  leaveTypes: {
+    holiday: LeaveTypeBalance
+    sick: LeaveTypeBalance
+    business: LeaveTypeBalance
+  }
+  holidayImpact: {
+    workingDaysLost: number
+    description: string
+  }
+}
+
+export interface LeaveTypeBalance {
+  entitlement: number
+  used: number
+  remaining: number
+  utilizationRate: number
+}
+
+export interface MonthCalendarData {
+  year: number
+  month: number
+  monthName: string
+  holidays: Array<{
+    date: string
+    title: string
+    type: string
+    color: string
+  }>
+  leaves: Array<{
+    date: string
+    employeeName: string
+    leaveType: string
+    duration: number
+    color: string
+    type: string
+  }>
+  summary: {
+    holidayCount: number
+    leaveCount: number
+  }
+}
+
+// Mobile Calendar Event Union Type
+export type MobileCalendarEvent = HolidayEvent | LeaveEvent | CalendarEvent

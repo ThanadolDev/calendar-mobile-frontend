@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+
 import { AlertCircle, CheckCircle, X, Info } from 'lucide-react'
 
 export interface ToastProps {
@@ -55,6 +56,7 @@ export const Toast: React.FC<ToastProps> = ({
 
   const getStyles = () => {
     const baseStyles = 'border-l-4 shadow-lg rounded-lg'
+
     switch (type) {
       case 'success':
         return `${baseStyles} bg-green-50 border-green-400`
@@ -113,11 +115,13 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const showToast = (toast: Omit<ToastProps, 'id' | 'onClose'>) => {
     const id = Math.random().toString(36).substr(2, 9)
+
     const newToast: ToastProps = {
       ...toast,
       id,
       onClose: removeToast
     }
+
     setToasts(prev => [...prev, newToast])
   }
 
@@ -141,8 +145,11 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
 export const useToast = () => {
   const context = React.useContext(ToastContext)
+
   if (!context) {
     throw new Error('useToast must be used within a ToastProvider')
   }
-  return context
+
+  
+return context
 }

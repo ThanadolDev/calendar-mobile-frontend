@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
+
 import calendarService from '../services/calendarService'
 import type {
   CalendarEvent,
@@ -7,7 +8,6 @@ import type {
   EventQueryOptions,
   StatsQueryOptions,
   CalendarStats,
-  EventsResponse,
   CalendarApiError
 } from '../types/calendar'
 
@@ -20,6 +20,7 @@ interface UseCalendarState {
 }
 
 interface UseCalendarReturn extends UseCalendarState {
+
   // Event management
   createEvent: (eventData: CreateEventRequest) => Promise<CalendarEvent | null>
   updateEvent: (id: number, eventData: UpdateEventRequest) => Promise<CalendarEvent | null>
@@ -52,6 +53,7 @@ export const useCalendar = (): UseCalendarReturn => {
   // Error handling utility
   const handleError = useCallback((error: CalendarApiError | string) => {
     const errorMessage = typeof error === 'string' ? error : error.message
+
     setState(prev => ({ ...prev, error: errorMessage, loading: false, createLoading: false }))
   }, [])
 
@@ -74,14 +76,17 @@ export const useCalendar = (): UseCalendarReturn => {
           events: [...prev.events, result.data!],
           createLoading: false
         }))
-        return result.data
+        
+return result.data
       } else {
         handleError(result.error || result.message || 'Failed to create event')
-        return null
+        
+return null
       }
     } catch (error) {
       handleError(error as CalendarApiError)
-      return null
+      
+return null
     }
   }, [handleError])
 
@@ -101,14 +106,17 @@ export const useCalendar = (): UseCalendarReturn => {
           ),
           loading: false
         }))
-        return result.data
+        
+return result.data
       } else {
         handleError(result.error || result.message || 'Failed to update event')
-        return null
+        
+return null
       }
     } catch (error) {
       handleError(error as CalendarApiError)
-      return null
+      
+return null
     }
   }, [handleError])
 
@@ -126,14 +134,17 @@ export const useCalendar = (): UseCalendarReturn => {
           events: prev.events.filter(event => event.id !== id),
           loading: false
         }))
-        return true
+        
+return true
       } else {
         handleError(result.error || result.message || 'Failed to delete event')
-        return false
+        
+return false
       }
     } catch (error) {
       handleError(error as CalendarApiError)
-      return false
+      
+return false
     }
   }, [handleError])
 
@@ -185,6 +196,7 @@ export const useCalendar = (): UseCalendarReturn => {
   const loadTodayEvents = useCallback(async () => {
     setState(prev => ({ ...prev, loading: true, error: null }))
     const today = new Date().toISOString().split('T')[0]
+
     setLastQuery({ startDate: today, endDate: today })
 
     try {
