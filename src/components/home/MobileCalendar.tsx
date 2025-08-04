@@ -239,10 +239,10 @@ const MobileCalendar = ({ employeeId }: MobileCalendarProps) => {
       setSelectedEvents(todayEvents)
 
       // Debug: Log events data to console
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Calendar Events:', events)
-        console.log('Today Events:', todayEvents)
-      }
+      // if (process.env.NODE_ENV === 'development') {
+      //   console.log('Calendar Events:', events)
+      //   console.log('Today Events:', todayEvents)
+      // }
     }
   }, [currentDate, events, getEventsForDate])
 
